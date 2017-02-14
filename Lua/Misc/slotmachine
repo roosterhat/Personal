@@ -1,0 +1,201 @@
+numbers={}
+money=1000
+pos = {0,0,0}
+endpoint = {}
+reel={}
+reel[0]=1
+reel[1]=4
+reel[2]=3
+reel[3]=2
+reel[4]=0
+reel[5]=3
+reel[6]=1
+reel[7]=2
+reel[8]=4
+reel[9]=1
+reel[10]=0
+reel[11]=2
+reel[12]=4
+reel[13]=3
+bet="N/A"
+colorTable = {}
+colorTable[0] = colors.red
+colorTable[1] = colors.blue
+colorTable[2] = colors.green
+colorTable[3] = colors.orange
+colorTable[4] = colors.purple
+for place=0,9,1 do
+  numbers[place] = place
+end
+
+function clear()
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(1,1)
+end
+
+function addZeros(amount)
+	temp = tostring(amount)
+	for number=1,4-string.len(temp),1 do
+		temp = "0"..temp
+	end
+	return temp
+end
+
+function drawSlots()
+	clear()
+	term.setTextColor(colors.black)
+	term.setBackgroundColor(colors.yellow)
+	print("  _____  ")
+	print(" | | | | ")
+	print(">| | | |<")
+	print(" | | | | ")
+	print("  -----  ")
+	term.setBackgroundColor(colors.blue)
+	term.setCursorPos(20,1)
+	write("$"..addZeros(money))
+	term.setCursorPos(26,1)
+	write("Bet: "..bet)
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.red)
+	for derp=0,2,1 do
+		term.setCursorPos(10+derp,5-derp)
+		write("//")
+	end
+	term.setCursorPos(13,2)
+	write("()")
+	term.setCursorPos(1,7)
+	term.setBackgroundColor(colors.red)
+	term.setTextColor(colors.white)
+	write("10")
+	term.setCursorPos(4,7)
+	write("50") 
+	term.setCursorPos(7,7)
+	write("100")
+	term.setCursorPos(11,7)
+	write("ALL")
+	term.setCursorPos(49,1)
+	write(" X ")
+end
+
+function drawColor(number)
+	term.setBackgroundColor(colorTable[number])
+	write(" ")
+	term.setBackgroundColor(colors.black)
+end
+
+function drawNumbers(positions)
+	drawSlots()
+	term.setBackgroundColor(colors.white)
+	term.setTextColor(colors.black)
+	for slot=1,3,1 do
+		for number=1,3,1 do
+			term.setCursorPos(1+slot*2,1+number)
+			if (number==1)then
+				if(positions[slot]-1==-1)then
+					drawColor(reel[table.getn(reel)])
+				else
+					drawColor(reel[positions[slot]-1])
+				end
+			elseif(number==2)then
+				drawColor(reel[positions[slot]])
+			else
+				if(positions[slot]+1==table.getn(reel))then
+					drawColor(reel[0])
+				else
+					drawColor(reel[positions[slot]+1])
+				end
+			end
+		end
+	end
+end
+
+function addpos(place)
+	if(pos[place]+1==table.getn(reel))then
+      pos[place]=0
+    else
+      pos[place]=pos[place]+1
+    end
+end
+
+function checkWin()
+	multiplyer = 0
+	if(reel[pos[1]]==reel[pos[2]] and reel[pos[1]]==reel[pos[3]])then
+		multiplyer = multiplyer+1
+	end
+	if(reel[pos[1]-1]==reel[pos[2]-1] and reel[pos[1]-1]==reel[pos[3]-1])then
+		multiplyer = multiplyer+.5
+	end
+	if(reel[pos[1]+1]==reel[pos[2]+1] and reel[pos[1]+1]==reel[pos[3]+1])then
+		multiplyer = multiplyer+.5
+	end
+	if(reel[pos[1]+1]==reel[pos[2]] and reel[pos[1]+1]==reel[pos[3]-1])then
+		multiplyer = multiplyer+.5
+	end
+	if(reel[pos[1]-1]==reel[pos[2]] and reel[pos[1]-1]==reel[pos[3]+1])then
+		multiplyer = multiplyer+.5
+	end
+
+	if(multiplyer~=0)then
+		term.setCursorPos(10,10)
+  		term.setTextColor(colors.blue)
+    	print("WINNER")
+    	sleep(2)
+    	term.setTextColor(colors.black)
+		money = money+bet+(bet*multiplyer)
+	end
+end
+
+while true do
+	drawNumbers(pos)
+	Event,key,xpos,ypos = os.pullEvent("mouse_click")
+	if(xpos>=10 and xpos<=14 and ypos<=5 and money>0 and bet~="N/A" and money-bet>=0)then
+		money = money-bet
+		for derp=1,3,1 do
+			endpoint[derp]=math.random(20,30)
+		end
+		drawNumbers(pos)
+		for spins=0,60,1 do
+			for derp=1,3,1 do
+				if(derp==1 and spins<=endpoint[1])then
+				addpos(1)
+				elseif(derp==2 and spins>=10 and spins<=10+endpoint[2])then
+				addpos(2)
+				elseif(derp==3 and spins>=20 and spins<=20+endpoint[3])then
+				addpos(3)
+			end
+		end
+		drawNumbers(pos)
+		sleep(.1)
+		end
+		checkWin()
+	elseif(ypos==7)then
+		if(xpos<=2)then
+			bet = 10
+		elseif(xpos>=4 and xpos<=5)then
+			bet = 50
+		elseif(xpos>=7 and xpos<=9)then
+			bet = 100
+		elseif(xpos>=11 and xpos<=13)then
+			bet = money
+		end
+	elseif(ypos==1)then
+		if(xpos>=49)then
+			break
+		end
+	elseif(bet=="N/A")then
+		term.setCursorPos(5,10)
+		term.setTextColor(colors.red)
+		print("Enter The Amount You Wish To Bet")
+		sleep(2)
+		term.setTextColor(colors.black)
+	elseif(money==0 or money-bet>=0)then
+		term.setCursorPos(10,10)
+		term.setTextColor(colors.red)
+		print("Not Enough Funds")
+		sleep(2)
+		term.setTextColor(colors.black)
+	end
+end
+  
+clear()

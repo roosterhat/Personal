@@ -1,0 +1,98 @@
+routers = {}
+disMessage = ""
+connectionError = false
+parent = 0
+
+function clear()
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function openPort()
+	for n,m in ipairs(rs.getSides()) do 
+		if peripheral.isPresent(m) and peripheral.getType(m)=="modem" then 
+			rednet.open(m)
+		end 
+	end
+end
+
+function startUp()
+	if(not fs.exists("parent"))then
+		fs.makeDir("parent")
+		openPort()
+		id=0
+		smallest = 1000
+		parent = 0
+		disMessage("Connecting to other routers...")
+		display()
+		sleep(1)
+		rednet.broadcast("new router")
+		while true do
+			id,msg,distance = rednet.receive(.5)
+			if(id==nil)then
+				break
+			elseif(msg=="parent")then
+				routers[#routers] = id
+				print(id.."-"..msg.."-"..distance)
+				sleep(1)
+				if(distance<smallest)then
+					smallest = distance
+					parent = id
+				end
+			end	
+		end
+		local open = fs.open("parent/parentid","w")
+		open.write(parent)
+		open.close()
+	end
+end
+
+function testConnection()
+	rednet.send(parent,"Ping")
+	id,msg,distance = rednet.receive(.5)
+	if(id~=nill and msg=="Pong")then
+		connectionError = false
+	else
+		connectionError = true
+	end
+end
+
+function display()
+	testConnection()
+	clear()
+	term.setCursorPos(1,1)
+	print(string.format("Router ID: %3d  Parent ID: %3d", os.computerID(),parent)) 
+	if(connectionError)then
+		term.setTextColor(colors.red)
+		print("Connection Error")
+		term.setTextColor(colors.white)
+	end
+	print(disMessage)
+end
+
+--**Beggining statements**
+	clear()
+	print("Booting...")
+	openPort()
+	startUp()
+	refreshTimer = os.startTimer(1)
+--**End**
+
+while true do --**Main Loop**
+	local Event,id,message,distance = os.pullEvent()
+	if(Event == "rednet_message")then
+		if(id==parent)then
+				
+		else
+			if(message=="Ping")then
+				rednet.send(id,"Pong")
+			elseif(message=="new router")then
+				rednet.send(id,"Recieved")
+			end	
+		end
+	elseif(Event == "timer")then
+		refreshTimer = os.startTimer(1)
+		display()
+	end
+end
+

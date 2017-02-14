@@ -1,0 +1,48 @@
+numbers = {}
+letters = {}
+count = 1
+monitor = peripheral.wrap("top")
+word = "Minecraft Lottery"
+for letter in word:gmatch'.' do
+  letters[count] = letter
+  count = count+1
+end
+
+function dropletters(letter,place)
+  local x,y = monitor.getSize()
+  local Xpos = place
+  local Ypos = 0
+  while true do
+    monitor.clear()
+    monitor.setCursorPos(Xpos,Ypos)
+    monitor.write(letter)
+    if(Ypos==10)then
+      return
+    end
+    Ypos = Ypos-1
+    sleep(.001)
+  end
+end
+
+for derp = 1,string.len(word),1 do
+  local done = false
+  local contains = false
+  while done==false do
+    newnumber = math.random(1,string.len(word))
+    --for _, value in pairs(numers) do
+    --  if(value==newnumber)then
+    --    contains = true
+    --  end
+    --end
+    --if(contains==false)then
+      numbers[derp] = newnumber
+      done = true
+    --end
+    --if(table.getn(numbers)==5)then
+    --  break
+    --end
+  end  
+end
+for derp = 1,string.len(word),1 do
+  dropletters(letters[derp],numbers[derp])
+end

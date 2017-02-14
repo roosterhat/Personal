@@ -1,0 +1,17 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname |Exercises 9-3-2015|) (read-case-sensitive #t) (teachpacks ((lib "universe.rkt" "teachpack" "2htdp") (lib "image.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #t #t none #f ((lib "universe.rkt" "teachpack" "2htdp") (lib "image.rkt" "teachpack" "2htdp")) #f)))
+(define eye (overlay (star 20 "solid" "black") (circle 20 "solid" "white")))
+(define smile(overlay/offset(square 10 "solid" "black") 35 5 (overlay/offset (rectangle 50 10 "solid" "black") 30 -10 (square 10 "solid" "balck"))))
+(define nose (square 10 "solid" "black"))
+(define test (overlay/offset (circle 20 "solid" "orange") 30 0 (rectangle 60 20 "solid" "green")))
+
+(define spaceship (overlay  (rectangle 80 10 "solid" "black") (circle 20 "solid" "blue")))
+
+(define banner (overlay (text "ERIK" 36 "white") (rectangle 100 40 "solid" "red")))
+
+(define shadowTriangle (above (triangle 40 "solid" "blue") (flip-vertical(triangle 40 "solid" "grey"))))
+
+(define smiley (overlay/offset eye 20 20 (overlay/offset eye -20 20 (overlay/offset smile 0 -30 (overlay/offset nose 0 -10(circle 60 "solid" "yellow"))))))
+
+(define (double-mirror-image img) (beside (scale 2 img) (flip-horizontal (scale 2 img))))

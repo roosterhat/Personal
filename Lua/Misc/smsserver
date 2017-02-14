@@ -1,0 +1,100 @@
+rednet.open("back")
+function title ()
+	local x,y = term.getSize()
+	term.clear()
+	term.setCursorPos(1,1)
+	print("MineText Server")
+	for derp = 1,x,1 do
+		write("-")
+	end
+	print()
+end
+
+-- prams[0] = username | prams[1] = command | prams[2] = extra paramiter | prams[3] = extra paramiter
+
+function parcemessage(message)
+	local count = 0
+	local prams = {}
+	for token in string.gmatch(message, "[^%s]+") do
+	   prams[count]=token
+	   count = count+1
+	end
+	if(prams[1]=="message")then
+		local open = fs.open("server/users/"..prams[2].."/friends/"..prams[0].."/message", "w")
+		open.write(prams[3])
+		open.close()
+	elseif(prams[1]=="getfriends")then
+		local count = 0
+		local friends = {}
+		local filename = fs.list("server/users/"..prams[0].."/friends")
+		for _,file in ipairs( filename ) do
+			friends[count] = file
+			count = count+1
+		end
+		rednet.send(clientID,textutils.serialize(friends))
+	elseif(prams[1]=="getmessages")then
+		local count = 0
+		local messages = {}
+		local filename = fs.list("server/users/"..prams[0].."/friends/"..prams[2])
+		for _,file in ipairs( filename ) do
+			local read = fs.open("server/users/"..prams[0].."/friends/"..prams[2].."/"..file , "r")
+			messages[count] = prams[0].."-"..read.readLine()
+			read.close()
+			count = count+1
+		end
+		rednet.send(clientID,textutils.serialize(messages))
+		local open = fs.open("server/users/"..prams[0].."/status" , "w")
+		rednet.send(open.readLine())
+		open.close()
+	elseif(prams[1]=="login")then
+		local read = fs.open("server/users/"..prams[0].."/password" , "r")
+		local pass = read.readLine()
+		read.close()
+		if(prams[2]==pass)then
+			local open = fs.open("server/users/"..prams[0].."/status" , "w")
+			open.write("online")
+			open.close()
+			rednet.send(prams[0],true)
+		else
+			rednet.send(prams[0],false)
+		end
+	elseif(prams[1]=="logout")then
+		local open = fs.open("server/users/"..prams[0].."/status" , "w")
+		open.write("offline")
+		open.close()
+	elseif(prams[1]=="addFriend")then
+		fs.makeDir("server/users/"..prams[0].."/friends/"..prams[2])
+	elseif(prams[1]=="deleteFriend")then
+		fs.delete("server/users/"..prams[0].."/friends/"..prams[2])
+	elseif(prams[1]=="friendRequests")then
+		
+	elseif(prams[1]=="newaccount")then
+		if(fs.exists("server/users/"..prams[0])==false)then
+			fs.makeDir("server/users/"..prams[0])
+			fs.makeDir("server/users/"..prams[0].."/friends")
+			fs.makeDir("server/users/"..prams[0].."/friendRequests")
+			local open = fs.open("server/users/"..prams[0].."/password" , "w")
+			open.write(prams[3])
+			open.close()
+			local open = fs.open("server/users/"..prams[0].."/status" , "w")
+			open.write("online")
+			open.close()
+			rednet.send(prams[0],true)
+		else
+			rednet.send(prams[0],false)
+		end
+	end
+	rednet.send(prams[0],"conected")
+	print(prams[1].." on concole "..prams[0].." asked for "..prams[2].."[]"..textutils.formatTime(os.time(),true))
+end
+
+--**PROGRAM STARTS HERE**
+title()
+if (fs.exists("server")==false) then
+	fs.makeDir("server")
+	fs.makeDir("server/users")
+end
+while true do
+	local Event,clientID,message,distance = os.pullEvent("rednet_message")
+	parcemessage(message)
+end

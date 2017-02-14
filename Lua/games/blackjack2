@@ -1,0 +1,508 @@
+deck = {}
+newdeck = {}
+playerHand = {}
+dealerHand = {}
+
+content = 
+{
+	main = 
+	{
+		background = nil,
+		visible = false,
+		setBackground = function(path)
+			content.main.background = paintutils.loadImage(path)
+		end,
+		getBackground = function()
+			return content.main.background
+		end,
+		getPageContent = function()
+			return pageContent
+		end,
+		pageContent = 
+		{
+			buttons = {},
+			labels = {},
+			dropDowns = {},
+			images = {},
+			getButtons = function()
+				return content.main.pageContent.buttons
+			end,
+			addButton = function(text,xpos,ypos,wid,high,c,tc,v,f)
+				content.main.pageContent.buttons[#content.main.pageContent.buttons+1] = 
+									  {name = text,x = xpos,y = ypos
+									  ,width = wid,height = high,color = c
+									  ,textcolor = tc, visible = v, buttonFunction = f}
+				return #content.main.pageContent.buttons
+			end,
+			drawButton = function(index)
+					b = content.main.pageContent.buttons[index]
+				if(b.visible)then
+					drawing.fillArea(b.color,b.x,b.y,b.width,b.height)      
+					drawing.writeTextCentered(b.name,b.x,b.y,b.width,b.height,b.textcolor,b.color)
+				end
+			end,
+			getLabels = function()
+				return content.main.pageContent.labels
+			end,
+			addLabel = function(text,xpos,ypos,l,cent,c,tc)
+				content.main.pageContent.labels[#content.main.pageContent.labels+1] = 
+									{name = text,x = xpos,y = ypos,labelLength = l,centered = cent,color = c,textcolor = tc}
+			end,
+			setLabelText = function(index,text)
+				content.main.pageContent.labels[index].name = text
+			end,
+			drawLabel = function(index)
+
+				b = content.main.pageContent.labels[index]
+				drawing.fillArea(b.color,b.x,b.y,b.labelLength,1)
+				if(b.centered)then
+					drawing.writeTextCentered(b.name,b.x,b.y,b.labelLength,1,b.textcolor,b.color)
+				else
+					drawing.writeText(b.name,b.x,b.y,b.textcolor,b.color)
+				end
+			end,
+			addImage = function(i,xpos,ypos)
+				content.main.pageContent.images[#content.main.pageContent.images+1] = {image = paintutils.loadImage(i),x = xpos,y = ypos}
+			end,
+			getImages = function()
+				return content.main.pageContent.images
+			end,
+			drawImage = function(index)
+				i=content.main.pageContent.images[index]
+				drawing.displayImage(i.image,i.x,i.y)
+			end,
+			addDropDown = function(n,xpos,ypos,l,c,tc,ddc,ddtc)
+				content.main.pageContent.dropDowns[#content.main.pageContent.dropDowns+1] = {name = n,x = xpos,y = ypos,dropDownLength = l,color = c,textColor = tc, dropDownColor = ddc,dropDownTextColor = ddtc,visible = false,elements = {}}
+			end,
+			addDropDownElement = function(index,n,f)
+				content.main.pageContent.dropDowns[index].elements[#content.main.pageContent.dropDowns[index].elements+1] = {name = n,elementFunction = f}
+			end,
+			drawDropDown = function(index)
+				d=content.main.pageContent.dropDowns[index]
+				drawing.fillArea(d.color,d.x,d.y,d.dropDownLength,1)
+				drawing.writeText(d.name,d.x,d.y,d.color,d.textColor)
+				drawing.fillArea(d.dropDownColor,d.x,d.y+1,d.dropDownLength,#content.page3.pageContent.dropDowns[index].elements)
+				if(visible)then
+					for i=1,#content.page3.pageContent.dropDowns[index].elements,1 do
+						drawing.writeText(d.elements[x].name,d.x,d.y+i,d.dropDownColor,d.dropDownTextColor)
+					end
+				end
+			end,
+			getDropDowns = function()
+				return content.main.pageContent.dropDowns
+			end
+		}
+		
+	},
+	options = 
+	{
+		background = nil,
+		visible = false,
+		setBackground = function(path)
+			content.options.background = paintutils.loadImage(path)
+		end,
+		getBackground = function()
+			return content.options.background
+		end,
+		getPageContent = function()
+			return pageContent
+		end,
+		pageContent = 
+		{
+			buttons = {},
+			labels = {},
+			dropDowns = {},
+			images = {},
+			getButtons = function()
+				return content.options.pageContent.buttons
+			end,
+			addButton = function(text,xpos,ypos,wid,high,c,tc,v,f)
+				content.options.pageContent.buttons[#content.options.pageContent.buttons+1] = 
+									  {name = text,x = xpos,y = ypos
+									  ,width = wid,height = high,color = c
+									  ,textcolor = tc, visible = v, buttonFunction = f}
+				return #content.options.pageContent.buttons
+			end,
+			drawButton = function(index)
+					b = content.options.pageContent.buttons[index]
+				if(b.visible)then
+					drawing.fillArea(b.color,b.x,b.y,b.width,b.height)      
+					drawing.writeTextCentered(b.name,b.x,b.y,b.width,b.height,b.textcolor,b.color)
+				end
+			end,
+			getLabels = function()
+				return content.options.pageContent.labels
+			end,
+			addLabel = function(text,xpos,ypos,l,cent,c,tc)
+				content.options.pageContent.labels[#content.options.pageContent.labels+1] = 
+									{name = text,x = xpos,y = ypos,labelLength = l,centered = cent,color = c,textcolor = tc}
+			end,
+			setLabelText = function(index,text)
+				content.options.pageContent.labels[index].name = text
+			end,
+			drawLabel = function(index)
+
+				b = content.options.pageContent.labels[index]
+				drawing.fillArea(b.color,b.x,b.y,b.labelLength,1)
+				if(b.centered)then
+					drawing.writeTextCentered(b.name,b.x,b.y,b.labelLength,1,b.textcolor,b.color)
+				else
+					drawing.writeText(b.name,b.x,b.y,b.textcolor,b.color)
+				end
+			end,
+			addImage = function(i,xpos,ypos)
+				content.options.pageContent.images[#content.options.pageContent.images+1] = {image = paintutils.loadImage(i),x = xpos,y = ypos}
+			end,
+			getImages = function()
+				return content.options.pageContent.images
+			end,
+			drawImage = function(index)
+				i=content.options.pageContent.images[index]
+				drawing.displayImage(i.image,i.x,i.y)
+			end,
+			addDropDown = function(n,xpos,ypos,l,c,tc,ddc,ddtc)
+				content.options.pageContent.dropDowns[#content.options.pageContent.dropDowns+1] = {name = n,x = xpos,y = ypos,dropDownLength = l,color = c,textColor = tc, dropDownColor = ddc,dropDownTextColor = ddtc,visible = false,elements = {}}
+			end,
+			addDropDownElement = function(index,n,f)
+				content.options.pageContent.dropDowns[index].elements[#content.options.pageContent.dropDowns[index].elements+1] = {name = n,elementFunction = f}
+			end,
+			drawDropDown = function(index)
+				d=content.options.pageContent.dropDowns[index]
+				drawing.fillArea(d.color,d.x,d.y,d.dropDownLength,1)
+				drawing.writeText(d.name,d.x,d.y,d.color,d.textColor)
+				drawing.fillArea(d.dropDownColor,d.x,d.y+1,d.dropDownLength,#content.page3.pageContent.dropDowns[index].elements)
+				if(visible)then
+					for i=1,#content.page3.pageContent.dropDowns[index].elements,1 do
+						drawing.writeText(d.elements[x].name,d.x,d.y+i,d.dropDownColor,d.dropDownTextColor)
+					end
+				end
+			end,
+			getDropDowns = function()
+				return content.options.pageContent.dropDowns
+			end
+		}
+	},
+	pages = {}
+}
+
+content.pages = 
+	{
+		content.main,
+		content.options
+	}
+
+drawing = 
+{
+	displayImage = function(image,x,y)
+		paintutils.drawImage(image,x,y)
+	end,
+	fillArea = function(color,xpos,ypos,wid,high)
+		term.setCursorPos(1,1)
+
+		term.setBackgroundColor(color)
+		for y=ypos,ypos+high-1,1 do
+			for x=xpos,xpos+wid-1,1 do
+				term.setCursorPos(x,y)
+				write(" ")
+			end
+		end
+	end,
+	writeText = function(text,x,y,color,bgcolor)
+		term.setTextColor(color)
+		term.setBackgroundColor(bgcolor)
+		term.setCursorPos(x,y)
+		write(text)
+	end,
+	writeTextCentered = function(text,x,y,wid,high,color,bgcolor)
+		term.setCursorPos(x+(wid-#text)/2,y+high/2)
+		term.setTextColor(color)
+		term.setBackgroundColor(bgcolor)
+		term.write(text)
+	end,
+	clear = function()
+		term.setBackgroundColor(colors.black)
+		term.clear()
+		term.setCursorPos(1,1)
+	end
+}
+
+card = 
+{
+	cards = {},
+	addCard = function(f,v,s)
+		card.cards[#card.cards+1] = {front = f, value = v, sign = s}
+	end,
+	drawCard = function(index,x,y)
+		--print(x.."-"..y)
+		if(card.cards[index].front)then
+			drawing.displayImage(paintutils.loadImage("cardFront"),x,y)
+			if(card.cards[index].sign=="10")then
+				drawing.writeText(card.cards[index].sign,x+5,y,colors.black,colors.white)
+				drawing.writeText(card.cards[index].sign,x,y+6,colors.black,colors.white)
+			else
+				drawing.writeText(card.cards[index].sign,x+6,y,colors.black,colors.white)
+				drawing.writeText(card.cards[index].sign,x,y+6,colors.black,colors.white)
+			end
+		else
+			drawing.displayImage(paintutils.loadImage("cardBack"),x,y)
+		end
+	end
+		
+}
+
+function drawPageContent()
+	showButtons(currentPage.pageContent.getButtons())
+	showLabels(currentPage.pageContent.getLabels())
+	showImages(currentPage.pageContent.getImages())
+	showDropDowns(currentPage.pageContent.getDropDowns())
+end
+
+function showButtons(buttons)
+	for x=1,#buttons,1 do
+		currentPage.pageContent.drawButton(x)
+	end
+end
+
+function showLabels(labels)
+	content.main.pageContent.labels[2].name = "$"..cash
+	for x=1,#labels,1 do
+		currentPage.pageContent.drawLabel(x)
+	end
+end
+
+function showImages(images)
+	for x=1,#images,1 do
+		currentPage.pageContent.drawImage(x)
+	end
+end
+
+function showDropDowns(dropDowns)
+	for x=1,#dropDowns,1 do
+		currentPage.pageContent.drawDropDown(x)
+	end
+end
+
+
+
+function filldeck()
+	for deckcount=0,3,1 do
+		for card=2,14,1 do
+			newdeck[(card-1)+13*deckcount] = card
+		end
+	end
+end
+
+function shuffledeck()
+	local number
+	local finished = false
+	for count=1,52,1 do
+		while finished == false do
+			number = math.random(1,52)
+			if(deck[number]==nil)then
+				deck[number] = newdeck[count]
+				finished = true
+			end
+		end
+		finished = false
+	end
+end
+
+function getCardValue(card)
+	if(card>10 and card<14)then
+		return 10
+	elseif(card==14) then
+		return 11
+	else
+		return card
+	end
+end
+
+function getCardSign(card)
+	if(card<=10)then
+		return tostring(card)
+	elseif(card==11)then
+		return "J"
+	elseif(card==12)then
+		return "Q"
+	elseif(card==13)then
+		return "K"
+	elseif(card==14)then
+		return "A"
+	end
+end	
+
+function getCard(player)
+	local count = 1
+	while deck[count]=="used" do
+		count = count+1
+	end
+	local newcard = deck[count]
+	deck[count] = "used"
+	card.addCard(player,getCardValue(newcard),getCardSign(newcard))
+	return #card.cards
+end
+
+function displayCards(player,xpos,ypos)
+	for i=1,#player,1 do
+		card.drawCard(player[i],xpos+(i-1)*8,ypos)
+	end
+end
+
+function bust(hand)
+	local total = 0
+	for i = 1,#hand,1 do
+		total = total + hand[i].value
+	end
+	if(total>21)then
+		return true
+	else
+		return false
+	end
+end
+
+function contains(index,array)
+	for i=1,#array,1 do
+		if(array[i]==index)then
+			return true
+		end
+	end
+	return false
+end
+
+function getHandValue(player)
+	total = 0
+	for i=1,#player,1 do
+		total = total+getCardValue(player[i])
+		print(">"..total)
+	end
+	sleep(1)
+	return total
+end
+
+function addEarnings()
+	cash = cash+bet
+end
+	
+function setUpGame()
+	begining = true
+	filldeck()
+	shuffledeck()
+	playerHand[1] = getCard(true)
+	playerHand[2] = getCard(true)
+	dealerHand[1] = getCard(false)
+	dealerHand[2] = getCard(false)
+	bet = 0
+	--cash = 1000
+	content.main.pageContent.labels[2].name = "$"..cash
+	disabledB = {3,4}
+	disabledDD = {}
+	played = false
+	content.main.pageContent.buttons[6].visible = false
+	content.main.pageContent.buttons[7].visible = false
+	content.main.pageContent.buttons[8].visible = false
+	content.main.pageContent.buttons[9].visible = false
+	content.main.pageContent.buttons[5].visible = true
+end	
+
+function analyseClick(xpos,ypos,disabledButtons,disabledDropDowns)
+	buttons = currentPage.pageContent.getButtons()
+	for i=1,#buttons,1 do
+		if(xpos>=buttons[i].x and xpos<=buttons[i].x+buttons[i].width-1) then
+			if(ypos>=buttons[i].y and ypos<=buttons[i].y+buttons[i].height) then
+				if(not contains(i,disabledButtons))then
+					buttons[i].buttonFunction()
+				end
+			end
+		end
+	end
+	dropDowns = currentPage.pageContent.getDropDowns()
+	for i=1,#dropDowns,1 do
+		if(xpos>=dropDowns[i].x and xpos<=dropDowns[i].x+dropDowns[i].dropDownLength-1) then
+			if(not contains(i,disabledDropDowns))then
+				if(ypos==dropDowns[i].y) then
+					dropDowns[i].visible = not dropDowns[i].visible
+				elseif (dropDowns[i].visible) then 	
+					for a=1,#dropDowns[i].elements,1 do
+						if(ypos==dropDowns[i].y+a) then
+							dropDowns[i].elements[a].elementFunction()
+						end
+					end
+				end
+			end
+		end
+	end
+	
+end 
+
+
+
+running = true
+begining = true
+
+currentPage = content.pages[1]
+local termWidth,termHeight = term.getSize()
+cash=0
+bet=0
+--set up screen
+content.main.setBackground("BJBackground")
+content.main.pageContent.addLabel("Black Jack",1,1,10,false,colors.lightGray,colors.white)
+content.main.pageContent.addLabel("$",2,11,6,false,colors.green,colors.white)
+content.main.pageContent.addLabel("Bet $0",17,11,6,false,colors.green,colors.white)
+content.main.pageContent.addButton(" X ",termWidth-2,1,3,1,colors.red,colors.white,true,function() running = false end)
+content.main.pageContent.addButton("Options",termWidth-9,1,7,1,colors.gray,colors.white,true,function()end)
+content.main.pageContent.addButton("Hit",2,12,7,3,colors.orange,colors.white,true,function()playerHand[#playerHand+1] = getCard(true)end)
+content.main.pageContent.addButton("Stay",2,16,7,3,colors.lightBlue,colors.white,true,function() played = true end)
+content.main.pageContent.addButton("Bet",26,12,7,3,colors.blue,colors.white,true,function()term.setCursorPos(26,13) term.setBackgroundColor(colors.blue) term.setTextColor(colors.white) write("$      ") term.setCursorPos(27,13) bet = tonumber(io.read())end)
+content.main.pageContent.addButton("Yes",20,11,3,1,colors.lime,colors.white,false,function()setUpGame()end)
+content.main.pageContent.addButton("No",25,11,3,1,colors.red,colors.white,false,function() running = false end)
+content.main.pageContent.addButton("The Dealer bust would you like to play again",5,10,38,1,colors.red,colors.white,false,function()end)
+content.main.pageContent.addButton("You bust would you like to play again",5,10,38,1,colors.red,colors.white,false,function()end)
+--set up game
+setUpGame()
+cash = 1000
+
+
+while running do
+	drawing.clear()
+	drawing.displayImage(currentPage.getBackground(),1,1)
+	drawPageContent()
+	term.setCursorPos(1,2)
+	for i=1,#disabledB,1 do
+		write(disabledB[i]..",")
+	end
+	write(getHandValue(playerHand))
+	--write(contains(3,disabledB))
+	displayCards(playerHand,10,12)
+	displayCards(dealerHand,10,3)
+	event, button, x, y = os.pullEvent("mouse_click")
+	analyseClick(x,y,disabledB,diabledDD)
+	if(bet>0)then
+		if(cash-bet>=0 and begining)then
+			content.main.pageContent.labels[3].name = "$"..bet
+			content.main.pageContent.buttons[5].visible = false
+			cash = cash-bet
+			disabledB = {}
+			begining = false
+		end
+	end
+	if(getHandValue(playerHand)>21)then
+		disabledB = {2,3,4,5}
+		content.main.pageContent.buttons[9].visible = true
+		content.main.pageContent.buttons[6].visible = true
+		content.main.pageContent.buttons[7].visible = true
+	end
+	if(played)then
+		while(getHandValue(dealerHand)<=17)do
+			dealerHand[#dealerHand+1] = getCard(false)
+			played = false
+		end
+	end
+	if(getHandValue(dealerHand)>21)then
+		disabledB = {2,3,4,5}
+		content.main.pageContent.buttons[8].visible = true
+		content.main.pageContent.buttons[6].visible = true
+		content.main.pageContent.buttons[7].visible = true
+		addEarnings()
+	end
+end
+drawing.clear()

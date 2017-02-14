@@ -1,0 +1,23 @@
+1.General Frequencies Usage
+ E, T, A, O, N, I, R, S (64%)
+ H, D, L, U, C (19-20%)
+ M, W, F, Y, P, G, B, V (15%)
+ K, J, X, Q, Z (1-2%)
+
+2. 1st Letter Frequencies
+ T, A, S, O, I, C, W, P, B, F, H, M
+
+3. Last Letter Frequencies
+ E, T, S, D, N, R, Y, O, F, L, A, G
+
+4. Double Letter Frequency
+ LL, EE, SS, TT, OO, MM, FF, PP, RR, NN, CC, DD
+
+5. Common Small Words
+ 1-letter: a,i,o
+ 2-letter: of,to,in,is,it,be,as,at
+ 3-letter: the,and,for,are,but,not,you,all
+ 4-letter: that,with,have,this,will,your,from,they
+ 5-letter: which,would,there
+
+6.  Average word length in English is 5 1/2 letters.

@@ -1,0 +1,4 @@
+monitor = peripheral.wrap("top")
+x,y=monitor.getSize()
+number = math.floor(y/3)
+print(number)

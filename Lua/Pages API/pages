@@ -1,0 +1,192 @@
+local args = {...}
+local elements = {}
+local loadedElements = {}
+width,height = term.getSize()
+
+function findPath(path)
+	local function locationHelper(p,target)
+		for _,f in ipairs(fs.list(p))do
+			local path = p.."/"..f
+			if(fs.exists(path))then
+				if(f==target)then
+					return path
+				end
+				if(fs.isDir(path))then
+					local res = locationHelper(path,target)
+					if(res~=nil)then return res end
+				end
+			end
+		end
+		return nil
+	end
+	return locationHelper("",path)
+end
+
+
+
+function loadPackage(path)
+	if(fs.exists(path))then
+		for _,f in ipairs(fs.list(path))do
+			if(f=="pages")then
+			elseif(not util.contains(elements,f))then
+				elements[#elements+1] = path.."/"..f
+			end
+		end
+	end
+end
+
+function loadAPIs()
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	print("Initializing...")
+	local pkg = findPath("PagesPkg")
+	if(pkg==nil)then
+		error("Unable to locate the directory \"PagesPkg\" ")
+	else
+		loadPackage(pkg)
+		for _,f in ipairs(elements)do
+			if(os.loadAPI(f))then
+				loadedElements[#loadedElements+1] = f
+				term.setTextColor(colors.white)
+				term.setBackgroundColor(colors.black)
+				print("Loaded "..f)
+			else
+				term.setTextColor(colors.red)
+				term.setBackgroundColor(colors.black)
+				print("Unable to load "..f)
+			end
+		end
+	end
+end
+
+function clear()
+	term.setBackgroundColor(colors.black)
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+
+function main()
+	os.loadAPI(findPath("util"))
+	for _,p in ipairs(args) do
+		if(type(p)=="string")then
+			if(fs.exists(p))then
+				loadPackage(p)
+			else
+				term.setTextColor(colors.red)
+				term.setBackgroundColor(colors.black)
+				print("Could not find package "..p)
+			end
+		end	
+	end
+	loadAPIs()
+end
+ 
+main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--[[
+function newTextBox(xpos,ypos,w,h,text,m,c,tc,f)--x position, y position, width, height, text that will be displayed inside the text box, text mask i.e."*", color of the box, text color, function for what text box should do after user hits Enter
+	local itemNumber = findOpening(objects)
+	objects[itemNumber] = {}
+	local this = objects[itemNumber]
+	local temp = {}
+	for i=0,height,1 do
+		temp[i] = ""
+	end
+	objects[itemNumber] = 
+	{
+		x = xpos,y = ypos,width = w,height = h,displayText = text,mask = m,color = c,textColor = tc,text = temp,hasText = false,endFunction = f,oType = "TextBox",
+		draw = function()
+			t = objects[itemNumber]
+			fillArea(t.color,x,y,width,height)
+			if(t.hasText)then
+				for i=1,#this.text,1 do
+					drawText(this.text[i],this.x+(i-1),this.y,this.color,this.textColor)
+				end
+			else
+				writeText(t.displayText,t.x,t.y,t.color,t.textColor) 
+			end
+		end,
+		clear = function()
+			local temp = {}
+			for i=0,height,1 do
+				temp[i] = ""
+			end
+			objects[itemNumber].text = temp
+			objects.TextBoxes[itemNumber].hasText = false
+		end,
+		clicked = function(xpos,ypos)	
+			local currentLine = 1
+			n = objects[itemNumber]
+			if(this.x<=xpos and this.x+this.width>=xpos)then
+				if(this.y<=ypos and this.y+this.height>=ypos)then
+					term.setCursorBlink(true)
+					while running do
+						local event, p,pram1,pram2 = getEvent()
+						if(event == "char") then
+							this.hasText = true
+							for i=currentLine,this.height,1 do
+								if(#this.text[i]<this.width)then
+									this.text[i] = this.text[i]..p
+								end
+							end
+						elseif(event == "key")then
+							if p == keys.enter then
+								this.endFunction()
+								term.setCursorBlink(false)
+								break
+							elseif p == keys.backspace then
+								this.text[currentLine] = this.text[currentLine]:sub(1, #this.text[currentLine] - 1)
+								if(string.len(this.text[currentLine])==0)then
+									if(currentLine>0)then        
+										currentLine = currentLine-1
+									end
+								end
+							end
+						end
+						objects[itemNumber].draw()
+					end
+				end
+			end
+		end
+	}
+	this = objects[itemNumber]
+	return objects[itemNumber]
+end
+]]
+
+
+
+
+
+
+
+
+
+
+

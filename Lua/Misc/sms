@@ -1,0 +1,645 @@
+chat = {}
+main = 72
+username = "username"
+password = "password"
+
+function title()
+	term.clear()
+	term.setCursorPos(1,1)
+	local x,y = term.getSize()
+	write("MineText")
+	term.setCursorPos(x-9,1)
+	write(textutils.formatTime(os.time(), false))
+	term.setCursorPos(1,3)
+	for derp = 1,x,1 do
+		write("-")
+	end
+end
+
+function clear()
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function setbackground(color,x,y)
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(color)
+	for rows = 1,y,1 do
+		for columns = 1,x,1 do
+			term.write(" ")
+		end
+		print()
+	end
+end
+
+function gettext(xplace,yplace,mask)
+	local x,y = term.getSize()
+	local input = ""
+	term.setTextColor(colors.white)
+	term.setCursorPos(xplace-3,yplace)  
+	print("|                         |")
+	term.setCursorPos(xplace+1,yplace)
+	term.setCursorBlink(true)
+	while true do
+		local derp,herp = term.getCursorPos()
+		term.setCursorPos(derp-1,herp)
+		local event, p = os.pullEvent()
+		if event == "char" then
+			if(string.len(input)==21)then
+			else
+				input = input..p
+			end
+		elseif event == "key" then
+			if p == keys.enter then
+				term.setCursorBlink(false)
+				return input
+			elseif p == keys.backspace then
+				input = input:sub(1, #input - 1)
+			end
+		end
+		term.setCursorPos(xplace,yplace)
+		write( ( mask and string.rep(mask, #input) or input ).." ")
+	end
+	error( "should never get here" )
+
+end
+
+function getchattext(xplace,yplace)
+	local lines = {}
+	local x,y = term.getSize()
+	lines[0] = ""
+	lines[1] = ""
+	lines[2] = ""
+	lines[3] = ""
+	ycurs = yplace
+	term.setTextColor(colors.black)
+	term.setBackgroundColor(colors.white)
+	local count = 0
+	term.setCursorBlink(true)
+	term.setCursorPos(xplace,ycurs+count)
+	while true do
+		local event, p,pram1,pram2 = os.pullEvent()
+		if event == "char" then
+			if(string.len(lines[count])==x-15)then
+				if(count<3)then
+					count = count+1
+					lines[count]=""
+					local words = {}
+					local newcount = 0
+					newstring = lines[count-1]
+					term.setCursorPos(1,1)
+					for token in string.gmatch(newstring, "[^%s]+") do
+					   words[newcount]=token
+					   newcount = newcount+1
+					end
+					lines[count-1] = string.sub(lines[count-1],1,36-string.len(words[table.getn(words)]))
+					lines[count] = lines[count]..words[table.getn(words)]..p
+				end
+			else
+				lines[count] = lines[count]..p
+			end
+		elseif event == "key" then
+			if p == keys.enter then
+				term.setCursorBlink(false)
+				--input = lines[0]..lines[1]..lines[2]..line[3]
+				rednet.send(main,username.."-message-"..current_chat.."-"..textutils.serialize(lines))
+				return --input
+			elseif p == keys.backspace then
+				lines[count] = lines[count]:sub(1, #lines[count] - 1)
+				if(string.len(lines[count])==0)then
+					if(count>0)then
+						count = count-1
+					end
+				end
+			end
+		elseif(event=="mouse_click")then
+			if(pram2==15)then
+				if(pram1>=x-4)then
+					term.setCursorBlink(false)
+					--input = lines[0]..lines[1]..lines[2]..line[3]
+					return --input
+				end
+			elseif(pram2<=yplace)then
+				--if(pram1<=xplace)then
+					term.setCursorBlink(false)
+					return
+				--end
+			end
+		end
+		
+		for rows=0,3,1 do
+			for columns=0,36,1 do
+				term.setCursorPos(16+columns,16+rows)
+				write(" ")
+			end
+		end
+		term.setCursorPos(xplace,ycurs)
+		--string.rep(" ",xplace)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[0] ).." ")
+		term.setCursorPos(xplace,ycurs+1)
+		--string.rep(" ",xplace)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[1] ).." ")
+		term.setCursorPos(xplace,ycurs+2)
+		--string.rep(" ",xplace)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[2] ).." ")
+		term.setCursorPos(xplace,ycurs+3)
+		--string.rep(" ",xplace)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[3] ).." ")
+		term.setCursorPos(xplace+string.len(lines[count]),ycurs+count)
+	end
+	error( "should never get here" )
+	term.clearLine()
+end
+
+function printlogin(line)
+	local done = false
+	local x,y = term.getSize()
+	clear()
+	setbackground(colors.lightBlue,x,y)
+	term.setTextColor(colors.white)
+	term.setCursorPos(x/2-4,y/2-3)
+	print("MineChat")
+	term.setCursorPos(x/2-13,y/2+1)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+2)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(username)/2),y/2+2)
+	print(username)
+	term.setCursorPos(x/2-13,y/2+3)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+4)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+5)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(password)/2),y/2+5)
+	if(password=="password")then
+		print(password)
+	else
+		print(string.rep("*",string.len(password)))
+	end
+	term.setCursorPos(x/2-13,y/2+6)
+	print(" -------------------------")
+	term.setCursorPos(x/2-3,y/2+7)
+	term.setBackgroundColor(colors.blue)
+	print(" Login ")
+	term.setBackgroundColor(colors.lightBlue)
+	term.setTextColor(colors.lightGray)
+	term.setCursorPos(x/2-8,y/2+8)
+	print("Create an account")
+	term.setCursorPos(x-2,1)
+	term.setBackgroundColor(colors.red)
+	term.setTextColor(colors.white)
+	write(" x ")
+	term.setBackgroundColor(colors.lightBlue)
+end
+
+function wordwrap(message)
+	local newcount = 0
+	local words = {}
+	for token in string.gmatch(message, "[^%s]+") do
+	   words[newcount]=token
+	   newcount = newcount+1
+	end
+	return string.sub(message,1,24-string.len(words[table.getn(words)])),words[table.getn(words)]
+end
+
+function printLeft(user,message,current)
+	local state=true
+	local lines = {}
+	local xplace=0
+	local x,y = term.getCursorPos()
+	term.setBackgroundColor(colors.white)
+	if(user==username)then
+		term.setTextColor(colors.lightGray)
+	else
+		term.setTextColor(colors.lightBlue)
+	end
+	local wordlength=string.len(message)
+	if(wordlength>24)then
+		lines[0]=string.sub(message,1,24)
+		lines[0],lines[1]=wordwrap(lines[0])
+		if(wordlength<=48)then
+			lines[1]=lines[1]..string.sub(message,25,wordlength)
+		else
+			lines[1]=lines[1]..string.sub(message,25,48)
+			lines[1],lines[2]=wordwrap(lines[1])
+		end
+		if(wordlength<72 and wordlength>48)then
+			lines[2]=lines[2]..string.sub(message,49,wordlength)
+		elseif(wordlineght>72 and wordlength>48)then
+			lines[2]=lines[2]..string.sub(message,49,72)
+			lines[2],lines[3]=wordwrap(lines[2])
+		end
+		if(wordlength>72)then
+			lines[3]=lines[3]..string.sub(message,73)
+		end
+	else
+		lines[0]=string.sub(message,1,wordlength)
+	end
+	linesleft = 11-(y-2)
+	if(linesleft<table.getn(lines))then
+		state=false
+	else
+		xplace=10-string.len(user)
+		term.setCursorPos(16+xplace,current)
+		write(user)
+		term.setTextColor(colors.black)
+		for lineplace=0,table.getn(lines),1 do
+			term.setCursorPos(27,current+lineplace)
+			write(lines[lineplace])
+		end
+	end
+	local x,y = term.getCursorPos()
+	return x,y,state
+end
+
+function printChat(chatplace,currentcontact)
+	if(currentcontact=="noone")then
+		return
+	end
+	local user
+	local chatmsg
+	rednet.send(os.getID.."-"..username.."-getmessages-"..currentcontact)
+	local id,message = rednet.receive(.5)
+	local chat = textutils.unserialize(message)
+	term.setBackgroundColor(colors.lightGray)
+	term.setTextColor(colors.white)
+	term.setCursorPos(16,3)
+	write(currentcontact)
+	--chat = {}
+	--chat[0]="roosterhat-hi"
+	--chat[1]="nolan-hello"
+	--chat[2]="roosterhat-derp"
+	--chat[3]="nolan-idk"
+	--chat[4]="roosterhat-test"
+	--chat[5]="nolan-this is supposed to be a really long line to test word wrap"
+	--chat[6]="roosterhat-cool"
+	--chat[7]="nolan-i know right!"
+	--chat[8]="nolan-its so cool"
+	--chat[9]="roosterhat-test"
+	--chat[10]="nolan-ICLES"
+	--chat[11]="roosterhat-this should be 24 lines."
+	--chat[12]="roosterhat-test"
+	--chat[13]="roosterhat-test"
+	--chat[14]="roosterhat-ICLES"
+	local count = 0
+	current = 3
+	for place=0+chatplace,8+chatplace,1 do
+		for name,msg in chat[place]:gmatch("([^%s]+)-(.*)") do
+			user = name
+			chatmsg = msg
+		end
+		local x,y,result = printLeft(user,chatmsg,current+1)
+		if(result==false)then
+			return 
+		end
+		current = y
+	end
+end
+
+function getchatlength()
+	rednet.send(main,username.."-getmessages-"..currentcontact)
+	local id,message = rednet.receive(.1)
+	local chat = textutils.unserialize(message)
+	return table.getn(chat)
+end
+
+function newuser()
+	local newusername="username"
+	local newpassword="password"
+	local confirmpass="password"
+	setbackground(colors.lightBlue,x,y)
+	term.setTextColor(colors.white)
+	term.setCursorPos(x/2-4,y/2-3)
+	print("MineChat")
+	term.setCursorPos(x/2-13,y/2+1)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+2)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(newusername)/2),y/2+2)
+	print(newusername)
+	term.setCursorPos(x/2-13,y/2+3)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+4)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+5)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(newpassword)/2),y/2+5)
+	if(newpassword=="password")then
+		print(newpassword)
+	else
+		print(string.rep("*",string.len(newpassword)))
+	end
+	term.setCursorPos(x/2-13,y/2+6)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+4+1)
+	print("confirm password")
+	term.setCursorPos(x/2-13,y/2+4+2)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+5+2)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(confirmpass)/2),y/2+5)
+	if(confirmpass=="password")then
+		print(confirmpass)
+	else
+		print(string.rep("*",string.len(confirmpass)))
+	end
+	term.setCursorPos(x/2-13,y/2+6+2)
+	print(" -------------------------")
+end
+
+function login_interface()
+	local x,y = term.getSize()
+	local running = true
+	while running do
+		printlogin()
+		local Event, key, xclick, yclick = os.pullEvent("mouse_click")
+		if(yclick==11)then
+			if(xclick>=12 and xclick<=38)then
+				term.setTextColor(colors.white)
+				
+				username = gettext(x/2-10,y/2+2)
+			end
+		elseif(yclick==14)then
+			if(xclick>=12 and xclick<=38)then
+				term.setTextColor(colors.white)
+
+				password = gettext(x/2-10,y/2+5,"*")
+			end
+		elseif(yclick==15)then
+			if(xclick>=x/2-5 and xclick<=x/2+5) then
+				newuser()
+			end
+		elseif(yclick==16)then
+			if(xclick>=22 and xclick<=28)then
+				running = false
+				local trys = 0
+				while running do
+					rednet.send(main,"noone-login"..username.."-"..password)
+					local id, msg = rednet.receive(.5)
+					if(msg~=nil)then
+						running = false
+					end
+					if(trys==10)then
+						term.setCursorPos(x/2-15,y)
+						term.setTextColor(colors.red)
+						write("Unable to connect to server")
+						sleep(2)
+					end
+					trys = trys+1
+				end
+				if(msg=="correct")then
+					done = true
+				else
+					term.setCursorPos(x/2-15,y)
+					term.setTextColor(colors.red)
+					write("Incorrect username or password")
+					sleep(2)
+					done = true
+				end
+			end
+		elseif(yclick==1)then
+			if(xclick>=x-2)then
+				close = true
+				return
+			end
+		end
+	end
+end
+
+function getfriends(place)
+	endnumber = 0
+	term.setBackgroundColor(colors.lightBlue)
+	term.setTextColor(colors.white)
+	local running = false
+	while running do
+		rednet.send(main,username.."-getfriends")
+		id,friends = rednet.receive(.1)
+		if(id==main)then
+			running = false
+		end
+	end
+	contacts = textutils.unserialize(friends)
+
+	term.setCursorPos(1,6)
+	local count = 0
+	if(table.getn(contacts)>13)then
+		endnumber = 13
+	else
+		endnumber = table.getn(contacts)
+	end
+	for derp = 0+place,endnumber+place,1 do
+	  	write(contacts[derp])
+	  	term.setCursorPos(1,6+derp-place)
+	end 
+	term.setTextColor(colors.black)
+	for derp = 0,endnumber,1 do
+		write(">")
+		print(contacts[derp])
+	end
+	term.setTextColor(colors.white)
+	sleep(2)
+end
+
+function userhome()
+	term.setTextColor(colors.white)
+	local x,y = term.getSize()
+	clear()
+	setbackground(colors.white,x,y)
+	setbackground(colors.lightBlue,x,2)
+	for rows = 1,y,1 do
+		term.setBackgroundColor(colors.lightBlue)
+		term.setCursorPos(1,0+rows)
+		for columns=1,15,1 do
+			write(" ")
+		end
+	end
+	term.setCursorPos(1,1)
+	write("MineChat")
+	term.setCursorPos(1,2)
+	write(username)
+	term.setCursorPos(x-5,1)
+	term.setBackgroundColor(colors.lightGray)
+	write("Logout")
+	term.setBackgroundColor(colors.lightBlue)
+	term.setCursorPos(16,2)
+	write("Profile  Options  Help")
+	term.setBackgroundColor(colors.lightGray)
+	for rows=16,x,1 do
+		term.setCursorPos(rows,3)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.lightBlue)
+	term.setCursorPos(1,4)
+	write("Contacts")
+	term.setCursorPos(1,5)
+	write("--------")
+	term.setBackgroundColor(colors.lightGray)
+	for rows=1,14,1 do
+		term.setCursorPos(15,4+rows)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.gray)
+	term.setCursorPos(15,5)
+	write("^")
+	term.setCursorPos(15,18)
+	write("v")
+	term.setBackgroundColor(colors.lightGray)
+	for rows=1,11,1 do
+		term.setCursorPos(x,2+rows)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.gray)
+	term.setCursorPos(x,3)
+	write("^")
+	term.setCursorPos(x,14)
+	write("v")
+	term.setBackgroundColor(colors.lightGray)
+	term.setCursorPos(16,15)
+	for derp=1,x-15,1 do
+		write(" ")
+	end
+	term.setBackgroundColor(colors.gray)
+	term.setCursorPos(x-4,15)
+	write("Send")
+	--printChat(chatscrollplace,current_chat)
+end
+
+
+
+function friend_area(xclick,yclick,place)
+	if(table.getn(contacts)>13)then
+		friendlength = 13
+	else
+		friendlength = table.getn(contacts)
+	end
+	if(xclick<=14)then
+		for contact_number=1,friendlength,1 do
+			if(yclick==5+contact_number)then
+				return contact_number+place
+			end
+		end
+	end
+end
+
+function menu_area(xclick,yclick)
+	if(yclick==2)then
+		if(xclick>=16 and xclick<=15+string.len("profile"))then
+			return "profile"
+		elseif(xclick>=16+2+string.len("profile") and xclick<=15+2+string.len("profile")+string.len("options"))then
+			return "options"
+		elseif(xclick>=16+4+string.len("profile")+string.len("options") and xclick<=15+4+string.len("profile")+string.len("options")+string.len("help"))then
+			return "help"
+		end
+	end
+end
+
+function scroll_area(xclick,yclick)
+	local x,y = term.getSize()
+	if(xclick==15)then
+		if(yclick==5)then
+			return "friend",-1
+		elseif(yclick==18)then
+			return "friend",1
+		end
+	elseif(xclick==x)then
+		if(yclick==3)then
+			return "chat",-1
+		elseif(yclick==14)then
+			return "chat",1
+		end
+	end
+end
+
+function chat_area(xclick,yclick)
+	local x,y = term.getSize()
+	if(xclick>=16)then
+		if(yclick>=16)then
+			getchattext(16,16,x)
+		end
+	end
+end
+
+function logout(xclick,yclick)
+	local x,y = term.getSize()
+	if(yclick==1)then
+		if(xclick>=x-5)then
+			return false
+		end
+	end
+end
+
+function guiinteraction()
+	local start = getchatlength()
+	local friendscrollplace = 0
+	local chatscrollplace = start-8
+	local Fchoice = "nothing"
+	local Mchoice = "nothing"
+	local Schoice = "nothing"
+	local x,y = term.getSize()
+	local running = true
+	current_chat = "noone"
+	while running do
+		userhome()
+		printChat(chatscrollplace,current_chat)
+		getfriends(friendscrollplace)
+		local Event, key, xclick, yclick = os.pullEvent("mouse_click")
+		Fchoice = 				friend_area(xclick,yclick,friendscrollplace)
+		Mchoice = 				menu_area(xclick,yclick)
+		Schoice , direction = 	scroll_area(xclick,yclick)
+		chat = 					chat_area(xclick,yclick)
+		logedin = 				logout(xclick,yclick)
+		if(Fchoice~=nil)then
+			local derp = getchatlength()
+			chatscrollplace = derp-8
+			current_chat = contacts[Fchoice]
+			printChat(chatscrollplace,current_chat)
+		end
+		if(Mchoice~=nil)then
+			print("Menu "..Mchoice)
+			sleep(1)
+			--openMenu(Mchoice)
+		end
+		if(Schoice~=nil)then
+			if(Schoice=="friend")then
+				friendscrollplace=friendscrollplace+direction
+				if(friendscrollplace<0)then
+					friendscrollplace = 0
+				end
+				if(friendscrollplace+13>table.getn(contacts))then
+					friendscrollplace = friendscrollplace-1
+				end
+				getfriends(friendscrollplace)
+			else
+				local length = getchatlength()
+				chatscrollplace=chatscrollplace+direction
+				if(chatscrollplace<0)then
+					chatscrollplace = 0
+				end
+				if(chatscrollplace>length-8)then
+					chatscrollplace = chatscrollplace-1
+				end
+				printChat(chatscrollplace,current_chat)
+			end
+		end
+		if(logedin==false)then
+			running=false
+		end
+	end
+end
+
+--PROGRAM STARTS HERE--
+close = false
+while close==false do
+	close=false
+	username = "username"
+	password = "password"
+	login_interface()
+	if(close==false)then
+		guiinteraction()
+	end
+end
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
+term.clear()
+term.setCursorPos(1,1)

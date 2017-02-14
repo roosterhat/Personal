@@ -1,0 +1,13 @@
+#lang class/0
+
+(define-class emptyStack (fields)
+  (define (empty?) true)
+  (define (top) (error "Stack is empty")))
+
+(define-class stack (fields first rest)
+  (define (empty?) false)
+  (define (top) (send this first)))
+
+(define-class listStack (fields stack)
+  (define (empty?) false)
+  (define (top) (first (send this stack))))

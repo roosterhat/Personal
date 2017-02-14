@@ -1,0 +1,235 @@
+main = 72
+username = "roosterhat"
+map = {}
+characters = {}
+chat = {}
+playerx=1
+playery=1
+characters[0] = {"roosterhat",0,0,colors.red}
+characters[1] = {"jar3ld",40,20,colors.lime}
+colorTable = {colors.red,colors.blue,colors.orange,colors.lightGray,colors.lime,colors.gray,colors.brown,colors.green,colors.black}
+
+function openPort()
+	for n,m in ipairs(rs.getSides()) do 
+		if peripheral.isPresent(m) and peripheral.getType(m)=="modem" then 
+			rednet.open(m)
+		end 
+	end
+end
+
+function retreiveMap()
+	if(fs.exists("mineWorldMap"))then
+		local open = fs.open("mineWorldMap","r")
+		mapWidth = tonumber(open.readLine())
+		mapHeight = tonumber(open.readLine())
+		for y=0,mapHeight-1,1 do
+			data = open.readLine()
+			local count=0
+			map[y] = {}
+			for token in data:gmatch"." do
+			   map[y][count]=tonumber(token)
+			   count = count+1
+			end
+		end
+		open.close()
+	else
+		for y=0,50-1,1 do
+			map[y] = {}
+			for x=0,50-1,1 do
+				map[y][x] = 7
+			end	
+		end
+		mapWidth = 50
+		mapHeight = 50
+	end
+end
+
+function drawMap()
+	term.setBackgroundColor(colors.black)
+	shell.run("clear")
+	for y=0,mapHeight-1,1 do
+		for x=0,mapWidth-1,1 do
+			term.setBackgroundColor(colorTable[map[y][x]])
+			term.setCursorPos((x+26)-playerx,(y+9)-playery)
+			write(" ")
+		end
+	end
+end
+
+function drawPlayerName(name,x,y,ax,ay)
+	local count = 0
+	if((ax)-(#name/2)-1<52 and (ax)-(#name/2)-1>0)then
+		if(ay<21 and ay>1)then
+			for c in name:gmatch"." do
+		    	term.setCursorPos(ax+count-(#name/2),ay-1)
+		    	if(map[y-2]~=nill) then
+		    		if(map[y-2][(x+count)-(#name/2)-1]~=nill)then
+		    			term.setBackgroundColor(colorTable[map[y-2][(x+count)-(#name/2)-1]])
+		    		else
+		    			term.setBackgroundColor(colors.black)
+		    		end	
+		    	else
+		    		term.setBackgroundColor(colors.black)
+		    	end
+		    	if((ax+count)-(#name/2)<52 and (ax+count)-(#name/2)>0)then
+		    		write(c)
+		    	end
+		    	count = count+1
+			end 
+		end
+	end
+end
+
+function drawCharacters()
+	for x=0,#characters,1 do
+		if(characters[x][1]=="roosterhat")then
+			drawPlayerName(characters[x][1],characters[x][2],characters[x][3],25,8)
+			term.setCursorPos(25,8)
+		else
+			drawPlayerName(characters[x][1],characters[x][2],characters[x][3],characters[x][2]-playerx+25,characters[x][3]-playery+8)
+			term.setCursorPos(characters[x][2]-playerx+25,characters[x][3]-playery+8)
+		end
+		
+		term.setBackgroundColor(characters[x][4])
+		write(" ")
+	end
+end
+
+function wordsWithBackground(word,x,y)
+	for c in word:gmatch"." do
+    	term.setCursorPos(x,y)
+    	if(map[y-2]~=nill) then
+    		if(map[y-2][x]~=nill)then
+    			term.setBackgroundColor(colorTable[map[y-2][x]])
+    		else
+    			term.setBackgroundColor(colors.black)
+    		end	
+    	else
+    		term.setBackgroundColor(colors.black)
+    	end
+    	write(c)
+    	--count = count+1
+	end 
+end
+
+function drawGame()
+	drawMap()
+	drawCharacters()
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(colors.black)
+	wordsWithBackground("("..playerx..","..playery..")",1,1)
+end
+
+function startChatMessage()
+	term.setCursorPos(1,18)
+	write(":> ")
+	local message = io.read()
+	if(message~=nill)then
+		contactServer("Message//"..username..": "..message)		
+	end
+end
+
+function contactServer(message)
+	local count=1
+	while true do
+		--rednet.send(main,message)
+		local id,msg = rednet.receive(.1)
+		result = msg
+		if(msg=="true")then
+			break
+		elseif(msg~=nill)then
+			term.setCursorPos(1,19)
+			term.setTextColor(colors.red)
+			write(msg)
+		end
+		if(count==5)then
+			term.setCursorPos(1,19)
+			term.setTextColor(colors.red)
+			write("Unable to reach server")
+			break
+		else
+			count = count+1
+		end
+	end
+end
+
+function loginScreen()
+	function getText(xplace,yplace,mask)
+	local x,y = term.getSize()
+	local input = ""
+	term.setCursorPos(xplace-3,yplace)  
+	print("|                         |")
+	term.setCursorPos(xplace+1,yplace)
+	term.setCursorBlink(true)
+	while true do
+		local derp,herp = term.getCursorPos()
+		term.setCursorPos(derp-1,herp)
+		local event, p,pram2,pram2 = getEvent()
+		if event == "char" then
+			if(string.len(input)==21)then
+			else
+				input = input..p
+			end
+		elseif event == "key" then
+			if p == keys.enter then
+				term.setCursorBlink(false)
+				return input
+			elseif p == keys.backspace then
+				input = input:sub(1, #input - 1)
+			end
+		end
+		term.setCursorPos(xplace,yplace)
+		write( ( mask and string.rep(mask, #input) or input ).." ")
+	end
+	error( "should never get here" )
+end
+
+end
+
+function main()
+	while true do
+		drawGame()
+		local Event, key, pram1, pram2 = os.pullEvent()
+		if(Event=="key")then
+			if (key==200) then
+				contactServer("Move//down")
+			elseif (key==208) then
+				contactServer("Move//up")
+			elseif(key==205)then
+				contactServer("Move//right")
+			elseif(key==203)then
+				contactServer("Move//left")
+			end
+			if(key==20)then
+				startChatMessage()	
+			end
+			
+		elseif(Event=="rednet_message")then
+			local count = 0
+			local prams = {}
+			for token in string.gmatch(pram1, "[^%//]+") do
+			   prams[count]=token
+			   count = count+1
+			end
+			playerData = textutils.unserialze(prams[0])
+			for x=0,#playerData,1 do
+				characters[x] = {}
+				characters[x][1] = playerData[x][1]
+				characters[x][2] = playerData[x][2]
+				characters[x][3] = playerData[x][3]
+				characters[x][4] = playerData[x][4]
+			end
+			for x=0,#players-1,1 do
+				if(characters[x] =="roosterhat")then
+					playerx = characters[x][2]
+					playerx = characters[x][3]
+				end
+			end
+			chat = textutils.unserialze(prams[1])
+		end
+	end
+end
+openPort()
+contactServer("Login//roosterhat")
+retreiveMap()
+main()

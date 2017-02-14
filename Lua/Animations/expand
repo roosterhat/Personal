@@ -1,0 +1,16 @@
+monitor = peripheral.wrap("top")
+monitor.setCursorPos(1,1)
+monitor.setTextColor(colors.white)
+word = "Minecraft Lottery"
+function expand(size)
+  x,y = monitor.getSize()
+  monitor.clear()
+  monitor.setCursorPos(x/2-(string.len(word)/2),y/2)
+  monitor.setTextScale(size)
+  monitor.write(word)
+end
+
+for derp = .5,4,.5 do
+  expand(derp)
+  sleep(.5)
+end

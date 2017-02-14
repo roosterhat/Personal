@@ -1,0 +1,87 @@
+Image ={invchar = nil,
+		image = {},
+		clickable = false,
+		imageFunction = function()end}
+		
+function init(p,x,y,c,f)
+	if(c==nil)then
+		c = false
+	end
+	if(f==nil)then
+		f = function()end
+	end
+	if(type(p)=="string")then
+		if(fs.exists(arg))then
+			p = paintutils.loadImage(p)
+		else
+			error("Path: "..p.." does not exist")
+		end
+	end
+	util.checkInputs({p,x,y,c,f},{"table","number","number","boolean","function"},"Image.init")
+	local w,h = util.getDimensions(i)
+	local temp = Object.init(x,y,w,h,"Image")
+	temp.image = p
+	temp.clickable = c
+	temp.imageFunction = f
+	temp.percision = false
+	self = setmetatable(temp,{__index=setmetatable(Image,{__index=Object.getTablePointer()})})
+	return self
+end
+
+function getTablePointer()
+	return Images
+end
+
+function setInvisibleChar(c)
+	self.invchar = c
+end
+
+function Image:setPercision(bool)
+	util.checkInputs({bool},{"boolean"},"setPercision")
+	self.percision = bool
+end
+
+function Image:setClickable(bool)
+	util.checkInputs({bool},{"boolean"},"setClickable")
+	self.clickable(bool)
+end
+
+function Image:getClickable()
+	return Image.clickable
+end
+
+function Image:getDimensions()
+	return util.getDimensions(self.image)
+end
+
+function Image:preciseTouch(x,y)
+	for yp,l in ipairs(self.image)do
+		for xp,c in ipairs(l)do
+			if(c~=nil and c~=self.invchar)then
+				if(self:getX()+xp-1==x and self:getY()+yp-1==y)then
+					return true
+				end
+			end		
+		end
+	end
+	return false
+end
+
+function Image:clicked(x,y)
+	if(self.precision)then
+		return self:preciseTouch(x,y)
+	else
+		if(self:touching(x,y))then
+			this.imageFunction()
+			return true
+		end
+		return false
+	end
+end
+
+function Image:draw(d)
+	if(self:getVisible())then
+		d:drawImage(self.image,self:getX(),self:getX(),self.invchar)
+	end
+end
+

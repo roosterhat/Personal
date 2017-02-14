@@ -1,0 +1,14 @@
+while true do
+  print("Enter key card")
+  Event,pram1,pram,pram3 = os.pullEvent("disk")
+    path = disk.getMountPath("right").."/password"
+    file = fs.exists(path) and io.open(path, "r") or nil
+    disk.eject("right") 
+    if(file and file:read()=="test")then
+      print("correct")
+    else
+      print("incorrect")
+    end
+    sleep(2)
+    shell.run("clear")
+end

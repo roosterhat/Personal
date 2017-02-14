@@ -1,0 +1,294 @@
+scroll = 0
+gamelist = {}
+barscroll = 0
+barArea = 18
+oldpos=0
+
+fs.makeDir("games")
+
+function TSCP(x,y,string)
+  term.setCursorPos(x,y)
+  write(string)
+end
+
+function clear()
+  term.setBackgroundColor(colors.black)
+  term.setTextColor(colors.white)
+  term.clear()
+end
+
+function drawBar()
+	if(endnum>35)then
+		barLength = 1
+		scrollamount = (endnum-19)/barArea
+	elseif(endnum<=19)then
+		barLength = barArea
+		scrollamount = 0
+	else
+		barLength = (38-(19-barArea))-endnum
+		scrollamount = 1
+	end
+	term.setBackgroundColor(colors.lightGray)
+	for place=2,19,1 do
+		term.setCursorPos(51,place)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.gray)
+	for place=1,barLength,1 do
+		term.setCursorPos(51,barscroll+place+1)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.black)
+end
+
+function drawGames()
+	numgames = 0
+	term.setBackgroundColor(colors.black)
+	shell.run("clear")
+	games = fs.list("games")
+	for _,file in ipairs(games) do
+		open = fs.open("games/"..file , "r")
+		local name = open.readLine()
+		gamelist[file] = {}
+		gamelist[file]["filename"] = name
+		for x,y in open.readLine():gmatch("([^%s]+),(.*)") do
+			gamelist[file]["x"] = tonumber(x)
+			gamelist[file]["y"] = tonumber(y)
+		end
+		term.setBackgroundColor(colors.gray)
+		term.setTextColor(colors.white)
+		for place=0,5,1 do
+			TSCP(gamelist[file]["x"],gamelist[file]["y"]+place-(scroll),open.readLine())
+		end
+		open.close()
+		numgames = numgames+1
+	end
+	term.setBackgroundColor(colors.red)
+	term.setCursorPos(49,1)
+	write(" X ")
+	term.setBackgroundColor(colors.blue)
+	TSCP(1,1,"Game Box     New Game                           ")
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.white)
+	endnum = 7*(math.ceil(numgames/4)-1)+19
+	--write(endnum)
+	drawBar()
+end
+
+function drawMenu(name,x,y)
+	term.setBackgroundColor(colors.lightGray)
+	term.setTextColor(colors.black)
+	term.setCursorPos(x,y)
+	write("             ")
+	term.setCursorPos(x,y)
+	write(name)
+	term.setBackgroundColor(colors.white)
+	term.setTextColor(colors.black)
+	for derp=1,2,1 do
+		term.setCursorPos(x,y+derp)
+		write("             ")
+	end
+	term.setCursorPos(x,y+1)
+	write("Edit")
+	term.setCursorPos(x,y+2)
+	write("Delete")
+	term.setBackgroundColor(colors.red)
+	term.setTextColor(colors.white)
+	term.setCursorPos(x+10,y)
+	write(" X ")
+end
+
+function menu1(name,othername,x,y)
+	while true do
+		drawMenu(name,x,y)
+		local Event,key,xpos,ypos = os.pullEvent("mouse_click")
+		if(xpos>=x and xpos<=x+13)then
+			if(ypos==y)then
+				if(xpos>=x+10 and xpos<=x+12)then
+					return
+				end
+			elseif(ypos==y+1)then
+				term.setBackgroundColor(colors.black)
+				newGame(name)
+				return
+			elseif(ypos==y+2)then
+				fs.delete("games/"..name)
+				return
+			end	
+		end
+	end
+end
+
+function newGameMenu(gamename,filename,picture)
+	term.setBackgroundColor(colors.black)
+	shell.run("clear")
+	term.setTextColor(colors.white)
+	term.setCursorPos(2,2)
+	write("Game Name")
+	term.setBackgroundColor(colors.lightGray)
+	term.setCursorPos(2,3)
+	write("          ")
+	term.setCursorPos(2,3)
+	write(gamename)
+	term.setCursorPos(2,5)
+	term.setBackgroundColor(colors.black)
+	write("File Name")
+	term.setBackgroundColor(colors.lightGray)
+	term.setCursorPos(2,6)
+	write("               ")
+	term.setCursorPos(2,6)
+	write(filename)
+	term.setBackgroundColor(colors.gray)
+	for place=0,5,1 do
+		term.setCursorPos(2,8+place)
+		write("          ")
+	end
+	for place=0,5,1 do
+		term.setCursorPos(2,8+place)
+		write(picture[place+1])
+	end
+	term.setBackgroundColor(colors.blue)
+	term.setCursorPos(2,15)
+	write(" Save ")
+	term.setCursorPos(9,15)
+	write(" Exit ")
+end
+
+function addSpaces(word)
+	for place=1,10-#word,1 do
+		word = word.." "
+	end
+	return word
+end
+
+function newGame(name)
+	local gamename = ""
+	local filename = ""
+	local picture = {}
+	for place=1,6,1 do
+		picture[place] =""
+	end
+	if(fs.exists("games/"..name))then
+		filename = gamelist[name]["filename"]
+		gamename = name
+		open = fs.open("games/"..name , "r")
+		open.readLine()
+		open.readLine()
+		for place=1,6,1 do
+			picture[place] = open.readLine()
+		end
+		open.close()
+	end
+	while true do
+		newGameMenu(gamename,filename,picture)
+		local Event,key,xpos,ypos = os.pullEvent("mouse_click")  
+		if(ypos==15)then
+			if(xpos>=2 and xpos<=7)then
+				if(gamename~="" and filename~="")then
+					open = fs.open("games/"..gamename,"w")
+					open.writeLine(filename)
+					temp = fs.list("games")
+					numfiles = #temp
+					open.writeLine((11*((numfiles%4)-1)+1)..","..(7*(math.ceil(numfiles/4)-1)+3))
+					for place=1,6,1 do
+						open.writeLine(addSpaces(picture[place]))
+					end
+					open.close()
+					return
+				else
+					term.setBackgroundColor(colors.red)
+					term.setCursorPos(2,16)
+					write("Fill Out All Feilds Before Continuing")
+					sleep(2)
+				end
+			elseif(xpos>=9 and xpos<=14)then
+				return
+			end
+		elseif(ypos==3)then
+			gamename = ""
+			newGameMenu(gamename,filename,picture)
+			term.setBackgroundColor(colors.lightGray)
+			term.setCursorPos(2,3)
+			gamename = string.sub(io.read(),1,10)
+			picture[1] = string.upper(string.sub(gamename,1,1))..string.sub(gamename,2,#gamename)
+		elseif(ypos==6)then
+			filename = ""
+			newGameMenu(gamename,filename,picture)
+			term.setBackgroundColor(colors.lightGray)
+			term.setCursorPos(2,6)
+			filename = string.sub(io.read(),1,15)
+		elseif(ypos>=8 and ypos<=13)then
+			if(xpos>=2 and xpos<=12)then
+				term.setBackgroundColor(colors.gray)
+				term.setCursorPos(2,ypos)
+				picture[ypos-7] = string.sub(io.read(),1,10)
+			end
+		end
+	end
+end
+
+
+while true do
+	drawGames()
+	local Event,key,xpos,ypos = os.pullEvent()  
+	if(Event=="mouse_click")then
+		if(ypos==1)then
+			if(xpos>=14 and xpos<=21)then
+				newGame("new")
+			elseif(xpos>=49)then
+				break
+			end  
+		else
+			for game,value in pairs(gamelist) do
+				if(ypos>=gamelist[game]["y"]-scroll and ypos<=gamelist[game]["y"]+5-scroll)then
+					if(xpos>=gamelist[game]["x"] and xpos<=gamelist[game]["x"]+9)then
+						if(key==1)then
+							shell.run("clear")
+							shell.run(gamelist[game]["filename"])
+						elseif(key==2)then
+							menu1(game,gamelist[game]["filename"],xpos,ypos)
+						end
+					end
+				end
+			end
+		end
+		
+	elseif(Event=="mouse_scroll")then
+		scroll = scroll+key
+		barscroll = barscroll+(key/scrollamount)
+		if(barscroll<0)then
+			barscroll = 0
+		end
+		if(barscroll>barArea-barLength)then
+			barscroll = barArea-barLength
+		end
+		if(scroll<0)then
+			scroll=0
+		end
+		if(scroll>7*(math.ceil(numgames/4)-2))then
+			scroll = 7*(math.ceil(numgames/4)-2)
+		end
+	elseif(Event=="mouse_drag")then
+		if(xpos==51)then
+			if(oldpos>0)then
+				scroll = scroll+((ypos-oldpos)*scrollamount)
+				barscroll = barscroll+(ypos-oldpos)
+			end
+			oldpos = ypos
+		end
+		if(scroll<0)then
+			scroll = 0
+		end
+		if(scroll>7*(math.ceil(numgames/4)-1))then
+			scroll = 7*(math.ceil(numgames/4)-1)
+		end
+		if(barscroll<0)then
+			barscroll = 0
+		end
+		if(barscroll>barArea-barLength)then
+			barscroll = barArea-barLength
+		end
+	end
+end
+term.setBackgroundColor(colors.black)
+shell.run("clear")

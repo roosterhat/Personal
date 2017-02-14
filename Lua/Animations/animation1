@@ -1,0 +1,90 @@
+monitor = peripheral.wrap("top")
+monitor.clear()
+letters = {}
+x,y = monitor.getSize()
+height = y/3
+word = "Minecraft Lottery"
+length = string.len(word)
+count = 1
+monitor.setTextScale(2)
+monitor.setTextColor(colors.blue)
+
+function title()
+  monitor.setBackgroundColor(colors.red)
+  local x,y = monitor.getSize()
+  monitor.setCursorPos(1,height)
+  monitor.write(string.rep(" ",x))
+  monitor.setBackgroundColor(colors.black)
+end
+
+function dropletter(letter,spot)
+  if(letter==" ")then
+    return
+  end
+  local x,y = monitor.getSize()
+  local Xpos = spot
+  local Ypos = -1
+  while Ypos<height do
+    if(Ypos~=height)then
+      monitor.setCursorPos(Xpos,Ypos-1)
+      monitor.clearLine()
+    end
+    if(Ypos==math.floor(height))then
+	    monitor.setCursorPos(Xpos,Ypos)
+    	monitor.setBackgroundColor(colors.red)
+	    monitor.write(letter)
+	    monitor.setBackgroundColor(colors.black)
+    else
+	    monitor.setCursorPos(Xpos,Ypos)
+	    monitor.write(letter)  
+	end 
+	Ypos = Ypos+1
+    sleep(.0000001)
+  end  
+end
+
+function scrollright()
+  local x,y = monitor.getSize()
+  local Xpos = 1
+  local Ypos = height
+  while Xpos<x+2 do
+    title()
+    monitor.setCursorPos(Xpos,Ypos)
+    monitor.setBackgroundColor(colors.red)
+    monitor.write(word)
+    monitor.setBackgroundColor(colors.black)
+    Xpos = Xpos+1
+    sleep(.05)
+  end
+end
+
+function scroll(scrollword, place)
+	wordlength = string.len(scrollword)
+	local x,y = monitor.getSize()
+	local Xpos = 1-wordlength
+	local Ypos = place
+	while Xpos<2 do
+		monitor.setCursorPos(Xpos,Ypos)
+		--monitor.setBackgroundColor(colors.red)
+		monitor.write(scrollword)
+		Xpos = Xpos+1
+		sleep(.05)
+	end
+end
+
+for letter in word:gmatch'.' do
+    letters[count] = letter
+    count = count+1
+end
+
+title()
+
+for count = 1,length,1 do
+  dropletter(letters[count],count)
+end
+
+scroll("Come play the new minecraft lottery      ",y/2)
+scroll("Buy your tickets at the nearest retailer ",y/2+2)
+sleep(5)
+scrollright()
+monitor.clear()

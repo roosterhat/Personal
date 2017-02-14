@@ -1,0 +1,1185 @@
+--ESSENTIALS
+main = 0 
+version = 1.0
+
+function clear()
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function getEvent(specifications)
+	while true do
+		local Event,pram1,pram2,pram3 = os.pullEvent()
+		if(Event=="timer" and pram1==timer)then
+			timer = os.startTimer(3)
+		end
+		if(Event==specifications or specifications==null)then
+			return Event,pram1,pram2,pram3
+		end
+	end
+end
+
+function setBackground(color,x,y)
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(color)
+	for rows = 1,y,1 do
+		for columns = 1,x,1 do
+			term.write(" ")
+		end
+		print()
+	end
+end
+
+function openPort()
+	for n,m in ipairs(rs.getSides()) do 
+		if peripheral.isPresent(m) and peripheral.getType(m)=="modem" then 
+			rednet.open(m)
+			return true
+		end 
+	end
+	return false
+end
+
+--LOGIN	
+
+function getText(xplace,yplace,mask)
+	local x,y = term.getSize()
+	local input = ""
+	term.setCursorPos(xplace-3,yplace)  
+	print("|                         |")
+	term.setCursorPos(xplace+1,yplace)
+	term.setCursorBlink(true)
+	while true do
+		local derp,herp = term.getCursorPos()
+		term.setCursorPos(derp-1,herp)
+		local event, p,pram2,pram2 = getEvent()
+		if event == "char" then
+			if(string.len(input)==21)then
+			else
+				input = input..p
+			end
+		elseif event == "key" then
+			if p == keys.enter then
+				term.setCursorBlink(false)
+				return input
+			elseif p == keys.backspace then
+				input = input:sub(1, #input - 1)
+			end
+		end
+		term.setCursorPos(xplace,yplace)
+		write( ( mask and string.rep(mask, #input) or input ).." ")
+	end
+	error( "should never get here" )
+end
+
+function printLogin()
+	local done = false
+	local x,y = term.getSize()
+	clear()
+	setBackground(colors.lightBlue,x,y)
+	term.setTextColor(colors.white)
+	term.setCursorPos(x/2-4,y/2-3)
+	print("MineChat")
+	term.setCursorPos(x/2-13,y/2+1)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+2)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(username)/2),y/2+2)
+	print(username)
+	term.setCursorPos(x/2-13,y/2+3)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+4)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+5)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(password)/2),y/2+5)
+	if(password=="password")then
+		print(password)
+	else
+		print(string.rep("*",string.len(password)))
+	end
+	term.setCursorPos(x/2-13,y/2+6)
+	print(" -------------------------")
+	term.setCursorPos(x/2-3,y/2+7)
+	term.setBackgroundColor(colors.blue)
+	print(" Login ")
+	term.setBackgroundColor(colors.lightBlue)
+	term.setTextColor(colors.white)
+	term.setCursorPos(x/2-8,y/2+8)
+	print("Create an account")
+	term.setCursorPos(x-2,1)
+	term.setBackgroundColor(colors.red)
+	term.setTextColor(colors.white)
+	write(" x ")
+	term.setBackgroundColor(colors.lightBlue)
+	term.setTextColor(colors.white)
+end
+
+function newUser(newusername,newpassword,confirmpass)
+	local x,y = term.getSize()
+	clear()
+	setBackground(colors.lightBlue,x,y)
+	term.setTextColor(colors.white)
+	term.setCursorPos(x/2-4,y/2-3)
+	print("MineChat")
+	term.setCursorPos(x/2-5,y/2-1)
+	print("New Account")
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(colors.blue)
+	print("Back")
+	term.setBackgroundColor(colors.lightBlue)
+	term.setCursorPos(x/2-13,y/2)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+1)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(newusername)/2),y/2+1)
+	print(newusername)
+	term.setCursorPos(x/2-13,y/2+2)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+3)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+4)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(newpassword)/2),y/2+4)
+	if(newpassword=="password")then
+		print(newpassword)
+	else
+		print(string.rep("*",string.len(newpassword)))
+	end
+	term.setCursorPos(x/2-13,y/2+5)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+5+1)
+	print(" -------------------------")
+	term.setCursorPos(x/2-13,y/2+6+1)
+	print("|                         |")
+	term.setCursorPos(x/2-(string.len(confirmpass)/2),y/2+6+1)
+	if(confirmpass=="confirm password")then
+		print(confirmpass)
+	else
+		print(string.rep("*",string.len(confirmpass)))
+	end
+	term.setCursorPos(x/2-13,y/2+7+1)
+	print(" -------------------------")
+	term.setCursorPos(x/2-2,y-1)
+	term.setBackgroundColor(colors.blue)
+	print("Create")
+	term.setBackgroundColor(colors.lightBlue)
+end
+
+function newUserInterface()
+	local newusername="username"
+	local newpassword="password"
+	local confirmpass="confirm password"
+	local x,y = term.getSize()
+	local running = true
+	while running do
+		newUser(newusername,newpassword,confirmpass)
+		local Event, key, xclick, yclick = getEvent("mouse_click")
+		if(yclick==10)then
+			if(xclick>=12 and xclick<=38)then --USERNAME BOX	
+				term.setTextColor(colors.white)
+				newusername = getText(x/2-10,y/2+1)
+			end
+		elseif(yclick==13)then
+			if(xclick>=12 and xclick<=38)then --PASSWORD BOX
+				term.setTextColor(colors.white)
+				newpassword = getText(x/2-10,y/2+4,"*")
+			end
+		elseif(yclick==16)then
+			if(xclick>=12 and xclick<=38)then --CONFIRM PASSWORD BOX
+				term.setTextColor(colors.white)
+				confirmpass = getText(x/2-10,y/2+7,"*")
+			end
+		elseif(yclick==1)then	--BACK BUTTON
+			if(xclick<5)then
+				running = false
+			end
+		elseif(yclick==y-1)then
+			if(xclick>=x/2-2 and xclick<=x/2+2)then	--DONE BUTTON
+				if(newusername~="username" and newpassword~="password" and confirmpass~="confirm password" and newusername~="" and newpassword~="" and confirmpass~="")then
+					if(newpassword==confirmpass)then
+						rednet.send(main,newusername.."-newaccount-"..newpassword)
+						local id,msg = rednet.receive(1)
+						if(msg=="success")then
+							term.setCursorPos(x/2-8,y-1)
+							print("Account Added")
+							sleep(2)
+							return
+						else
+							term.setCursorPos(x/2-12,y-1)
+							term.setTextColor(colors.red)
+							write("Username already exists")
+							sleep(2)
+						end
+					else
+						term.setCursorPos(x/2-10,y-1)
+						term.setTextColor(colors.red)
+						write("Passwords dont match")
+						sleep(2)
+						term.setTextColor(colors.white)
+					end
+				else
+					term.setCursorPos(x/2-18,y-1)
+					term.setTextColor(colors.red)
+					write("Fill out all fields before continuing")
+					sleep(2)
+					term.setTextColor(colors.white)
+				end
+			end
+		end
+	end
+end
+
+function loginInterface()
+	openPort()
+	local x,y = term.getSize()
+	local running = true
+	while running do
+		printLogin(uername,password)
+		local Event, key, xclick, yclick = getEvent("mouse_click")
+		if(yclick>=10 and yclick<=12)then
+			if(xclick>=12 and xclick<=38)then --USERNAME BOX	
+				term.setTextColor(colors.white)
+				
+				username = getText(x/2-10,y/2+2)
+			end
+		elseif(yclick>=13 and yclick<=15)then
+			if(xclick>=12 and xclick<=38)then --PASSWORD BOX
+				term.setTextColor(colors.white)
+
+				password = getText(x/2-10,y/2+5,"*")
+			end
+		elseif(yclick==17)then 
+			if(xclick>=x/2-9 and xclick<=x/2+8) then	--NEW USER BOX
+				newUserInterface()
+			end
+		elseif(yclick==16)then
+			if(xclick>=22 and xclick<=28)then	--LOGIN BUTTON
+				local done = false
+				local trys = 0
+				while done==false do
+					if(username~="" and password~="")then
+						rednet.send(main,username.."-login-"..password)
+						local id, msg = rednet.receive(1)
+						if(msg~=nill)then
+							done = true
+							if(msg=="success")then
+								done = true
+								running = false
+							elseif(msg=="incorrect")then
+								term.setCursorPos(x/2-15,y)
+								term.setTextColor(colors.red)
+								term.clearLine()
+								write("Incorrect username or password")
+								sleep(2)
+								done = true
+							else
+								term.setCursorPos(x/2-12,y)
+								term.setTextColor(colors.red)
+								term.clearLine()
+								write("User is already logged in")
+								sleep(2)
+								done = true
+							end
+						end
+						if(trys>=3)then
+							term.setCursorPos(x/2-13,y)
+							term.setTextColor(colors.red)
+							term.clearLine()
+							write("Unable to connect to server")
+							sleep(2)
+							done = true
+						end
+						trys = trys+1
+					else
+						term.setCursorPos(x/2-18,y)
+						term.setTextColor(colors.red)
+						term.clearLine()
+						write("Fill out all feilds before continuing")
+						sleep(2)
+						term.setTextColor(colors.white)
+						done = true
+					end
+					if(done==false)then
+						term.setTextColor(colors.gray)
+						term.setCursorPos(x/2-5,y)
+						write("Logging in")
+						for derp=1,4,1 do
+							sleep(.2)
+							write(".")
+						end
+						term.clearLine()
+					end
+				end
+			end
+		elseif(yclick==1)then
+			if(xclick>=x-2)then	--'X' BUTTON
+				close = true
+				return
+			end
+		end
+	end
+end
+
+--	[[CLIENT]]
+
+function getchattext(xplace,yplace)
+	local running = true
+	local lines = {}
+	local x,y = term.getSize()
+	lines[0] = ""
+	lines[1] = ""
+	lines[2] = ""
+	lines[3] = ""
+	ycurs = yplace
+	term.setTextColor(colors.black)
+	term.setBackgroundColor(colors.white)
+	local count = 0
+	term.setCursorBlink(true)
+	term.setCursorPos(xplace,ycurs+count)
+	write("                            ")
+	term.setCursorPos(xplace,ycurs+count)
+	while running do
+		local event, p,pram1,pram2 = getEvent()
+		if event == "char" then
+			if(string.len(lines[count])==x-15)then
+				if(count<3)then
+					count = count+1
+					lines[count]=""
+					local words = {}
+					local newcount = 0
+					newstring = lines[count-1]
+					term.setCursorPos(1,1)
+					for token in string.gmatch(newstring, "[^%s]+") do
+					   words[newcount]=token
+					   newcount = newcount+1
+					end
+					lines[count-1] = string.sub(lines[count-1],1,36-string.len(words[table.getn(words)]))
+					lines[count] = lines[count]..words[table.getn(words)]..p
+				end
+			else
+				lines[count] = lines[count]..p
+			end
+		elseif event == "key" then
+			if p == keys.enter then
+				term.setCursorBlink(false)
+				--input = lines[0]..lines[1]..lines[2]..line[3]
+				if(currentContact~="noOne")then
+					newMessage = lines[0]..lines[1]..lines[2]..lines[3]
+					rednet.send(main,username.."-message-"..currentContact.."-"..newMessage)
+					rednet.receive(.5)					
+				end
+				return true
+			elseif p == keys.backspace then
+				lines[count] = lines[count]:sub(1, #lines[count] - 1)
+				if(string.len(lines[count])==0)then
+					if(count>0)then
+						count = count-1
+					end
+				end
+			end
+		elseif(event=="mouse_click")then
+			if(pram2==15)then
+				if(pram1>=x-4)then
+					term.setCursorBlink(false)
+					if(currentContact~="noOne")then
+						newMessage = lines[0]..lines[1]..lines[2]..lines[3]
+						rednet.send(main,username.."-message-"..currentContact.."-"..newMessage)
+						rednet.receive(.5)		
+					end			
+				end
+			elseif(pram2<=yplace)then
+				--if(pram1<=xplace)then
+					term.setCursorBlink(false)
+					return false
+				--end
+			end
+		end
+		
+		for rows=0,3,1 do
+			for columns=0,36,1 do
+				term.setCursorPos(16+columns,16+rows)
+				write(" ")
+			end
+		end
+		term.setCursorPos(xplace,ycurs)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[0] ).." ")
+		term.setCursorPos(xplace,ycurs+1)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[1] ).." ")
+		term.setCursorPos(xplace,ycurs+2)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[2] ).." ")
+		term.setCursorPos(xplace,ycurs+3)
+		write( ( mask and string.rep(mask, #lines[count]) or lines[3] ).." ")
+		term.setCursorPos(xplace+string.len(lines[count]),ycurs+count)
+	end
+	--error( "should never get here" )
+	--term.clearLine()
+end
+
+function wordwrap(message)
+	local newcount = 0
+	local words = {}
+	for token in string.gmatch(message, "[^%s]+") do
+	   words[newcount]=token
+	   newcount = newcount+1
+	end
+	return string.sub(message,1,24-string.len(words[table.getn(words)])),words[table.getn(words)]
+end
+
+function printChat(user,message,current)
+	local state=true
+	local lines = {}
+	local xplace=0
+	local x,y = term.getCursorPos()
+	term.setBackgroundColor(colors.white)
+	if(user==username)then
+		term.setTextColor(colors.lightGray)
+	else
+		term.setTextColor(colors.lightBlue)
+	end
+	for place=0,4,1 do
+		if(#message<=24)then
+			lines[place] = string.sub(message,1+(place*24),(place+1)*24)
+		else
+			if(place==0)then
+				lines[0],lines[1] = wordwrap(string.sub(message,1+(place*24),(place+1)*24))
+			elseif(#message>24*(place+1))then
+				lines[place] = lines[place]..string.sub(message,1+(place*24),(place+1)*24)
+				lines[place],lines[place+1] = wordwrap(string.sub(message,1+(place*24),(place+1)*24))
+			else
+				if(lines[place]~=nil)then
+					lines[place] = lines[place]..string.sub(message,1+(place*24),(place+1)*24)
+				else
+					lines[place] = string.sub(message,1+(place*24),(place+1)*24)
+				end
+			end
+		end
+	end
+	if(current>3 and current<15)then
+		if(#user>10)then
+			term.setCursorPos(16,current)
+			temp = string.sub(user,0,7)
+			temp = temp.."..."
+			write(temp)
+		else
+			xplace=10-string.len(user)
+			term.setCursorPos(16+xplace,current)
+			write(user)
+		end
+	end
+	term.setTextColor(colors.black)
+	for lineplace=0,table.getn(lines),1 do
+		if(lines[lineplace]~="")then
+			if(current+lineplace>3 and current+lineplace<15)then
+				term.setCursorPos(27,current+lineplace)
+				for derp=1,x-27,1 do
+					write(" ")
+				end
+				term.setCursorPos(27,current+lineplace)
+				write(lines[lineplace])
+			end
+			term.setCursorPos(27,current+lineplace)
+		end
+		
+	end
+	local x,y = term.getCursorPos()
+	return x,y
+end
+
+function getFriends(FSP)
+	local running = true
+	local trys = 0
+	local endNum = 0
+	while running do
+		rednet.send(main,username.."-getfriends")
+		id,message = rednet.receive(1)
+		if(id==main)then
+			running = false
+		end
+		if(trys==3)then
+			running = false
+		end
+		trys = trys+1
+	end
+	term.setTextColor(colors.black)
+	contacts = textutils.unserialize(message)
+	if(contacts[0]~=nil)then
+		if(table.getn(contacts)<11)then
+			endNum = table.getn(contacts)
+		else
+			endNum = 11
+		end
+		term.setBackgroundColor(colors.white)
+		for pos = 0+FSP,endNum+FSP,1 do
+			term.setCursorPos(1,6+pos-FSP)
+			write(contacts[pos])
+		end
+	end
+end
+
+function userHome()
+	term.setTextColor(colors.white)
+	local x,y = term.getSize()
+	--clear()
+	--setBackground(colors.white,x,y)
+	setBackground(colors.lightBlue,x,2)
+	for rows = 1,y,1 do
+		term.setBackgroundColor(colors.lightBlue)
+		term.setCursorPos(1,0+rows)
+		for columns=1,15,1 do
+			write(" ")
+		end
+	end
+	term.setCursorPos(1,1)
+	write("MineChat "..version)
+	term.setCursorPos(1,2)
+	write(username)
+	term.setCursorPos(x-5,1)
+	term.setBackgroundColor(colors.lightGray)
+	write("Logout")
+	term.setBackgroundColor(colors.lightBlue)
+	term.setCursorPos(16,2)
+	write("Profile  Options  Help")
+	term.setBackgroundColor(colors.lightGray)
+	for rows=16,x,1 do
+		term.setCursorPos(rows,3)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.lightBlue)
+	term.setCursorPos(1,4)
+	write("Contacts")
+	for rows=1,14,1 do
+		term.setCursorPos(1,4+rows)
+		term.setBackgroundColor(colors.white)
+		write("              ")
+		term.setBackgroundColor(colors.lightGray)
+		write(" ")
+	end
+	term.setCursorPos(1,5)
+	term.setBackgroundColor(colors.lightGray)
+	write("              ")
+	term.setBackgroundColor(colors.gray)
+	term.setCursorPos(15,5)
+	write("^")
+	term.setCursorPos(15,18)
+	write("v")
+	term.setBackgroundColor(colors.lightGray)
+	for rows=1,11,1 do
+		term.setCursorPos(x,2+rows)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.gray)
+	term.setCursorPos(x,3)
+	write("^")
+	term.setCursorPos(x,14)
+	write("v")
+	term.setBackgroundColor(colors.white)
+	for y=1,4,1 do
+		term.setCursorPos(16,15+y)
+		for derp=1,x-15,1 do
+			write(" ")
+		end
+	end
+	term.setBackgroundColor(colors.lightGray)
+	term.setCursorPos(16,15)
+	for derp=1,x-15,1 do
+		write(" ")
+	end
+	term.setBackgroundColor(colors.gray)
+	term.setCursorPos(x-4,15)
+	write("Send")
+	term.setBackgroundColor(colors.white)
+	term.setTextColor(colors.black)
+	term.setCursorPos(16,16)
+	write("Say Something...")
+	term.setCursorPos(1,18)
+	term.setBackgroundColor(colors.lightGray)
+	write("              ")
+end
+
+function displayContact(contact)
+	rednet.send(main,username.."-getmessages-"..contact)
+	local ID,message = rednet.receive(.5)
+	local ID,status = rednet.receive(.5)
+	local chat = textutils.unserialize(message)
+	term.setBackgroundColor(colors.lightGray)
+	term.setTextColor(colors.blue)
+	term.setCursorPos(16,3)
+	write(contact.." ")
+	if(status=="online")then
+		term.setBackgroundColor(colors.lime)
+	else
+		term.setBackgroundColor(colors.orange)
+	end
+	write(" ")
+end
+
+function openChat(contact,current,chatplace)
+	--return false
+	local returnValue = false
+	local length = 0
+	current = 4-chatplace
+	if(contact~="onOne" and contact~=nil)then
+		rednet.send(main,username.."-getmessages-"..contact)
+		local ID,message = rednet.receive(.5)
+		local ID,status = rednet.receive(.5)
+		local chat = textutils.unserialize(message)
+		if(chat[0]~=nil)then
+			for place=0,chatLength(contact),1 do
+				for name,msg in chat[place]:gmatch("([^%s]+)-(.*)") do
+					user = name
+					chatmsg = msg
+				end
+				local x,ypos = printChat(user,chatmsg,current)
+				current = ypos+1
+				if(ypos>19)then
+					return true
+				end		
+			end
+			oldLength = length
+		end
+	end
+	return false
+end
+
+function profileMenu()
+	local menuChoice = {}
+	menuChoice[0] = "Add Friend"
+	menuChoice[1] = "Delete Friend"
+	menuChoice[2] = "Edit Account"
+	menuChoice[3] = "Friend Requests"
+	term.setBackgroundColor(colors.lightGray)
+	term.setTextColor(colors.white)
+	term.setCursorPos(16,2)
+	write("Profile")
+	term.setBackgroundColor(colors.blue)
+	for place=0,table.getn(menuChoice),1 do
+		term.setCursorPos(16,3+place)
+		for num=0,16,1 do 
+			write(" ")
+		end
+		term.setCursorPos(16,3+place)
+		write(menuChoice[place])
+	end
+end
+
+function optionsMenu()
+	local menuChoice = {}
+	menuChoice[0] = "Change Color"
+	term.setBackgroundColor(colors.lightGray)
+	term.setTextColor(colors.white)
+	term.setCursorPos(25,2)
+	write("Options")
+	term.setBackgroundColor(colors.blue)
+	for place=0,table.getn(menuChoice),1 do
+		term.setCursorPos(25,3+place)
+		for num=0,12,1 do 
+			write(" ")
+		end
+		term.setCursorPos(25,3+place)
+		write(menuChoice[place])
+	end
+end
+
+function helpMenu()
+	local menuChoice = {}
+	menuChoice[0] = "N/A"
+	term.setBackgroundColor(colors.lightGray)
+	term.setTextColor(colors.white)
+	term.setCursorPos(34,2)
+	write("Help")
+	term.setBackgroundColor(colors.blue)
+	for place=0,table.getn(menuChoice),1 do
+		term.setCursorPos(34,3+place)
+		for num=0,6,1 do 
+			write(" ")
+		end
+		term.setCursorPos(34,3+place)
+		write(menuChoice[place])
+	end
+end
+
+function chatLength(contact)
+	local lines = {}
+	if(contact~="onOne" and contact~=nil)then
+		rednet.send(main,username.."-getmessages-"..contact)
+	end
+	local ID,msg = rednet.receive(.5)
+	local ID,status = rednet.receive(.5)
+	local chat = textutils.unserialize(msg)
+	if(chat[0]~=nil)then
+		for x=1,#chat,1 do
+			for name,m in chat[x]:gmatch("([^%s]+)-(.*)") do
+				user = name
+				message = m
+			end
+			for place=0,6,1 do
+				if(#message<=24)then
+					lines[place] = string.sub(message,1+(place*24),(place+1)*24)
+				elseif(string.sub(message,1+(place*24),#message)~="")then
+					if(place==0)then
+						lines[0],lines[1] = wordwrap(string.sub(message,1+(place*24),(place+1)*24))
+					elseif(#message>24*(place+1))then
+						lines[place] = lines[place]..string.sub(message,1+(place*24),(place+1)*24)
+						lines[place],lines[place+1] = wordwrap(string.sub(message,1+(place*24),(place+1)*24))
+					else
+						if(lines[place]~=nil)then
+							lines[place] = lines[place]..string.sub(message,1+(place*24),(place+1)*24)
+						else
+							lines[place] = string.sub(message,1+(place*24),(place+1)*24)
+						end
+					end
+				end
+			end
+		end
+	end
+	print(#lines)
+	sleep(1)
+	return #lines
+end
+
+function refreshScreen(CC,CSP,openList,FSP)
+	--clear()
+	setBackground(colors.white,term.getSize())
+	getFriends(FSP)
+	if(openList[4])then 	--chat
+		openChat(CC,0,CSP)
+	end
+	userHome()
+	if(openList[4])then
+		displayContact(CC)
+	end
+	getFriends(FSP)
+	if(openList[1])then		--profile
+		profileMenu()
+	end
+	if(openList[2])then		--options
+		optionsMenu()
+	end
+	if(openList[3])then		--help
+		helpMenu()
+	end	
+end
+
+function friendRequests()
+	local endNum = 0
+	rednet.send(main,username.."-friendrequests")
+	local ID, message = rednet.receive(.5)
+	requests = textutils.unserialize(message)
+	term.setBackgroundColor(colors.blue)
+	term.setCursorPos(6,6)
+	term.setBackgroundColor(colors.blue)
+	for y=0,9,1 do
+		for x=0,36,1 do
+			term.setCursorPos(6+x,7+y)
+			write(" ")
+		end
+	end
+	term.setCursorPos(6,6)
+	term.setBackgroundColor(colors.gray)
+	for derp=1,37,1 do write(" ") end
+	term.setCursorPos(15,6)
+	write("Friend Requests")
+	term.setCursorPos(39,6)
+	term.setBackgroundColor(colors.red)
+	write(" X ")
+	term.setBackgroundColor(colors.blue)
+	if(requests[0]==niil)then
+		term.setCursorPos(8,7)
+		write("You have no requests")
+	else
+		if(table.getn(requests)<5)then
+			endNum = table.getn(requests)
+		else
+			endNum = 4
+		end
+		for place=0,endNum,1 do
+			term.setCursorPos(8,7+place)
+			term.setBackgroundColor(colors.blue)
+			write(requests[place])
+			term.setBackgroundColor(colors.green)
+			term.setCursorPos(32,7+place)
+			write("Accept")
+			--term.setBackgroundColor(colors.red)
+			--write("Deny")
+		end
+	end
+	term.setBackgroundColor(colors.blue)
+	return requests
+end
+
+function addFriend(name)
+	term.setBackgroundColor(colors.blue)
+	for y=0,10,1 do
+		for x=0,36,1 do
+			term.setCursorPos(6+x,6+y)
+			write(" ")
+		end
+	end
+	term.setCursorPos(6,6)
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.gray)
+	for derp=1,37,1 do write(" ") end
+	term.setCursorPos(15,6)
+	write("Add Friend")
+	term.setCursorPos(39,6)
+	term.setBackgroundColor(colors.red)
+	write(" X ")
+	term.setBackgroundColor(colors.blue)
+	term.setCursorPos(18,8)
+	write("Enter Username")
+	term.setCursorPos(12,10)
+	term.setBackgroundColor(colors.white)
+	write("|                         |")
+	term.setTextColor(colors.black)
+	term.setCursorPos(12+((25-string.len(name))/2),10)
+	write(name)
+	term.setCursorPos(15,12)
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.green)
+	write("Send Friend Request")
+	term.setBackgroundColor(colors.blue)
+end
+
+function deleteFriend(name)
+	term.setBackgroundColor(colors.blue)
+	for y=0,10,1 do
+		for x=0,36,1 do
+			term.setCursorPos(6+x,6+y)
+			write(" ")
+		end
+	end
+	term.setCursorPos(6,6)
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.gray)
+	for derp=1,37,1 do write(" ") end
+	term.setCursorPos(15,6)
+	write("Delete Friend")
+	term.setCursorPos(39,6)
+	term.setBackgroundColor(colors.red)
+	write(" X ")
+	term.setBackgroundColor(colors.blue)
+	term.setCursorPos(18,8)
+	write("Enter Username")
+	term.setCursorPos(12,10)
+	term.setBackgroundColor(colors.white)
+	write("|                         |")
+	term.setTextColor(colors.black)
+	term.setCursorPos(12+((25-string.len(name))/2),10)
+	write(name)
+	term.setCursorPos(15,12)
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.green)
+	write("Delete Friend")
+	term.setBackgroundColor(colors.blue)
+end
+
+function editAccount()
+	
+end
+
+function addFriendInteraction()
+	local name = "Username"
+	while true do
+		term.setBackgroundColor(colors.blue)
+		addFriend(name)
+		Event,key,xpos,ypos = getEvent("mouse_click")
+		if(ypos==6)then
+			if(xpos>=39 and xpos<=41)then
+				break
+			end
+		elseif(ypos==10)then
+			if(xpos>=12 and xpos<=39)then
+				term.setBackgroundColor(colors.white)
+				term.setTextColor(colors.black)
+				name = getText(15,10)
+				term.setBackgroundColor(colors.blue)
+			end
+		elseif(ypos==12)then
+			if(xpos>=17 and xpos<=35)then
+				if(name~=nil or name~="Username")then
+					rednet.send(main,username.."-addfriend-"..name)
+					local ID,msg = rednet.receive(.5)
+					if(msg=="failed")then
+						term.setCursorPos(15,13)
+						term.setTextColor(colors.red)
+						write("User Does Not Exist or")
+						term.setCursorPos(15,14)
+						write("Request All Ready Sent")
+						term.setTextColor(colors.white)
+						sleep(2)
+					else
+						term.setCursorPos(17,13)
+						write("Request Sent")
+						sleep(2)
+						break
+					end
+				else
+					term.setCursorPos(17,13)
+					term.setTextColor(colors.red)
+					write("Please Fill Out Feild")
+					term.setTextColor(colors.white)
+					sleep(2)
+				end
+			end
+		end
+	end
+end
+
+function deleteFriendInteraction()
+	local name = "Username"
+	while true do
+		term.setBackgroundColor(colors.blue)
+		deleteFriend(name)
+		Event,key,xpos,ypos = getEvent("mouse_click")
+		if(ypos==6)then
+			if(xpos>=39 and xpos<=41)then
+				break
+			end
+		elseif(ypos==10)then
+			if(xpos>=12 and xpos<=39)then
+				term.setBackgroundColor(colors.white)
+				term.setTextColor(colors.black)
+				name = getText(15,10)
+				term.setBackgroundColor(colors.blue)
+			end
+		elseif(ypos==12)then
+			if(xpos>=17 and xpos<=27)then
+				if(name~=nil or name~="Username")then
+					rednet.send(main,username.."-deletefriend-"..name)
+					local ID,msg = rednet.receive(.5)
+					if(msg=="failed")then
+						term.setCursorPos(15,13)
+						term.setTextColor(colors.red)
+						write("User Does Not Exist or")
+						term.setCursorPos(15,14)
+						write("Not One of Your Friends")
+						term.setTextColor(colors.white)
+						sleep(2)
+					else
+						term.setCursorPos(17,13)
+						write("Friend Deleted")
+						sleep(2)
+						break
+					end
+				else
+					term.setCursorPos(17,13)
+					term.setTextColor(colors.red)
+					write("Please Fill Out Field")
+					term.setTextColor(colors.white)
+					sleep(2)
+				end
+			end
+		end
+	end
+end
+
+function friendRequestInteraction()
+	while true do
+		local temp = friendRequests()
+		local size = table.getn(temp)
+		Event,key,xpos,ypos = getEvent("mouse_click")
+		if(ypos-7<=size and ypos>=7)then
+			if(xpos>=32 and xpos<=37)then
+				rednet.send(main,username.."-confimFriend-"..temp[ypos-7])
+				rednet.receive(.5)
+			end
+		elseif(ypos==6)then
+			if(xpos>=39 and xpos<=41)then
+				break
+			end
+		end
+	end
+end
+
+function clientInteraction()
+	--				  profile options help  chat
+	local appsOpen = {false,  false,  false,false}
+	oldLength = 0
+	timer = os.startTimer(3)
+	local x,y = term.getSize()
+	local friendScrollPlace = 0
+	local chatScrollPlace = 0
+	local running = true
+	choice = "nothing"
+	scroll = 0
+	currentContact = "noOne"
+	refreshScreen(currentContact,chatScrollPlace,appsOpen,friendScrollPlace)
+	while running do
+		choice = "nothing"
+		local Event, key, xclick, yclick = getEvent()
+		if(Event=="mouse_click")then
+			if(xclick<=14)then
+				if(yclick>=6)then				--FRIEND SELECT
+					if(table.getn(contacts)>11)then
+						friendlength = 11
+					else
+						friendlength = table.getn(contacts)
+					end
+					for contactNumber=0,friendlength+1,1 do
+						if(yclick==5+contactNumber)then
+							choice = contactNumber+friendScrollPlace
+							currentContact = contacts[choice-1]
+						end
+					end
+					if(choice~="noOne")then
+						chatScrollPlace = 0
+						appsOpen[4] = true
+						--local result = openChat(currentContact,0,chatScrollPlace)
+						--if(result)then
+						--	chatScrollPlace = chatLength(currentContact)-7
+						--end
+					end
+				end
+			end
+			if(yclick==1)then				--LOGOUT
+				if(xclick>=46)then
+					running = false
+					rednet.send(main,username.."-logout")
+					break
+				end	
+			end	
+			if(yclick==2)then				---MENUS
+				if(xclick>=16 and xclick<=15+string.len("profile"))then
+					choice = "profile"
+					profileMenu()
+					appsOpen[1] = true
+					appsOpen[2] = false
+					appsOpen[3] = false
+				elseif(xclick>=16+2+string.len("profile") and xclick<=15+2+string.len("profile")+string.len("options"))then
+					choice = "options"
+					optionsMenu()
+					appsOpen[1] = false
+					appsOpen[2] = true
+					appsOpen[3] = false
+				elseif(xclick>=16+3+string.len("profile")+string.len("options") and xclick<=15+4+string.len("profile")+string.len("options")+string.len("help"))then
+					choice = "help"
+					helpMenu()
+					appsOpen[1] = false
+					appsOpen[2] = false
+					appsOpen[3] = true
+				end
+			end
+			if(xclick==15)then 				--FRIEND SCROLL
+				if(yclick==5)then
+					choice = "friendScroll"
+					friendScrollPlace = friendScrollPlace-1
+				elseif(yclick==18 and #contacts>13)then
+					choice = "friendScroll"
+					friendScrollPlace = friendScrollPlace+1
+				end
+				if(friendScrollPlace<0)then
+					friendScrollPlace = 0
+				end
+				if(friendScrollPlace+11>#contacts and #contacts>11)then
+					friendScrollPlace = friendScrollPlace-1
+				end
+			end
+			if(xclick==x)then				--CHAT SCROLL
+				local length = chatLength(currentContact)+1
+				if(yclick==3)then
+					choice = "chatScroll"
+					chatScrollPlace = chatScrollPlace-1
+				elseif(yclick==14)then
+					choice = "chatScroll"
+					chatScrollPlace = chatScrollPlace+1
+				end
+				if(chatScrollPlace<0)then
+					chatScrollPlace = 0
+				end
+				if(chatScrollPlace>length-9)then
+					chatScrollPlace=chatScrollPlace-1
+				end
+			end
+			if(xclick>=16)then				--TEXT BOX
+				if(yclick>=16)then
+					local result = getchattext(16,16,x)
+					if(result)then
+						--atScrollPlace = chatLength(currentContact)-7
+					end
+				end
+			end
+			if(xclick>=16 and appsOpen[1])then				--MENU OPTIONS
+				if(xclick<=32)then
+					if(yclick==3)then
+						addFriendInteraction()
+					elseif(yclick==4)then
+						deleteFriendInteraction()
+					elseif(yclick==5)then
+						--editProfile("username")
+					elseif(yclick==6)then
+						friendRequestInteraction()
+					end
+				end
+			end
+			if(choice=="nothing")then
+				appsOpen[1] = false
+				appsOpen[2] = false
+				appsOpen[3] = false
+			end
+			refreshScreen(currentContact,chatScrollPlace,appsOpen,friendScrollPlace)
+		elseif(Event=="mouse_scroll")then
+			if(xclick<=14)then
+				if(#contacts>13)then
+					choice = "friendScroll"
+					friendScrollPlace = friendScrollPlace+key
+				end
+				if(friendScrollPlace<0)then
+					friendScrollPlace = 0
+				end
+				if(friendScrollPlace+11>#contacts and #contacts>11)then
+					friendScrollPlace = friendScrollPlace-1
+				end
+			elseif(xclick>=16)then
+				local length = chatLength(currentContact)+1
+				chatScrollPlace = chatScrollPlace+key
+				if(chatScrollPlace<0)then
+					chatScrollPlace = 0
+				end
+				if(chatScrollPlace>length-9)then
+					chatScrollPlace=chatScrollPlace-1
+				end
+			end
+		elseif(Event=="timer" and key==timer)then
+			timer = os.startTimer(3)
+			refreshScreen(currentContact,chatScrollPlace,appsOpen,friendScrollPlace)
+		end
+		
+	end
+end
+
+--PROGRAM STARTS HERE
+while openPort()==false do
+	clear()
+	term.setTextColor(colors.white)
+	print("MineChat Client")
+	term.setTextColor(colors.red)
+	print("No Modem Attached")
+	sleep(1)
+end
+for trys=1,10,1 do
+	clear()
+	term.setTextColor(colors.white)
+	print("Searching for host server...")
+	rednet.broadcast("SMShostsearch")
+	id,msg,distance = rednet.receive(.5)
+	if(msg=="SMShostreceived")then
+		main = id
+		break
+	end
+end
+
+close = false
+while close==false do
+	close = false
+	username = "username"
+	password = "password"
+	loginInterface()
+	if(close==false)then
+		clientInteraction()
+	end
+end
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
+term.clear()
+term.setCursorPos(1,1)

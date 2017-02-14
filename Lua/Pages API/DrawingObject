@@ -1,0 +1,206 @@
+DrawingObject = {x=0,
+				 y=0,
+				 w=0,
+				 y=0,
+				 fillBuffer = false,
+				 screenBuffer = {}}
+
+function init(x,y,w,h)
+	if(x==nil and y==nil)then
+		x = 1
+		y = 1
+		w,h = term.getSize()
+	elseif(w==nil and h==nil)then
+		w = x
+		h = y
+		x = 1
+		y = 1		
+	end
+	util.checkInputs({x,y,w,h},{"number","number","number","number"},"Drawing Object")
+	self = setmetatable ({x = x,
+						  y = y,
+						  width = w,
+						  height = h,
+						  fillBuffer = false,
+						  screenBuffer = {}}, {__index=DrawingObject})
+	return self
+end
+
+function getTablePointer()
+	return DrawingObject
+end
+
+function DrawingObject:getX()
+	return self.x
+end	
+
+function DrawingObject:getY()
+	return self.y
+end
+
+function DrawingObject:getWidth()
+	return self.width
+end
+
+function DrawingObject:getHeight()
+	return self.height
+end
+
+function DrawingObject:getBufferState()
+	return self.fillBuffer
+end
+
+function DrawingObject:setBufferState(bool)
+	util.checkInputs({bool},{"boolean"},"setBufferState")
+	self.fillBuffer = bool
+end
+
+function DrawingObject:getScreenBuffer()
+	return self.screenBuffer
+end
+
+function DrawingObject:resetBuffer()
+	self.screenBuffer = {}
+end
+
+function DrawingObject:clearScreen()
+	term.setBackgroundColor(colors.black)
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function DrawingObject:fillArea(color,xp,yp,w,h)
+	util.checkInputs({color,xp,yp,w,h},{"number","number","number","number","number","number"},"fillArea")
+	for y=yp,h+yp-1,1 do
+		for x=xp,w+xp-1,1 do
+			self:write(" ",x,y,colors.white,color)
+		end
+	end
+end
+
+function DrawingObject:write(t,x,y,c,bg)
+	if(c~=nil and bg~=nil)then
+		t = string.format("<$t.%d><$b.%d>%s",c,bg,t)
+	end
+	util.checkInputs({t,x,y},{"string","number","number"},"DrawingObject:write")
+	local extra = ""
+	for _,word in ipairs(text.separateText(t))do
+		if(text.findCommandText(word)==nil)then
+			for _,l in ipairs(text.stringToTable(word))do
+				if(util.inside(self:getX(),self:getY(),self:getWidth(),self:getHeight(),x,y))then
+					if(self:getBufferState())then
+						if(self.screenBuffer[y]==nil)then
+							self.screenBuffer[y] = {}
+						end
+						self.screenBuffer[y][x] = extra..l
+					else
+						term.setCursorPos(x,y)
+						term.write(l)
+					end
+					x = x+1
+				end
+			end
+			extra = ""
+		else
+			if(self:getBufferState())then
+				extra = extra..word
+			else
+				text.writeLoadedText(word)
+			end
+		end
+	end
+end
+
+function DrawingObject:writeTextCentered(text,x,y,w,h,color,bgcolor)
+	util.checkInputs({x,y,w,h},{"number","number","number","number"},"writeTextCentered")
+	local y = y+h/2
+	local x = x+(w-#text)/2
+	self:write(text,x,y,color,bgcolor)
+end
+
+function DrawingObject:drawImage(image,x,y,invs)--invs: a value that is interpreted as invisible
+	util.checkInputs({x,y},{"number","number"},"drawImage")
+	for a,l in ipairs(image) do
+		for b,c in ipairs(l) do
+			local xp,yp = x+b-1,y+a-1
+			if(type(c)=="string")then
+				self:write(c,xp,yp)
+			else
+				if(c~=invs)then
+					self:write(" ",xp,yp,colors.white,c)
+				end
+			end
+		end
+	end
+end
+
+function DrawingObject:drawScreenBuffer(x,y,w,h)
+	x,y,w,h = inspectInputs(x,y,w,h)
+	util.checkInputs({x,y,w,h},{"number","number","number","number"},"drawScreenBuffer")
+	self:setBufferState(false)
+	for y=y,y+h-1,1 do
+		for x=x,x+w-1,1 do
+			if(self.screenBuffer[y]~=nil)then
+				if(self.screenBuffer[y][x]~=nil)then
+					self:write(self.screenBuffer[y][x],x,y)
+				end
+			end
+		end
+	end
+end
+
+function DrawingObject:getScreenBuffer(xp,yp,w,h)
+	xp,yp,w,h = inspectInputs(xp,yp,w,h)
+	util.checkInputs({xp,yp,w,h},{"number","number","number","number"},"getScreenBuffer")
+	local res = {}
+	for y=yp,yp+h,1 do
+		for x=xp,xp+w,1 do
+			if(self.screenBuffer[y]~=nil)then
+				if(self.screenBuffer[y][x]~=nil)then
+					if(res[y-yp+1]==nil)then
+						res[y-yp+1] = {}
+					end
+					res[y-yp+1][x-xp+1] = self.screenBuffer[y][x]
+				end
+			end
+		end
+	end
+	return res
+end
+
+function  inspectInputs(x,y,w,h)
+	if(x==nil and y==nil)then
+		x = 1
+		y = 1
+		w = self:getWidth()
+		h = self:getHeight()
+	elseif(w==nil and h==nil)then
+		w = x
+		h = y
+		x = 1
+		y = 1		
+	end
+	return x,y,w,h
+end
+
+function main()
+	local d = init()
+	d:setBufferState(true)
+	d:fillArea(colors.white,1,1,52,19)
+	d:fillArea(colors.red,2,2,10,10)
+	d:fillArea(colors.green,10,10,5,5)
+	d:write("This is a test",5,5,colors.white,colors.black)
+	local w = 10
+	local h = 5
+	d:clearScreen()
+	while true do
+		local e,p1,p2,p3 = os.pullEvent()
+		if(e=="mouse_click" or e=="mouse_drag")then
+			d:clearScreen()
+			d:write(p2..","..p3,1,1,colors.white,colors.black)
+			d:drawScreenBuffer(p2,p3,w,h)
+		end
+	end
+end
+
+--main()

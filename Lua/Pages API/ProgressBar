@@ -1,0 +1,54 @@
+ProgressBar = {
+			   length = 0,
+			   percentage = 0,
+			   progressText = "",
+			   barColor = colors.lime,
+			   backgroundColor = colors.lightGray,
+			   textColor = colors.gray}
+			   
+function init(x,y,l,dp,bc,bgc,tc)
+	pages.checkInputs({xpos,ypos,l,dp,bc,bgc,tc},{"number","number","number","string","number","number","number",},"ProgressBar")
+	self = Object.init(x,y,l,1,"ProgressBar")
+	self.length = l
+	self.progressText = dp
+	self.barColor = bc
+	self.backgroundColor = bgc
+	self.textColor = tc
+	
+	setmetatable(self,{__index=setmetatable(ProgressBar,{__index=Object.getTablePointer()})})
+	return self
+end
+
+function getTablePointer()
+	return ProgressBar
+end
+
+function ProgressBar:getLength()
+	return self:width()
+end
+
+function ProgressBar:getPercentage()
+	return self.percentage
+end
+
+function ProgressBar:setPercentage(p)
+	checkInputs({p},{"number"},"setPercentage")
+end
+
+function ProgressBar:draw(d)
+	d:fillArea(self.backGroundColor,self:getX(),self:getY(),self:getLength(),1)
+	d:fillArea(self.barColor,self:getX(),self:getY(),self:getPercentage()/100*self:getLength(),1)
+	if(self.progressText=="*")then
+		temp = tostring(self:getPercentage()).."%"
+	else
+		temp = self.progressText
+	end
+	for i=1,#temp,1 do
+		local pos = self:getX()+(self:getLength()-#temp)/2+(i-1)
+		if(pos<=self:getPercentage()/100*self:getLength())then
+			d:writeText(string.sub(temp,i,i),pos,self:getY(),self.barColor,self.TextColor)
+		else
+			d:writeText(string.sub(temp,i,i),pos,self:getY(),self.backGroundColor,self.TextColor)
+		end
+	end
+end

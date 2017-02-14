@@ -1,0 +1,306 @@
+deck = {}
+newdeck = {}
+playerHand = {}
+computerHand = {}
+gamerunning = true
+gamecount = 0
+
+function title()
+	term.clear()
+	term.setCursorPos(40,1)
+	print("BlackJack")
+	term.setCursorPos(40,2)
+	print("  -----")
+	term.setCursorPos(40,3)
+	print(" |#####|")
+	term.setCursorPos(40,4)
+	print("||#####|")
+	term.setCursorPos(40,5)
+	print("||#####|")
+	term.setCursorPos(40,6)
+	print("||#####|")
+	term.setCursorPos(40,7)
+	print("| -----")
+	term.setCursorPos(40,8)
+	print(" -----")
+
+end
+
+function filldeck()
+	for deckcount=0,3,1 do
+		for card=2,14,1 do
+			newdeck[(card-1)+13*deckcount] = card
+		end
+	end
+end
+
+function shuffledeck()
+	local number
+	local finished = false
+	for count=1,52,1 do
+		while finished == false do
+			number = math.random(1,52)
+			if(deck[number]==nil)then
+				deck[number] = newdeck[count]
+				finished = true
+			end
+		end
+		finished = false
+	end
+end
+
+function drawCards(symbole,place)
+	if(symbole==10)then
+		term.setCursorPos(5+(place*3),10)
+		print(" ------")
+		term.setCursorPos(5+(place*3),11)
+		print("|"..symbole.."    |")
+		term.setCursorPos(5+(place*3),12)
+		print("|      |")
+		term.setCursorPos(5+(place*3),13)
+		print("|      |")
+		term.setCursorPos(5+(place*3),14)
+		print("|    "..symbole.."|")
+		term.setCursorPos(5+(place*3),15)
+	print(" ------")
+	else
+		term.setCursorPos(5+(place*3),10)
+		print(" ------")
+		term.setCursorPos(5+(place*3),11)
+		print("|"..symbole.."     |")
+		term.setCursorPos(5+(place*3),12)
+		print("|      |")
+		term.setCursorPos(5+(place*3),13)
+		print("|      |")
+		term.setCursorPos(5+(place*3),14)
+		print("|     "..symbole.."|")
+		term.setCursorPos(5+(place*3),15)
+		print(" ------")
+	end
+end
+
+function showhand()
+	title()
+	for count=1,table.getn(playerHand),1 do
+		if(playerHand[count]>10 or playerHand[count]==1)then
+			if(playerHand[count]==11)then
+				drawCards("J",count)
+			elseif(playerHand[count]==12)then
+				drawCards("Q",count)
+			elseif(playerHand[count]==13)then
+				drawCards("K",count)
+			else
+				drawCards("A",count)
+			end	
+		else
+			drawCards(playerHand[count],count)
+		end
+		write(" ")
+	end
+	print("      Total: "..gettotal("player"))
+end
+
+function getcard(who)
+	local count = 1
+	while deck[count]=="used" do
+		count = count+1
+	end
+	local newcard = deck[count]
+	if(who=="player")then
+		if(deck[count]==14)then
+			title()
+			print("would you like the Ace to be an 11 or a 1")
+			local answer = io.read()
+			if(answer=="1")then
+				newcard = 1
+			end
+		end
+		playerHand[table.getn(playerHand)+1] = newcard
+	else
+		if(newcard==14)then
+			if(checkbust("computer"))then
+				newcard = 1
+			end
+		end
+		computerHand[table.getn(computerHand)+1] = newcard
+	end
+	deck[count] = "used"
+	showhand()
+end
+
+function checkbust(who)
+	local total = 0
+	if(who=="player")then
+		for x=1,table.getn(playerHand),1 do
+			if(playerHand[x]>10 and playerHand[x]~=14)then
+				total = total+10
+			elseif(playerHand[x]==14)then
+				total = total+11
+			elseif(playerHand[x]==1)then
+				total = total+1
+			else
+				total = total + playerHand[x]
+			end
+		end
+	else
+		for x=1,table.getn(computerHand),1 do
+			if(computerHand[x]>10 and computerHand[x]~=14)then
+				total = total+10
+			elseif(computerHand[x]==14)then
+				total = total+11
+			elseif(computerHand[x]==1)then
+				total = total+1
+			else
+				total = total + computerHand[x]
+			end
+		end
+	end
+	if(total>21)then
+		return true
+	else
+		return false
+	end
+end
+
+function start()
+	for x=1,2,1 do
+		getcard("player")
+	end
+	for x=1,2,1 do
+		getcard("computer")
+	end
+end
+
+function cango()
+	local total=0
+	for x=1,table.getn(computerHand),1 do
+		if(computerHand[x]>10 and computerHand[x]~=14)then
+			total = total+10
+		elseif(computerHand[x]==14)then
+			total = total+11
+		else
+			total = total + computerHand[x]
+		end
+	end
+	if(total<=16)then
+		return true
+	else	
+		return false
+	end
+end
+
+function gettotal(who)
+	local total=0
+	if(who=="player")then
+		for x=1,table.getn(playerHand),1 do
+			if(playerHand[x]>10 and playerHand[x]~=14)then
+				total = total+10
+			elseif(playerHand[x]==14)then
+				total = total+11
+			else
+				total = total + playerHand[x]
+			end
+		end
+	else
+		for x=1,table.getn(computerHand),1 do
+			if(computerHand[x]>10 and computerHand[x]~=14)then
+				total = total+10
+			elseif(computerHand[x]==14)then
+				total = total+11
+			else
+				total = total + computerHand[x]
+			end
+		end
+	end
+	return total
+end	
+
+function ithad()
+	term.setCursorPos(1,2)
+	write("it had ")
+	for count=1,table.getn(computerHand),1 do
+		if(computerHand[count]>10)then
+			if(computerHand[count]==11)then
+				write("J")
+			elseif(computerHand[count]==12)then
+				write("Q")
+			elseif(computerHand[count]==13)then
+				write("K")
+			else
+				write("A")
+			end	
+		else
+			write(computerHand[count])
+		end
+		write(" ")
+	end
+end
+
+function getwinner()
+	title()
+	showhand()
+	term.setCursorPos(1,1)
+	if(checkbust("player"))then
+		print("you bust")
+	elseif(checkbust("computer"))then
+		print("the computer bust,you win")
+		ithad()
+	elseif(gettotal("player")>gettotal("computer"))then
+		print("you beat the computer")
+		ithad()
+	elseif(gettotal("computer")>gettotal("player"))then
+		print("the computer beat you")
+		ithad()
+	else
+		print("its a tie")
+		ithad()
+	end
+	
+end
+
+--**PROGRAM STARTS HERE**
+
+--while true do
+	filldeck()
+	shuffledeck()
+	title()
+	start()
+	
+	while gamecount < 3 and gamerunning do
+		showhand()
+		term.setCursorPos(1,1)
+		print("would you like to hit (Y/N)")
+		Event,key,parm1,parm2 = os.pullEvent()
+		if(Event=="char") then
+			choice = key
+			if(choice=="y")then
+				getcard("player")
+				if(checkbust("player"))then
+					gamerunning = false
+				end
+			end
+			if(gamerunning)then
+				term.setCursorPos(1,2)
+				if(cango())then
+					getcard("computer")
+					print("computer hit")
+					sleep(1)
+					if(checkbust("computer"))then
+						gamerunning = false
+					end
+				else
+					print("computer stayed")
+					sleep(1)
+				end
+			end
+			if(choice=="n" and cango()==false)then
+				gamecount = 3
+			end
+			gamecount = gamecount+1
+		elseif(Event=="mouse_click")then
+		end
+	end
+	getwinner()
+--end
+print()
+sleep(2)

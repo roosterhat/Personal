@@ -1,0 +1,38 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-advanced-reader.ss" "lang")((modname staryNight) (read-case-sensitive #t) (teachpacks ((lib "universe.rkt" "teachpack" "2htdp") (lib "image.rkt" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #t #t none #f ((lib "universe.rkt" "teachpack" "2htdp") (lib "image.rkt" "teachpack" "2htdp")) #f)))
+(define backdrop (empty-scene 1000 600 "black"))
+
+(define flower 0)
+
+(define (randomStar x) (cond
+                        [(equal? x 0) backdrop]
+                        [else (place-image (star 10 "solid" "white") (random (image-width backdrop)) (random (image-height backdrop)) (randomStar (- x 1)))]))
+
+(define (randomFlower x) (cond
+                        [(equal? x 0) backdrop]
+                        [else (place-image flower (random (image-width backdrop)) (random (100)) (randomFlower (- x 1)))]))
+
+(define ground (rectangle (image-width backdrop) 100 "solid" "green"))
+
+(define tree (overlay/offset (circle 50 "solid" "green") 0 70 (rectangle 25 150 "solid" "brown")))
+
+(define c1(circle 90 "solid" "floralwhite"))
+(define c2(circle 100 "solid" "beige"))
+(define m1(overlay/offset c1 10 10 c2))
+(define c3(circle 15 "solid" "linen"))
+(define e1(ellipse 40 20 "solid" "linen"))
+(define e2(rotate 37 e1))
+(define m2(overlay/offset e2 50 65 m1))
+(define m3(overlay/offset c3 40 -10 m2))
+(define e3(ellipse 45 30 "solid" "linen"))
+(define e4(rotate 45 e3))
+(define m4(overlay/offset e4 -65 -50 m3))
+(define c4(scale .75 c3))
+(define m5(overlay/offset c4 -30 10 m4))
+(define e5(scale 1.75 (rotate 125 e1)))
+(define m6(overlay/offset e5 -65 50 m5))
+(define c5(circle 6 "solid" "linen"))
+(define m7(overlay/offset c5 20 -60 m6))
+
+(overlay/offset m7 350 150 (overlay/offset ground 0 -250 (overlay/offset tree -350 -105 (randomStar 40))))

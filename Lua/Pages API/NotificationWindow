@@ -1,0 +1,57 @@
+NotificationWindow = {
+					  text = "",
+					  title = "",
+					  buttonPreset = 0,
+					  functions = {}}
+					  
+function init(x,y,txt,t,b,f)
+	local w = 21
+	local h = 6
+	if(type(txt)=="string")then
+		txt = text.wrapText(txt,w)
+	end
+	if(#txt>2)then
+		h = 5+(#txt-2)
+	end
+	if(type(f)=="function")then
+		f = {f}
+	end
+	util.checkInputs({x,y,txt,t,b,f},{"number","number","table","string","string","table"},"NotificationWindow")
+	self = Window.init(t,x,y,w,h)
+	self.text = txt
+	self.title = t
+	self.buttonPreset = b
+	self.functions = f
+	
+	setmetatable(self,{__index=setmetatable(NotificationWindow,{__index=Window.getTablePointer()})})
+	self:setup()
+	self.priority = 2
+	return self
+end
+
+function getTablePointer()
+	return NotificationWindow
+end
+
+function NotificationWindow:setup()
+	self:addObject(Label.init(self.text,1,2,self:getWidth(),#self.text,colors.white,colors.black,true,true))
+	if(self.buttonPreset=="YesNoCancel")then --minimum width 20
+		self:addObject(Button.init(" Yes ",2,self:getHeight()-1,5,1,colors.green,colors.white,function() self.buttonFunctions[1]() self:closeWindow() end))
+		self:addObject(Button.init(" No ",8,self:getHeight()-1,4,1,colors.red,colors.white,function() self.buttonFunctions[2]() self:closeWindow()  end))
+		self:addObject(Button.init(" Cancel ",13,self:getHeight()-1,8,1,colors.lightGray,colors.gray,function() self:closeWindow()  end))
+	elseif(self.buttonPreset=="YesNo")then --minimum width 12
+		self:addObject(Button.init(" Yes ",2,self:getHeight()-1,5,1,colors.green,colors.white,function() self.buttonFunctions[1]() self:closeWindow()  end))
+		self:addObject(Button.init(" No ",7,self:getHeight()-1,4,1,colors.red,colors.white,function() self.buttonFunctions[1]() self:closeWindow()  end))
+	elseif(self.buttonPreset=="OK")then
+		self:addObject(Button.init(" OK ",9,self:getHeight()-1,4,1,colors.lightGray,colors.gray,function() self:closeWindow()  end))
+	elseif(self.buttonPreset=="Cancel")then
+		self:addObject(Button.init(" Cancel ",4,self:getHeight()-1,8,1,colors.lightGray,colors.gray,function() self:closeWindow()  end))
+	else
+		writeText("Notification Window received unknown button preset: "..self.buttonPreset,1,1,colors.red,colors.black)
+		os.exit()
+	end
+end
+
+function NotificationWindow:getType()
+	return "NotificationWindow"
+end

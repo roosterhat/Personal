@@ -1,0 +1,205 @@
+
+
+function getWords()
+	if(fs.exists("hangmanwords"))then
+		count = 1
+		open = fs.open("hangmanwords/words","r")
+		temp = open.readAll()
+		for token in string.gmatch(temp, "[^%,]+") do
+		   words[count]=token
+		   count = count+1
+		end
+	else	
+		words = {"tree","bear","hair","movie","train","telephone","computer","airplane","helicopter","beach","mountain","valley"}
+	end
+end
+
+function drawBoard()
+	shell.run("clear")
+	print("Hang Man")
+	print()
+	print("------")
+	print("|    | ")    
+	print("|")   
+	print("|")     
+	print("|")
+	print("|")
+	print("|")
+
+	if(trys>=1)then
+		term.setCursorPos(6,5)
+		write("O")
+	end
+	if(trys>=2)then
+		term.setCursorPos(6,6)
+		write("|")
+	end
+	if(trys>=3)then
+		term.setCursorPos(5,6)
+		write("/")
+	end
+	if(trys>=4)then
+		term.setCursorPos(7,6)
+		write("\\")
+	end
+	if(trys>=5)then
+		term.setCursorPos(6,7)
+		write("|")
+	end
+	if(trys>=6)then
+		term.setCursorPos(5,8)
+		write("/")
+	end
+	if(trys>=7)then
+		term.setCursorPos(7,8)
+		write("\\")
+	end
+	term.setCursorPos(3,12)
+	for place=1,#word,1 do
+		write("- ")
+	end
+	term.setCursorPos(3,11)
+	for place=1,#guesses,1 do
+		write(guesses[place].." ")
+	end
+	term.setCursorPos(5+#word*2,11)
+	write("Used: ")
+	for place=1,#wrong,1 do
+		write(wrong[place].." ")
+	end
+	term.setBackgroundColor(colors.red)
+	term.setCursorPos(49,1)
+	write(" X ")
+	term.setBackgroundColor(colors.black)
+end
+
+function pickWord()
+	word = words[math.random(1,#words)]
+	for place=1,#word,1 do
+		guesses[place] = " "
+		--guesses[place] = string.sub(word,place,place)
+	end
+end
+
+function checkLetter(character)
+	failed = true
+	for place=1,#word,1 do
+		if(character==string.sub(word,place,place))then
+			guesses[place] = character
+			failed = false
+		end
+	end
+	if(failed)then
+		wrong[#wrong+1] = character
+		trys = trys+1
+	end
+end
+
+function concat(table)
+	local temp = ""
+	for place=1,#table,1 do
+		temp = temp..guesses[place]
+	end
+	return temp
+end
+
+function showLetters(number)
+	for place=1,number,1 do
+		while true do
+			local temp = math.random(1,#word)
+			if(guesses[temp]==" ")then
+				checkLetter(string.sub(word,temp,temp))
+				break
+			end
+		end
+	end
+end
+
+function menu()
+	local x,y = term.getSize()
+	shell.run("clear")
+	write("HangMan")
+	term.setCursorPos(x/2-10,y/2-1)
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.blue)
+	write("      ")
+	term.setCursorPos(x/2-10,y/2)
+	write(" Easy ")
+	term.setCursorPos(x/2-10,y/2+1)
+	write("      ")
+	term.setCursorPos(x/2-3,y/2-1)
+	write("        ")
+	term.setCursorPos(x/2-3,y/2)
+	write(" Medium ")
+	term.setCursorPos(x/2-3,y/2+1)
+	write("        ")
+	term.setCursorPos(x/2+6,y/2-1)
+	write("      ")
+	term.setCursorPos(x/2+6,y/2)
+	write(" Hard ")
+	term.setCursorPos(x/2+6,y/2+1)
+	write("      ")
+	term.setBackgroundColor(colors.red)
+	term.setCursorPos(x-2,1)
+	write(" X ")
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+end
+
+function game()
+	while true do
+		drawBoard()
+		if(trys==7)then
+			print("You Lose "..word)
+			sleep(2)
+			break
+		end
+		local Event,char,xpos,ypos = os.pullEvent()
+		if(Event=="char")then
+			checkLetter(char)
+			if(concat(guesses)==word)then
+				drawBoard()
+				print("You Win")
+				sleep(2)
+				break
+			end
+		elseif(Event=="mouse_click")then
+			if(ypos==1)then
+				if(xpos>=49)then
+					break
+				end
+			end
+		end
+	end
+end
+
+words = {}
+getWords()
+while true do
+	trys = 0
+	guesses = {}
+	wrong = {}
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	local x,y = term.getSize()
+	shell.run("clear")
+	menu()
+	local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+	pickWord()
+	if(pram2>=y/2-2 and pram2<=y/2+1)then
+		if(pram1>=x/2-10 and pram1<=x/2-5)then
+			showLetters(math.ceil(#word/4))
+			game()
+		elseif(pram1>=x/2-3 and pram1<=x/2+4)then
+			showLetters(math.ceil(#word/5))
+			game()
+		elseif(pram1>=x/2+6 and pram1<=x/2+11)then
+			columns = 6
+			game()
+		end		
+	elseif(pram2==1)then
+		if(pram1>=49)then
+			break
+		end
+	end
+end

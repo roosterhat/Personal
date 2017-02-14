@@ -1,0 +1,156 @@
+x,y = term.getSize()
+racerX = x/2+20
+racerY = y/2
+direction = "left"
+racer2X = x/2-20
+racer2Y = y/2
+direction2 = "right"
+speed = 1
+speed2 = 1
+line = {}
+line2 = {}
+
+function clear()
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function lineCrash(racerposx,racerposy)
+	for place=1,table.getn(line)-1,1 do
+		for herp,derp in line[place]:gmatch("([^%s]+)-(.*)") do
+			xpos = tonumber(herp)
+			ypos = tonumber(derp)
+		end
+		if(xpos==racerposx and ypos==racerposy)then
+			return true
+		end
+	end
+	for place=1,table.getn(line2)-1,1 do
+		for herp,derp in line2[place]:gmatch("([^%s]+)-(.*)") do
+			xpos = tonumber(herp)
+			ypos = tonumber(derp)
+		end
+		if(xpos==racerposx and ypos==racerposy)then
+			return true
+		end
+	end
+end
+
+function checkCrash(player)
+	if(player=="racer1")then
+		crash = false
+		if(racerX<1)then
+			crash = true
+		elseif(racerX>x)then
+			crash = true
+		elseif(racerY<1)then
+			crash = true
+		elseif(racerY>y)then
+			crash = true
+		end
+		if(lineCrash(racerX,racerY))then
+			crash = true
+		end
+		return crash
+	else
+		crash = false
+		if(racer2X<1)then
+			crash = true
+		elseif(racer2X>x)then
+			crash = true
+		elseif(racer2Y<1)then
+			crash = true
+		elseif(racer2Y>y)then
+			crash = true
+		end
+		if(lineCrash(racer2X,racer2Y))then
+			crash = true
+		end
+		return crash
+	end
+end
+
+function moveRacer(player)
+		term.setBackgroundColor(colors.lime)
+		if(direction=="up")then
+			racerY = racerY-speed
+		elseif(direction=="down")then
+			racerY = racerY+speed
+		elseif(direction=="left")then
+			racerX = racerX-speed
+		else
+			racerX = racerX+speed
+		end
+		table.insert(line,racerX.."-"..racerY)
+		term.setCursorPos(racerX,racerY)
+		write(" ")
+		
+		term.setBackgroundColor(colors.blue)
+		if(direction2=="up")then
+			racer2Y = racer2Y-speed2
+		elseif(direction2=="down")then
+			racer2Y = racer2Y+speed2
+		elseif(direction2=="left")then
+			racer2X = racer2X-speed2
+		else
+			racer2X = racer2X+speed2
+		end
+		table.insert(line2,racer2X.."-"..racer2Y)
+		term.setCursorPos(racer2X,racer2Y)
+		write(" ")
+end
+
+clear()
+write("ready ")
+sleep(1)
+write("go")
+sleep(1)
+timer = os.startTimer(.05)
+clear()
+
+while true do
+	local Event, key, pram1, pram2 = os.pullEvent()
+	if(Event=="key")then
+		if(key==200 and direction~="down")then
+			direction = "up"
+			speed = .5
+		elseif(key==208 and direction~="up")then
+			direction = "down"
+			speed = .5
+		elseif(key==203 and direction~="right")then
+			direction = "left"
+			speed = 1
+		elseif(key==205 and direction~="left")then
+			direction = "right"
+			speed = 1
+		end
+		if(key==17 and direction2~="down")then
+			direction2 = "up"
+			speed2 = .5
+		elseif(key==31 and direction2~="up")then
+			direction2 = "down"
+			speed2 = .5
+		elseif(key==30 and direction2~="right")then
+			direction2 = "left"
+			speed2 = 1
+		elseif(key==32 and direction2~="left")then
+			direction2 = "right"
+			speed2= 1
+		end
+	elseif(Event=="timer" and key==timer)then
+		moveRacer()
+		if(checkCrash("racer1"))then
+			write("RACER 1 CRASHED")	
+			break
+		end		
+		if(checkCrash("racer2"))then
+			write("RACER 2 CRASHED")
+			break
+		end
+		timer = os.startTimer(.05)
+	end
+end
+
+sleep(2)

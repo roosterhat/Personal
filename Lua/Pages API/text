@@ -1,0 +1,260 @@
+--[[Loaded string work by placing identifiers such as '<$t.white>' in the text where a certain action should take place
+in this case changing the text color to white. Identifiers are specified by the string <$/*command*/>
+currently, the commands that are allowed are
+	t: which specifies to change the text color
+	b: which specifies to change the background color
+	n: new line character, does not require a period
+]]
+
+
+
+colorNames = {"white",
+			  "orange",
+			  "magenta",
+			  "lightBlue",
+			  "yellow",
+			  "lime",
+			  "pink",
+			  "gray",
+			  "lightGray",
+			  "cyan",
+			  "purple",
+			  "blue",
+			  "brown",
+			  "green",
+			  "red",
+			  "black"}
+		  
+hexIDs = {"x0","x1","x2","x3","x4","x5","x6","x7","x8","x9","xa","xb","xc","xd","xe","xf"}
+
+colorIDs = {colors.white,
+			colors.orange,
+			colors.magenta,
+			colors.lightBlue,
+			colors.yellow,
+			colors.lime,
+			colors.pink,
+			colors.gray,
+			colors.lightGray,
+			colors.cyan,
+			colors.purple,
+			colors.blue,
+			colors.brown,
+			colors.green,
+			colors.red,
+			colors.black}
+			
+commands = {"T","B","N"}
+
+os.loadAPI("testdir/PagesPkg/util")
+
+function interpret(text)--Interprets and executes given command
+	util.checkInputs(text,"string","interpret")
+	local s,_ = string.find(text,"%<")
+	local e,_ = string.find(text,"%>")
+	local c,_ = string.find(text,"%$")
+	local p,_ = string.find(text,"%.")
+	if(s~=nil and e~=nil and c~=nil)then
+		local id = string.upper(string.sub(text,c+1,c+1))
+		if(util.contains(commands,id))then
+			if(id=="T" or id=="B")then
+				if(p~=nil)then
+					local color = string.sub(text,p+1,e-1)
+					if(util.contains(colorNames,color) or 
+					   util.contains(hexIDs,color) or 
+					   util.contains(colorIDs,tonumber(color)))then
+						local index = 0
+						index = math.max(util.indexOf(colorNames,color),
+										 util.indexOf(hexIDs,color),
+										 util.indexOf(colorIDs,tonumber(color)),
+										 index)	
+						if(id=="T")then
+							term.setTextColor(colorIDs[index])
+						elseif(id=="B")then
+							term.setBackgroundColor(colorIDs[index])
+						end
+					else
+						error("["..color.."] is not a known color")
+					end
+				else
+					error("Invalid Text Command: "..text)
+				end
+			elseif(id=="N")then
+				print()
+			end
+		else
+			error("Identifier \""..id.."\" is not recognized, must be 't' or 'b'")
+		end
+	else
+		error("Invalid Text Command: "..text)
+	end
+end
+
+function separateText(text)
+	util.checkInputs(text,"string","separateText")
+	res = {}
+	pos = 0
+	while pos>=0 and pos<=#text do
+		s,e = findCommandText(text,pos)
+		
+		if(s==nil)then
+			res[#res+1] = string.sub(text,pos)
+			pos = #text+1
+		else
+			if(string.sub(text,pos,s-1)~="")then
+				res[#res+1] = string.sub(text,pos,s-1)
+			end
+			res[#res+1] = string.sub(text,s,e)
+			pos = e+1
+		end
+		--print(">"..pos)
+	end
+	return res
+end
+
+function findCommandText(text,p)--tests whether the given text is a identifier
+	return string.find(text,"%<%$%a.-%>",p)
+end
+
+function writeLoadedText(t)--writes text containing commands
+	util.checkInputs(text,"string","writeLoadedText")
+	local pos = 0
+	while pos>=0 and pos<#t do
+		s,e = findCommandText(t,pos)
+		if(s==nil)then
+			write(string.sub(t,pos))
+			pos = #t
+		else
+			write(string.sub(t,pos,s-1))
+			interpret(string.sub(t,s,e))
+			pos = e+1
+		end
+	end
+end
+
+function getPlainText(t)--returns a string with all commands removed
+	util.checkInputs(text,"string","getPlainText")
+	local new = ""
+	local pos = 0
+	while pos>=0 and pos<#t do
+		s,e = findCommandText(t,pos)
+		if(s==nil)then
+			new = new..string.sub(t,pos)
+			pos = #t
+		else
+			new = new..string.sub(t,pos,s-1)
+			pos = e+1
+		end
+	end
+	return new
+end
+
+function findNextWord(text,p)
+	util.checkInputs({text,width},{"string","number"},"findNextWord")
+	if(p==nil)then
+		p = 1
+	end
+	local s,_ = string.find(text,"%A",p)
+	if(s~=nil)then
+		if(string.sub(text,s,s)=="<")then
+			if((s-p)+1==1)then
+				ws,we = findCommandText(text,p)
+				if(ws==s)then
+					return string.sub(text,ws,we)
+				else
+					return string.sub(text,p,s)..findNextWord(text,s+1)
+				end
+			else
+				return string.sub(text,p,s-1)
+			end
+		else
+			return string.sub(text,p,s)
+		end
+	else
+		return nil
+	end
+end
+
+function wrapText(text,width)--returns a table of strings 
+	util.checkInputs({text,width},{"string","number"},"wrapText")
+	local result = {}
+	local index = 1
+	local pos = 1
+	while pos<#text do	
+		local length = 0
+		result[index] = ""
+		while length<width do	
+			local word = findNextWord(text,pos)
+			if(word~=nil)then
+				--print(length..","..#word..","..width)
+			end
+			if(word==nil)then
+				word = string.sub(text,pos,pos+(width-length)-1)
+				length = width
+			elseif(length==0 and #word>width)then
+				word = string.sub(text,pos,pos+width-2).."-"
+				pos = pos-1
+				length = width
+			elseif(findCommandText(word)==nil)then
+				length = length+#word
+			end
+			if(word==nil or word=="")then
+				pos = pos+1
+				if(word==nil)then
+					break
+				end
+			elseif(length<=width)then
+				result[index] = result[index]..word
+				pos = pos+#word
+			elseif(length==width+1 and string.find(word,"%s$"))then
+				word = string.sub(word,0,#word-1)
+				result[index] = result[index]..word
+				pos = pos+#word+1
+			else
+				break
+			end
+		end
+		index = index+1
+	end
+	return result
+end
+
+function stringToTable(text)
+	util.checkInputs(text,"string","stringToTable")
+	local t = {}
+	text:gsub(".",function(c) table.insert(t,c) end)
+	return t
+end
+
+--[[Usage References
+
+local string = "<$b.x0><$t.red>This is a test<$t.xb> Changing color <$b.yellow>Changing background color<$b.black><$t.1>"
+
+local size = 38
+
+print(getPlainText(string))
+writeLoadedText(string)
+print()
+for i=1,size,1 do write("-")end print()
+for i,s in ipairs(wrapText(getPlainText(string),size)) do
+	print(s)
+end
+for _,s in ipairs(wrapText(string,size)) do
+	writeLoadedText(s)
+	print()
+end
+
+for i,s in ipairs(wrapText("<$b.black><$t.blue>short<$t.white>",size)) do
+	writeLoadedText(s)
+	print()
+end
+
+for _,s in ipairs(wrapText(getPlainText("Thissentenceistoolongforthewidthitmaygoovertothenextline"),size)) do
+	print(s)
+end
+for i=1,25,1 do write("-")end print()
+for _,s in ipairs(wrapText("Antidisestablishmentarianism: opposition to the disestablishment of the Church of England",25)) do
+	print(s)
+end]]
+
+

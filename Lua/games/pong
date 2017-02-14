@@ -1,0 +1,413 @@
+player1Score=0
+player2Score=0
+player1Pos=1
+player2Pos=1
+ballXPos=25
+ballYPos=1
+xVel = 1
+yVel = 1
+running = true
+paddleLength = 4
+
+function clear()
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function at(x,y,len)
+	term.setBackgroundColor(colors.white)
+	term.setCursorPos(x,y)
+	for place = 1,len,1 do
+		write(" ")
+	end
+	term.setBackgroundColor(colors.black)
+end
+
+function drawScore(person,score)
+	count = 0
+	if(person=="player1")then
+		x=20
+	else
+		x=35
+	end
+	temp = tostring(score)
+	temp = string.reverse(temp)
+	for number in string.gmatch(temp,"%d") do
+		number = tonumber(number)
+		space = count*4 
+		if(number==0)then
+			at(x-space,1,3)
+			at(x-space,2,1)
+			at(x-space+2,2,1)
+			at(x-space,3,1)
+			at(x-space+2,3,1)
+			at(x-space,4,1)
+			at(x-space+2,4,1)
+			at(x-space,5,3)
+		elseif(number==1)then
+			at(x-space,1,1)
+			at(x-space,2,1)
+			at(x-space,3,1)
+			at(x-space,4,1)
+			at(x-space,5,1)
+		elseif(number==2)then
+			at(x-space,1,3)
+			at(x-space+2,2,1)
+			at(x-space,3,3)
+			at(x-space,4,1)
+			at(x-space,5,3)
+		elseif(number==3)then
+			at(x-space,1,3)
+			at(x-space+2,2,1)
+			at(x-space,3,3)
+			at(x-space+2,4,1)
+			at(x-space,5,3)
+		elseif(number==4)then
+			at(x-space,1,1)
+			at(x-space+2,1,1)
+			at(x-space,2,1)
+			at(x-space+2,2,1)
+			at(x-space,3,3)
+			at(x-space+2,4,1)
+			at(x-space+2,5,1)
+		elseif(number==5)then
+			at(x-space,1,3)
+			at(x-space,2,1)
+			at(x-space,3,3)
+			at(x-space+2,4,1)
+			at(x-space,5,3)
+		elseif(number==6)then
+			at(x-space,1,3)
+			at(x-space,2,1)
+			at(x-space,3,3)
+			at(x-space,4,1)
+			at(x-space,5,3)
+			at(x-space+2,4,1)
+		elseif(number==7)then
+			at(x-space,1,3)
+			at(x-space+2,2,1)
+			at(x-space+2,3,1)
+			at(x-space+2,4,1)
+			at(x-space+2,5,1)
+		elseif(number==8)then
+			at(x-space,1,3)
+			at(x-space+2,2,1)
+			at(x-space,2,1)
+			at(x-space,3,3)
+			at(x-space,4,1)
+			at(x-space+2,4,1)
+			at(x-space,5,3)
+		elseif(number==9)then
+			at(x-space,1,3)
+			at(x-space+2,2,1)
+			at(x-space,2,1)
+			at(x-space,3,3)
+			at(x-space+2,4,1)
+			at(x-space+2,5,1)
+		end
+		count = count+1
+	end
+	term.setBackgroundColor(colors.black)
+end
+
+function drawPaddle(player,ypos)
+	local x,y = term.getSize()
+	term.setBackgroundColor(colors.white)
+	if(player == "player1")then
+		xpos = 2
+	else
+		xpos = x-1
+	end
+	for x=0,paddleLength-1,1 do
+		term.setCursorPos(xpos,ypos+x)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.black)
+end
+
+function drawBackground()
+	term.setBackgroundColor(colors.white)
+	local x,y = term.getSize()
+	for place=0,y,2 do
+		term.setCursorPos(x/2,place)
+		write(" ")
+	end
+	term.setBackgroundColor(colors.black)
+end
+
+function drawBall()
+	term.setBackgroundColor(colors.white)
+	term.setCursorPos(ballXPos,ballYPos)
+	write(" ")
+	term.setBackgroundColor(colors.black)
+end
+
+function point(person)
+	if(person=="player1")then
+		player1Score = player1Score+1
+	else
+		player2Score = player2Score+1
+	end
+	ballXPos=25
+	ballYPos=math.random(1,18)
+	if(math.random(0,1)==1)then
+		xVel = 1
+	else
+		xVel = -1
+	end
+	yVel = 1
+	timer = os.startTimer(1)
+end
+
+function moveBall()
+	local x,y = term.getSize()
+	ballXPos = ballXPos+xVel
+	ballYPos = ballYPos+yVel
+	if(ballXPos<=0)then
+		point("player2")		
+	elseif(ballXPos>=x)then
+		point("player1")		
+	end
+	if(ballYPos<=1)then
+		yVel = yVel*-1
+	elseif(ballYPos>=y)then
+		yVel = yVel*-1
+	end
+	if(ballXPos==2)then
+		if(ballYPos>=player1Pos and ballYPos<=player1Pos+paddleLength)then	
+			xVel = xVel*-1
+		end
+	elseif(ballXPos==x-1)then
+		if(ballYPos>=player2Pos and ballYPos<=player2Pos+paddleLength)then	
+			xVel = xVel*-1
+		end
+	end
+	drawBall()
+end
+
+function movePaddle()
+	local x,y = term.getSize()
+	if(ballXPos>=x/2)then
+		if(ballYPos+paddleLength/2<=y and ballYPos-paddleLength/2>=1)then
+			if(player2Pos>=ballYPos)then
+				player2Pos = player2Pos-speed
+			elseif(player2Pos+paddleLength<=ballYPos)then
+				player2Pos = player2Pos+speed
+			end
+		end
+	end
+end
+
+function refresh()
+	drawBackground()
+	drawBall()
+	drawScore("player1",player1Score)
+	drawScore("player2",player2Score)
+end
+
+function singlePlayer()
+	player1Score=0
+	player2Score=0
+	player1Pos=1
+	player2Pos=1
+	ballXPos=25
+	ballYPos=1
+	xVel = 1
+	yVel = 1
+	running = true
+	paddleLength = 4
+	write("Hit 'Q' to quit")
+	sleep(2)
+	timer = os.startTimer(ballSpeed)
+	while running do
+		clear()
+		refresh()
+		drawPaddle("player1",player1Pos)	
+		drawPaddle("player2",player2Pos)	
+		local x,y = term.getSize()
+		local Event, key, pram1, pram2 = os.pullEvent()
+		if(Event=="key")then
+			if(key==208)then
+				player1Pos = player1Pos+1
+			elseif(key==200)then
+				player1Pos = player1Pos-1
+			end
+			if(player1Pos<1)then
+				player1Pos=1
+			elseif(player1Pos>y-paddleLength)then
+				player1Pos=y-(paddleLength-1)
+			end
+			if(key==16)then
+				break
+			end
+		elseif(Event=="mouse_scroll")then
+			player1Pos = player1Pos+key
+			if(player1Pos<1)then
+				player1Pos=1
+			elseif(player1Pos>y-paddleLength)then
+				player1Pos=y-(paddleLength-1)
+			end
+		elseif(Event=="timer" and key==timer)then
+			movePaddle()
+			moveBall()
+			timer = os.startTimer(ballSpeed)
+		end
+	end
+end
+
+function doublePlayer()
+	player1Score=0
+	player2Score=0
+	player1Pos=1
+	player2Pos=1
+	ballXPos=25
+	ballYPos=1
+	xVel = 1
+	yVel = 1
+	running = true
+	paddleLength = 4
+	write("Hit 'Q' to quit")
+	sleep(2)
+	timer = os.startTimer(ballSpeed)
+	while running do
+		clear()
+		refresh()
+		drawPaddle("player1",player1Pos)	
+		drawPaddle("player2",player2Pos)	
+		local x,y = term.getSize()
+		local Event, key, pram1, pram2 = os.pullEvent()
+		if(Event=="key")then
+			if(key==208)then
+				player2Pos = player2Pos+1
+			elseif(key==200)then
+				player2Pos = player2Pos-1
+			end
+			if(player2Pos<1)then
+				player2Pos=1
+			elseif(player2Pos>y-paddleLength)then
+				player2Pos=y-(paddleLength-1)
+			end
+			if(key==31)then
+				player1Pos = player1Pos+1
+			elseif(key==17)then
+				player1Pos = player1Pos-1
+			end
+			if(player1Pos<1)then
+				player1Pos=1
+			elseif(player1Pos>y-paddleLength)then
+				player1Pos=y-(paddleLength-1)
+			end
+			if(key==16)then
+				break
+			end
+		elseif(Event=="timer" and key==timer)then
+			moveBall()
+			timer = os.startTimer(ballSpeed)
+		end
+	end
+end
+
+function menu()
+	local x,y = term.getSize()
+	clear()
+	write("PONG")
+	term.setCursorPos(x/2-15,y/2-1)
+	term.setTextColor(colors.black)
+	term.setBackgroundColor(colors.white)
+	write("               ")
+	term.setCursorPos(x/2-15,y/2)
+	write(" Single Player ")
+	term.setCursorPos(x/2-15,y/2+1)
+	write("               ")
+	term.setCursorPos(x/2+2,y/2-1)
+	write("               ")
+	term.setCursorPos(x/2+2,y/2)
+	write(" Double Player ")
+	term.setCursorPos(x/2+2,y/2+1)
+	write("               ")
+	term.setCursorPos(x-2,1)
+	write(" X ")
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+end	
+
+function menu2()
+	local x,y = term.getSize()
+	clear()
+	write("PONG")
+	term.setCursorPos(x/2-10,y/2-1)
+	term.setTextColor(colors.black)
+	term.setBackgroundColor(colors.white)
+	write("      ")
+	term.setCursorPos(x/2-10,y/2)
+	write(" Easy ")
+	term.setCursorPos(x/2-10,y/2+1)
+	write("      ")
+	term.setCursorPos(x/2-3,y/2-1)
+	write("        ")
+	term.setCursorPos(x/2-3,y/2)
+	write(" Medium ")
+	term.setCursorPos(x/2-3,y/2+1)
+	write("        ")
+	term.setCursorPos(x/2+6,y/2-1)
+	write("      ")
+	term.setCursorPos(x/2+6,y/2)
+	write(" Hard ")
+	term.setCursorPos(x/2+6,y/2+1)
+	write("      ")
+	term.setCursorPos(x-2,1)
+	write(" X ")
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+end
+
+function MenuInteraction()
+	local x,y = term.getSize()
+	while true do
+		clear()
+		menu()
+		local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+		if(pram2>=y/2-2 and pram2<=y/2+1)then
+			if(pram1>=x/2-15 and pram1<=x/2)then
+				menu2Interaction()
+			elseif(pram1>=x/2+2 and pram1<=x/2+17)then
+				doublePlayer()
+			end
+		elseif(pram2==1)then
+			if(pram1>=49)then
+				break
+			end
+		end
+	end
+end
+
+function menu2Interaction()
+	local x,y = term.getSize()
+	while true do
+		clear()
+		menu2()
+		local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+		if(pram2>=y/2-2 and pram2<=y/2+1)then
+			if(pram1>=x/2-10 and pram1<=x/2-5)then
+				speed = .5
+				ballSpeed = .1
+				singlePlayer()
+			elseif(pram1>=x/2-3 and pram1<=x/2+4)then
+				speed = 1
+				ballSpeed = .1
+				singlePlayer()
+			elseif(pram1>=x/2+6 and pram1<=x/2+11)then
+				speed = 1
+				ballSpeed = .05
+				singlePlayer()
+			end		
+		elseif(pram2==1)then
+			if(pram1>=49)then
+				break
+			end
+		end
+	end
+end
+
+MenuInteraction()
+clear()

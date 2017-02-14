@@ -1,0 +1,28 @@
+monitor = peripheral.wrap("top")
+word = "Minecrat Lottery"
+length = string.len(word)
+x,y = monitor.getSize()
+placex = (x/2-(length/2))
+placey = (y/2)
+movex = 1
+movey = 1
+monitor.setTextScale(2)
+monitor.setTextColor(colors.red)
+monitor.setBackgroundColor(colors.black)
+count = 1
+while count<5 do
+  monitor.setCursorPos(placex,placey)
+  monitor.write(word)
+  placex = placex+movex
+  placey = placey+movey
+  if(placex>=(x-length+1) or placex<=1)then
+    movex = movex*-1
+    count = count+1
+  end
+  if(placey>=y or placey<=1)then
+    movey = movey*-1
+    count = count+1
+  end
+  sleep(.1)
+  monitor.clear()
+end

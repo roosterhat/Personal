@@ -1,0 +1,209 @@
+if (fs.exists("lotterycomputer")==false) then
+	fs.makeDir("lotterycomputer")
+	open = fs.open("lotterycomputer/count","w")
+	open.writeLine("1")
+	open.close()
+end
+
+
+	function resetnumbers()
+		number[1] = "-"
+		number[2] = "-"
+		number[3] = "-"
+		number[4] = "-"
+		number[5] = "-"
+	end
+
+running = true
+mainserver = 4
+rednet.open("back")
+while running do
+	term.setTextColor(colors.white)
+	number = {}
+	
+	resetnumbers()
+	
+	function zeros(number)
+		local numberlength = string.len(number)
+		newnumber = ""
+		for derp = 1,4-numberlength,1 do
+			newnumber = newnumber.."0"
+		end
+		newnumber = newnumber..number
+		return newnumber
+	end
+	
+		
+	function title(place)
+		numplace = {}
+		local count = 1
+		term.clear()
+		term.setCursorPos(1,1)
+		print("Enter a number ("..6-place..") left")
+		print()
+		print("|"..number[1].."|"..number[2].."|"..number[3].."|"..number[4].."|"..number[5].."|")
+		print()
+		for herp = 1,3,1 do
+			write(" ")
+			for derp = 1,3,1 do
+				term.setBackgroundColor(colors.gray)
+				local x,y = term.getCursorPos()
+				numplace[count] = x..y
+				term.write(" ")
+				term.setCursorPos(x,y)
+				write(count)
+				term.setBackgroundColor(colors.black)
+				term.write(" ")
+				count = count+1
+			end
+			print()
+			print()
+		end
+		term.setBackgroundColor(colors.gray)
+		term.setCursorPos(2,11)
+		write("Random")
+		term.setBackgroundColor(colors.black)
+		term.setBackgroundColor(colors.gray)
+		term.setCursorPos(9,11)
+		write("Clear")
+		term.setBackgroundColor(colors.black)
+	end
+	
+	function printTicket()
+		open = fs.open("lotterycomputer/count" , "r")
+		local ticketnumber = open.readLine()
+		open.close()
+		term.clear()
+		term.setCursorPos(1,1)
+		printer = peripheral.wrap("left")
+		printer.newPage()
+		printer.setPageTitle("Lottery Ticket")
+		x,y = printer.getPageSize()
+		printer.write(textutils.formatTime(os.time(),false))
+		printer.setCursorPos(x-string.len(name),1)
+		printer.write(name)
+		printer.setCursorPos(x/2-10,2)
+		printer.write("**Minecraft Lottery**")
+		printer.setCursorPos(1,3)
+		for derp = 0 , x , 1 do
+		  printer.write("-")
+		end
+		printer.setCursorPos(x/2-8,y/2)
+		printer.write("your numbers are")
+		printer.setCursorPos(x/2-5,y/2+1)
+		printer.write(number[1].."-"..number[2].."-"..number[3].."-"..number[4].."-"..number[5])
+		printer.setCursorPos(x/2-10,y)
+		printer.write("Ticket number "..zeros(math.floor(ticketnumber)))
+		printer.endPage()
+		term.setBackgroundColor(colors.red)
+		term.setCursorPos(1,3)
+		write("Thanks for playing MineCraft Lottery!")
+		term.setBackgroundColor(colors.black)
+		term.setBackgroundColor(colors.red)
+		term.setCursorPos(1,4)
+		write("Please pick up your lottery ticket")
+		print()
+		print()
+		term.setBackgroundColor(colors.black)
+		term.setTextColor(colors.yellow)
+		write("<---------------------------------")
+		term.setTextColor(colors.black)
+		open = fs.open("lotterycomputer/count","w")
+		ticketnumber = math.floor(ticketnumber+1)
+		sleep(1)
+		open.writeLine(ticketnumber)
+		open.close()
+		done = false
+		--while done==false do
+			local choices = textutils.serialize(number)
+			--rednet.send(mainserver , name.."-"..choices)
+			--local derp , msg = rednet.receive(.5)
+			--if(derp==nil)then
+			--	rednet.send(mainserver , name.."-"..choices)
+			--else
+			--	done = true
+			--end
+		--end
+
+		sleep(4)
+	end
+	
+	function confirm()
+		running = true
+		term.setBackgroundColor(colors.green)
+		term.setCursorPos(2,13)
+		write("Confirm")
+		term.setBackgroundColor(colors.black)
+		term.setBackgroundColor(colors.red)
+		term.setCursorPos(10,13)
+		write("Cancel")
+		term.setBackgroundColor(colors.black)
+		while running do
+			local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+			if(pram2==13)then
+				if(pram1>=1 and pram1<=9)then
+					return "done"
+				elseif(pram1>=10 and pram1<=16)then
+					return "notdone"
+				end
+			end
+		end
+	end
+	
+	function choosenumbers()
+		local count = 1
+		while count<6 do
+			title(count) 
+			running = true
+			while running do
+				local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+				for points = 1,9,1 do
+					if(numplace[points]==pram1..pram2)then
+						number[count] = points
+						running = false
+					end	
+					if(pram2==11)then
+						if(pram1>=2 and pram1<=8)then
+							for newnumber = 1,5,1 do
+								number[newnumber] = math.random(1,9)
+							end
+							running = false
+							title(6)
+							return
+						elseif(pram1>=9 and pram1<=14)then
+							resetnumbers()
+							title(1)
+							count= 1
+						end
+					end
+				end
+			end
+			count = count+1
+		end
+		title(6)
+	end
+	
+	--PROGRAM STARTS HERE--
+	
+	done = false
+	term.clear()
+	term.setCursorPos(1,1)
+	print("Enter your name")
+	write(":> ")
+	name = io.read()
+	
+	choosenumbers()
+	
+	while done ==false do
+		response = confirm()
+		if(response=="done")then
+			done = true
+		else
+			choosenumbers()
+		end
+	end
+	printTicket()
+end
+sleep(1)
+term.clear()
+term.setCursorPos(1,1)

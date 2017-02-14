@@ -1,0 +1,107 @@
+running = true
+--time = os.startTimer(.8333)
+rednet.open("back")
+
+words = {}
+if (fs.exists("main")==false) then
+	fs.makeDir("main")
+end
+
+function title()
+	local monitor = peripheral.wrap("top")
+	term.clear()
+	term.setCursorPos(1,1)
+	monitor.clear()
+end
+
+function getwinner()
+	local monitor = peripheral.wrap("top")
+	monitor.clear()
+	local winningnumbers = {}
+	x,y = monitor.getSize()
+	for newnumber = 1,5,1 do
+		winningnumbers[newnumber] = math.random(1,9)
+	end
+	monitor.setCursorPos(x/2-5,1)
+	monitor.setTextScale(2)
+	monitor.write("["..winningnumbers[1].."-"..winningnumbers[2].."-"..winningnumbers[3].."-"..winningnumbers[4].."-"..winningnumbers[5].."]")
+	monitor.setCursorPos(x/2-3,3)
+	local count = 1
+	for derp = 1,60,1 do
+		monitor.setCursorPos(x/2-3,3)
+		monitor.clearLine()
+		monitor.setCursorPos(x/2-3,3)
+		if(count==1)then
+			monitor.write("Winners")
+			count = count+1
+		elseif(count==2)then
+			count = count-1
+		end
+		sleep(.3)
+	end
+	monitor.setBackgroundColor(colors.black)
+	fs.delete("main")
+	running = false
+end
+
+function getdata(senderid,msg)
+	rednet.send(senderid , "received")
+	
+	if(fs.exists("main/machine"..senderid)==false)then
+		fs.makeDir("main/machine"..senderid)
+	end
+	count = 1
+	for name,value in msg:gmatch("([^%s]+)-(.*)") do
+		player = name
+		numbers = value
+	end
+	print("**["..player.."] "..textutils.formatTime(os.time(),false).."**")
+	open = fs.open("main/machine"..senderid.."/"..player,"w")
+	open.writeLine(numbers)
+	open.close()
+end
+
+function getevent()
+	Event, pram1, pram2, pram3 = os.pullEvent()
+	return Event,pram1,pram2,pram3
+end
+
+function promptuser()
+	title()
+	time = os.startTimer(5)
+	derp = true
+	print("Would you like to get the winning numbers?")
+	print("(Y/N)")
+	while derp do
+		local Event,key = getevent()
+		if(Event=="key")then
+			if(key==21)then
+				getwinner()
+				derp = false
+			elseif(key==49)then
+				return
+			end
+		elseif(Event=="timer")then
+			return
+		end
+	end
+end
+
+title()
+
+term.clear()
+term.setCursorPos(1,1)	
+print("Running...")
+print()
+
+while running do
+	local Event,pram1,pram2,pram3 = getevent()
+	if(Event=="key")then
+		if(pram1==28)then
+			promptuser()
+		end
+	elseif(Event=="rednet_message")then
+		getdata(pram1,pram2)
+	elseif(Event=="timer")then
+	end
+end

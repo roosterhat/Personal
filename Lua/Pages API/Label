@@ -1,0 +1,59 @@
+Label = {
+		 text = {},
+		 color= colors.white,
+		 textColor = colors.black,
+		 centeredH = false,
+		 centeredV = false}
+		 
+function init(t,x,y,w,h,c,tc,ch,cv)--text, x position, y position, width, height, color, text color, centered horizontally, centered vertically
+	if(type(t)=="string")then
+		t = text.wrapText(t,w)
+	end
+	if(ch==nil)then
+		ch = false
+	end
+	if(cv==nil)then
+		cv = false
+	end
+	util.checkInputs({t,x,y,w,h,c,tc,ch,cv},{"table","number","number","number","number","number","number","boolean","boolean"},"Label")
+	local temp = Object.init(x,y,w,h,"Label")
+	temp.text = t
+	temp.color = c
+	temp.textColor = tc
+	temp.centeredH = ch
+	temp.centeredV = cv
+	
+	self = setmetatable(temp,{__index=setmetatable(Label,{__index=Object.getTablePointer()})})
+	return self
+end
+
+function getTablePointer()
+	return Label
+end
+
+function Label:setText(t)
+	if(type(t)=="string")then
+		t = text.wrapText(t,self:getWidth())
+	end
+	util.checkinputs({t},{"table"},"setText")
+	self.text = t
+end
+
+function Label:getText()
+	return self.text
+end
+
+function Label:draw(dObj)
+	dObj:fillArea(self.color,self:getX(),self:getY(),self:getWidth(),self:getHeight())
+	local h = 1
+	if(centerV)then
+		h = self:getHeight()
+	end
+	for i=1,#self.text,1 do
+		if(self.centeredH)then
+			dObj:writeTextCentered(self.text[i],self:getX(),self:getY()+(i-1),self:getWidth(),h,self.textcolor,self.color)
+		else
+			dObj:write(self.text[i],self:getX(),self:getY()+(i-1),self.textcolor,self.color)
+		end
+	end
+end

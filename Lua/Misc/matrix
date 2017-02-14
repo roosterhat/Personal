@@ -1,0 +1,58 @@
+letters = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
+lines = {}
+
+for place=1,52,1 do
+	lines[place] = {}
+	lines[place]["x"] = place
+	lines[place]["y"] = math.random(-15,0)
+	lines[place]["length"] = math.random(6,15)
+	lines[place]["letters"] = {}
+end
+
+for place=53,104,1 do
+	lines[place] = {}
+	lines[place]["x"] = place-52
+	lines[place]["y"] = math.random(-30,-15)
+	lines[place]["length"] = math.random(6,15)
+	lines[place]["letters"] = {}
+end
+
+for derp=1,#lines,1 do
+	for place=1,lines[derp]["length"],1 do
+		lines[derp]["letters"][place] = letters[math.random(1,26)]
+	end
+end
+
+while true do
+	term.setBackgroundColor(colors.black)
+	shell.run("clear")
+	for place=1,#lines,1 do
+		for count=1,#lines[place]["letters"],1 do
+			if(lines[place]["y"]-(count-1)<=18)then
+				if(count==1)then
+					term.setTextColor(colors.white)
+					--term.setBackgroundColor(colors.white)
+				else
+					--term.setBackgroundColor(colors.lime)
+					term.setTextColor(colors.green)
+				end
+				term.setCursorPos(lines[place]["x"],lines[place]["y"]-(count-1))
+				write(lines[place]["letters"][count])	
+			
+			end
+		end
+		if(lines[place]["y"]-lines[place]["length"]>=19)then
+			x = lines[place]["x"]
+			lines[place] = {}
+			lines[place]["x"] = x
+			lines[place]["y"] = math.random(-15,0)
+			lines[place]["length"] = math.random(6,15)
+			lines[place]["letters"] = {}
+		end
+		for derp=1,lines[place]["length"],1 do
+			lines[place]["letters"][derp] = letters[math.random(1,26)]
+		end
+		lines[place]["y"] = lines[place]["y"]+1
+	end      
+	sleep(.1)
+end

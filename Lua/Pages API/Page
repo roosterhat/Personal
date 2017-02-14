@@ -1,0 +1,190 @@
+PageObject = {background = {},
+			  size = {},
+			  drawingObject = {},
+			  objects = {}}
+
+function init()
+	local w,h = term.getSize()
+	local self = setmetatable ({drawingObject = DrawingObject.init(),size = {width = w,height = h}},{__index=PageObject})
+	return self
+end
+
+function getTablePointer()
+	return PageObject
+end
+
+function PageObject:getObjects(oType)
+	if(oType==nil)then
+		return self.objects
+	else
+		temp = {}
+		for _,o in ipairs(self.objects) do
+			if(o:getType()==oType)then
+				temp[#temp+1] = o
+			end
+		end
+		return temp
+	end
+end
+
+function PageObject:addObject(obj,p)
+	if(obj~=nil)then
+		if(obj:getType()~=nil)then
+			if(p~=nil)then
+				obj.priority = p
+			else
+				if(obj.priority~=nil)then
+				else
+					obj.priority = 0
+				end
+			end
+			self.objects[#self.objects+1]=obj
+		end
+	end
+end
+
+function PageObject:removeObject(obj)
+	temp = {}
+	for _,o in ipairs(self.objects) do
+		if(o~=obj)then
+			temp[#temp+1] = o
+		end
+	end
+	self.objects = temp
+end
+
+function PageObject:contains(obj)
+	return util.contains(self.objects,obj)
+end
+
+function PageObject:setPriority(obj,p)
+	if(obj~=nil)then
+		if(self:contains(obj))then
+			obj.priority = p
+		end
+	end
+end
+
+function PageObject:setBackground(arg)
+	if(type(arg)=="string")then
+		if(fs.exists(arg))then
+			self.background = paintutils.loadImage(arg)
+		else
+			return error("Path: "..arg.." does not exist")
+		end
+	elseif(type(arg)=="number")then
+		local w,h = self:getDimensions()
+		for y=1,h,1 do
+			self.background[y] = {}
+			for x=1,w,1 do
+				self.background[y][x] = arg
+			end
+		end
+	else
+		return error("SetBackground requires string path or color")
+	end
+end
+
+function PageObject:getBackground()
+	return self.background
+end
+
+function PageObject:getDimensions()
+	return self.size.width,self.size.height
+end
+
+function PageObject:checkClicked(x,y)
+	util.checkInputs({x,y},{"number","number"},"checkClicked")
+	local t = false
+	local f = false
+	for i,o in ipairs(util.reverseList(util.getQueue(self.objects)))do
+		local temp = function(b)o:setFocused(b)end
+		if(not t)then
+			if(o:clicked(x,y))then
+				t = true
+				f,_ = pcall(temp,true)
+			end
+		else
+			if(f)then
+				pcall(temp,false)
+			end
+		end
+	end
+end
+
+function PageObject:checkDragged(x,y)
+	util.checkInputs({x,y},{"number","number"},"checkClicked")
+	for _,o in ipairs(util.getQueue(self.objects))do
+		local temp = function(x,y)o:dragged(x,y)end
+		local xp = o:getX()
+		local yp = o:getY()
+		local s,p = pcall(temp,xp,yp)
+		if(s)then
+			if(o:dragged(x,y))then
+				break
+			end
+		end
+	end
+end
+
+function PageObject:draw()
+	local olds = {}
+	util.deepCopy(self.drawingObject:getScreenBuffer(),olds)
+	self.drawingObject:setBufferState(true)
+	self.drawingObject:drawImage(self.background,1,1)
+	for i,o in ipairs(util.getQueue(self.objects)) do
+		o:draw(self.drawingObject)
+	end
+	local s = getChange(olds,self.drawingObject:getScreenBuffer())
+	if(#s>0)then
+		local w,h = getDimensions(s)
+		local x = s[1][1]
+		local y = s[1][2]
+		self.drawingObject:fillArea(colors.blue,x,y,w,h)
+		sleep(.1)
+		self.drawingObject:drawScreenBuffer(x,y,w,h)
+	end
+end
+
+function getChange(old,new)
+	local area = {}
+	for h=1,#new,1 do
+		for w=1,#new[h],1 do
+			if(old[h]==nil)then
+				area[#area+1] = {w,h}
+			elseif(old[h][w]==nil)then
+				area[#area+1] = {w,h}
+			elseif(new[h][w]~=old[h][w])then
+				area[#area+1] = {w,h}
+			end
+		end
+	end
+	return area
+end
+
+function getDimensions(list)
+	if(list[1]~=nil)then
+		minx = list[1][1]
+		maxx = minx
+		miny = list[1][2]
+		maxy = miny
+	else
+		return -1,-1
+	end
+	for i,e in ipairs(list)do
+		if(e[1]<minx)then
+			minx = e[1]
+		elseif(e[1]>maxx)then
+			maxx = e[1]
+		end
+		if(e[2]<miny)then
+			miny = e[2]
+		elseif(e[2]>maxy)then
+			maxx = e[2]
+		end
+	end
+	return maxx-minx,maxy-miny
+end
+
+
+

@@ -1,0 +1,373 @@
+lifes = 3
+ready = true
+paddleLength = 8
+paddlePos = 25
+ballX = 29
+ballY = 16
+score = 0
+choice = "Baisc"
+fs.makeDir("BOmaps")
+colorTable = {colors.red,colors.blue,colors.green,colors.orange,colors.purple,colors.lime,colors.yellow}
+blocks = {}
+
+function addSpaces(number)
+	temp = tostring(number)
+	for place=1,3-string.len(temp),1 do
+		temp = temp.." "
+	end
+	return temp
+end
+
+function getMaps()
+	local count = 1
+	local numblocks = 0
+	if(fs.exists("BOmaps/"..choice))then
+		open = fs.open("BOmaps/"..choice , "r")
+		for derp=1,5,1 do
+			map = open.readLine()
+			for letter in string.gmatch(map,"%a") do
+				blocks[count] = {}
+				blocks[count][1] = letter
+				blocks[count][2] = (((count-1)%13)*4+1).."-"..derp+1
+				blocks[count][3] = colorTable[math.random(1,7)]
+				count = count+1
+				if(letter=="Y")then
+					numblocks = numblocks+1
+				end
+			end
+		end
+		open.close()
+	else
+		for y=1,5,1 do
+			for x=0,12,1 do
+				blocks[count] = {}
+				blocks[count][1] = "Y"
+				blocks[count][2] = (4*x+1).."-"..y+1
+				blocks[count][3] = colorTable[math.random(1,7)]
+				count = count+1
+				numblocks = numblocks+1
+			end
+		end
+	end
+	return numblocks
+end
+
+function pickMapGUI(choice)
+	clear()
+	local maps = {}
+	term.setBackgroundColor(colors.blue)
+	term.setCursorPos(45,19)
+	write("Confrim")
+	term.setBackgroundColor(colors.black)
+	term.setCursorPos(25,1)
+	print("Maps")
+	term.setCursorPos(49,1)
+	term.setBackgroundColor(colors.red)
+	write(" X ")
+	term.setBackgroundColor(colors.black)
+	for place=1,52,1 do
+		write("-")
+	end
+	local count = 1
+	term.setCursorPos(1,3)
+	local filename = fs.list("BOmaps") 
+	for _,file in ipairs( filename ) do 
+		if(choice==file)then
+			term.setBackgroundColor(colors.blue)
+		else	
+			term.setBackgroundColor(colors.black)
+		end
+		print(addSpaces(count)..": "..file)
+		maps[count] = file
+		count = count+1
+	end
+	if(choice=="Baisc")then
+		term.setBackgroundColor(colors.blue)
+	else	
+		term.setBackgroundColor(colors.black)
+	end
+	print(addSpaces(count)..": Basic")
+	return maps
+end
+
+function pickMap()
+	while true do
+		local maps = pickMapGUI(choice)
+		local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+		if(pram2-2<=table.getn(maps) and pram2~=1)then
+			choice = maps[pram2-2]
+		elseif(pram2-2==table.getn(maps)+1)then
+			choice = "Baisc"
+		elseif(pram2==1)then
+			if(pram1>=49)then
+				choice = "Baisc"
+				break
+			end
+		elseif(pram2==19)then
+			if(pram1>=45)then
+				break
+			end
+		end
+	end
+end
+
+function drawBlocks()
+	xpos=0
+	ypos=0
+	for place=1,table.getn(blocks),1 do
+		if(blocks[place][1] == "Y")then
+			for herp,derp in blocks[place][2]:gmatch("([^%s]+)-(.*)") do
+				xpos = tonumber(herp)
+				ypos = tonumber(derp)
+			end
+			term.setBackgroundColor(blocks[place][3])
+			term.setCursorPos(xpos,ypos)
+			write("    ")
+		end
+	end
+end
+
+function clear()
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function drawPaddle()
+	local x,y = term.getSize()
+	term.setBackgroundColor(colors.white)
+	term.setCursorPos(paddlePos,y-1)
+	for place=1,paddleLength,1 do
+		write(" ")
+	end
+end
+
+function drawBall()
+	term.setCursorPos(ballX,ballY)
+	term.setBackgroundColor(colors.white)
+	write(" ")
+end
+
+function touchingBlock()
+	xpos = math.ceil(ballX/4)
+	return blocks[(ballY-2)*13+xpos][1]=="Y"
+end
+
+function moveBall()
+	local x,y = term.getSize()
+	ballX = ballX+xvel
+	ballY = ballY+yvel
+	if(ballX<=1)then
+		xvel = xvel*-1
+	end
+	if(ballX>=x)then
+		xvel = xvel*-1
+	end
+	if(ballY<=1)then
+		yvel = yvel*-1
+	end
+	if(ballY>=y)then
+		return false
+	end
+	if(ballY==y-2)then
+		if(ballX>=paddlePos and ballX<=paddlePos+paddleLength-1)then
+			if(ballX-paddlePos==0 or ballX-paddlePos==7)then
+				if(ballX-paddlePos==7)then
+					xvel = xvel+1
+				else
+					xvel = xvel-1
+				end
+			elseif(ballX-paddlePos==1 or ballX-paddlePos==2 or  ballX-paddlePos==6 or ballX-paddlePos==5)then
+				if(ballX-paddlePos==6 or ballX-paddlePos==5)then
+					xvel = xvel+.5
+				else
+					xvel = xvel-.5
+				end
+			end
+			yvel = yvel*-1
+		end
+	end
+	if(ballY<=6 and ballY>=2)then
+		if(touchingBlock())then
+			blocks[(ballY-2)*13+math.ceil(ballX/4)][1]="N"
+			yvel = yvel*-1
+			score = score+10
+		elseif(ballX%4==1 or ballX%4==0)then
+			if(ballX%4==1)then
+				if(ballX~=1)then
+					if(blocks[(ballY-2)*13+math.ceil((ballX-1)/4)][1]=="Y")then
+						blocks[(ballY-2)*13+math.ceil((ballX-1)/4)][1]="N"
+						xvel = xvel*-1
+						score = score+10
+					end
+				end
+			elseif(ballX%4==0)then
+				if(ballX~=x)then
+					if(blocks[(ballY-2)*13+math.ceil((ballX+1)/4)][1]=="Y")then
+						blocks[(ballY-2)*13+math.ceil((ballX+1)/4)][1]="N"
+						xvel = xvel*-1
+						score = score+10
+					end
+				end
+			end
+		end
+	end
+	drawBall()
+	return true
+end
+
+function refresh()
+	clear()
+	drawPaddle()
+	drawBall()
+	drawBlocks()
+	term.setBackgroundColor(colors.black)
+	term.setCursorPos(44,19)
+	write("Lifes: "..lifes)
+	term.setCursorPos(1,19)
+	write("Score "..score)
+end
+
+
+
+function game()
+	while true do
+		local x,y = term.getSize()
+		refresh()
+		local Event, key, pram1, pram2 = os.pullEvent()
+		if(Event=="key")then
+			if(key==203)then
+				paddlePos = paddlePos-1
+			elseif(key==205)then
+				paddlePos = paddlePos+1
+			end
+			if(paddlePos<=1)then
+				paddlePos = 1
+			elseif(paddlePos+paddleLength>x)then
+				paddlePos = x-(paddleLength-1)
+			end
+			if(ready)then
+				ballX = paddlePos+(paddleLength/2)
+			end
+			if(key==57 and ready)then
+				timer = os.startTimer(.1)
+				ready = false
+			end
+		elseif(Event=="mouse_scroll" or Event=="mouse_click")then
+			paddlePos = paddlePos+key
+			if(paddlePos<=1)then
+				paddlePos = 1
+			elseif(paddlePos+paddleLength>x)then
+				paddlePos = x-(paddleLength-1)
+			end
+			if(ready)then
+				ballX = paddlePos+(paddleLength/2)
+			end
+			if(Event=="mouse_click" and ready)then
+				timer = os.startTimer(.1)
+				ready = false
+			end
+		elseif(Event=="timer" and key==timer)then
+			if (moveBall())then
+			else
+				break
+			end
+			if(score==total)then
+				break
+			end
+			refresh()
+			timer = os.startTimer(.1)
+			ready = false
+		end
+	end
+end
+
+function start()
+	lifes = 3
+	ready = true
+	paddleLength = 8
+	paddlePos = 25
+	ballX = 29
+	ballY = 16
+	score = 0
+	clear()
+	print("Hit space to thorw")
+	print("Map: "..choice)
+	sleep(2)
+	total = getMaps()*10
+	while lifes>0 and score~=total do
+		ready = true
+		yvel = -1
+		ballX = paddlePos+(paddleLength/2)
+		xvel = 0
+		ballY = 16
+		timer = os.startTimer(3)
+		game()
+		lifes = lifes-1
+	end
+	clear()
+	if(score==total)then
+		print("You Won")
+	else
+		print("You Lost")
+	end
+	print("Score: "..score.."/"..total)
+	sleep(2)
+	clear()
+end
+
+function menu()
+	local x,y = term.getSize()
+	clear()
+	write("Break Out")
+	term.setCursorPos(x/2-2,y/2-2)
+	term.setBackgroundColor(colors.blue)
+	write("       ")
+	term.setCursorPos(x/2-2,y/2-1)
+	write(" Start ")
+	term.setCursorPos(x/2-2,y/2)
+	write("       ")
+	term.setCursorPos(x/2-2,y/2+2)
+	term.setBackgroundColor(colors.blue)
+	write("       ")
+	term.setCursorPos(x/2-2,y/2+3)
+	write(" Maps  ")
+	term.setCursorPos(x/2-2,y/2+4)
+	write("       ")
+	term.setCursorPos(x/2-2,y/2+6)
+	term.setBackgroundColor(colors.blue)
+	write("       ")
+	term.setCursorPos(x/2-2,y/2+7)
+	write(" Help  ")
+	term.setCursorPos(x/2-2,y/2+8)
+	write("       ")
+	term.setCursorPos(49,1)
+	term.setBackgroundColor(colors.red)
+	write(" X ")
+end
+
+function menuInteraction()
+	local x,y = term.getSize()
+	while true do
+		menu()
+		local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+		if(pram2==1)then
+			break
+		elseif(pram2>=y/2-3 and pram2<=y/2)then
+			if(pram1>=x/2-2 and pram1<=x/2+4)then
+				start()
+			end
+		elseif(pram2>=y/2+1 and pram2<=y/2+4)then
+			if(pram1>=x/2-2 and pram1<=x/2+4)then
+				pickMap()
+			end
+		elseif(pram2>=y/2+6 and pram2<=y/2+8)then
+			if(pram1>=x/2-2 and pram1<=x/2+4)then
+				help()
+			end
+		end
+	end
+end
+
+menuInteraction()

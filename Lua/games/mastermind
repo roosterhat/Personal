@@ -1,0 +1,251 @@
+columns = 4
+colorTable = {colors.red,colors.blue,colors.yellow,colors.orange,colors.purple,colors.lime,colors.pink,colors.green}
+function setUp()
+	code = {}
+	answers = {}
+	for place=1,12,1 do
+		answers[place] = {}
+		for derp=1,columns,1 do
+			answers[place][derp] = colors.gray
+		end
+	end
+	
+	pegs = {}
+	for place=1,12,1 do
+		pegs[place] = {}
+		for derp=1,columns,1 do
+			pegs[place][derp] = colors.gray
+		end
+	end
+	
+	for place=1,columns,1 do
+		continue = true
+		while continue do
+			continue = false
+			code[place] = colorTable[math.random(1,5+(columns-3))]
+			for spot=1,#code-1,1 do
+				if(code[spot]==code[place])then
+					continue = true
+				end
+			end
+		end
+	end
+end
+
+function drawBoard()
+	for place=12,1,-1 do
+		term.setTextColor(colors.white)
+		term.setBackgroundColor(colors.black)
+		if(place<10)then
+			write(place.."  ")
+		else
+			write(place.." ")
+		end
+		term.setTextColor(colors.black)
+		for derp=1,columns,1 do
+			term.setBackgroundColor(pegs[place][derp])
+			write("o")
+		end
+		term.setBackgroundColor(colors.black)
+		write(" ")
+		if(place==count)then
+			term.setTextColor(colors.white)
+			term.setBackgroundColor(colors.blue)
+			write("Accept")
+			term.setTextColor(colors.black)
+		else
+			for derp=1,columns,1 do
+				term.setBackgroundColor(answers[place][derp])
+				write("o")
+			end
+		end
+		print()
+	end	
+	term.setBackgroundColor(colors.black)
+	print()
+	write("   ")
+	for place=1,5+(columns-3),1 do
+		term.setBackgroundColor(colorTable[place])
+		write("o")
+	end
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.red)
+	term.setCursorPos(49,1)
+	write(" X ")
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.white)
+end
+
+function indexOf(table,index)
+	local count = 0
+	for place=1,#table,1 do
+		if(table[place]==index)then
+			count = count+1
+		end
+	end
+	if(count>0)then
+		return true,count
+	else
+		return false,count
+	end
+end
+
+function checkPegs()
+	correct = 0
+	pegcount = 1
+	--print(textutils.serialize(pegs))
+	--sleep(1)
+	for place=1,columns,1 do
+		if(pegs[count][place]==code[place])then
+			answers[count][pegcount] = colors.white
+			correct = correct+1
+			pegcount = pegcount+1
+		end
+	end
+	for place=1,columns,1 do
+		continue = true
+		result,amount = indexOf(pegs[count],pegs[count][place])
+		if(amount>1)then
+			for derp=1,4,1 do
+				if(pegs[count][derp]==pegs[count][place])then
+					if(pegs[count][derp]==code[derp])then
+						continue = false
+					end
+				end
+			end
+		end
+		for derp=1,place-1,1 do
+			if(pegs[count][derp]==pegs[count][place])then
+				continue = false
+			end
+		end
+		--continue  = true 
+		if(continue)then
+			if (indexOf(code,pegs[count][place]))then
+				answers[count][pegcount] = colors.lightGray
+				pegcount = pegcount+1
+			end
+		end
+	end
+	if(correct==columns)then
+		return true
+	else
+		return false
+	end
+end
+
+function menu()
+	local x,y = term.getSize()
+	shell.run("clear")
+	write("MasterMind")
+	term.setCursorPos(x/2-10,y/2-1)
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.blue)
+	write("      ")
+	term.setCursorPos(x/2-10,y/2)
+	write(" Easy ")
+	term.setCursorPos(x/2-10,y/2+1)
+	write("      ")
+	term.setCursorPos(x/2-3,y/2-1)
+	write("        ")
+	term.setCursorPos(x/2-3,y/2)
+	write(" Medium ")
+	term.setCursorPos(x/2-3,y/2+1)
+	write("        ")
+	term.setCursorPos(x/2+6,y/2-1)
+	write("      ")
+	term.setCursorPos(x/2+6,y/2)
+	write(" Hard ")
+	term.setCursorPos(x/2+6,y/2+1)
+	write("      ")
+	term.setBackgroundColor(colors.red)
+	term.setCursorPos(x-2,1)
+	write(" X ")
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+end
+
+function game()
+	setUp()
+	count = 1
+	selectedColor = "none"
+	while true do
+		shell.run("clear")
+		drawBoard()
+		Event,key,xclick,yclick = os.pullEvent("mouse_click")
+		if(yclick==14)then
+			if(xclick>=4 and xclick<=9+(columns-4))then
+				selectedColor = colorTable[xclick-3]
+			end
+		elseif(yclick==12-(count-1))then
+			if(xclick>=4 and xclick<=7+(columns-4))then
+				if(selectedColor~="none")then
+					pegs[count][xclick-3] = selectedColor
+				end
+			elseif(xclick>=9+(columns-4) and xclick<=14+(columns-4))then
+				--continue = true
+				--for place=1,columns,1 do
+				--	if(pegs[count][place]==colors.gray)then
+				--		continue = false
+				--	end
+				--end
+				if(not indexOf(pegs[count],colors.gray))then
+					if(checkPegs())then
+						shell.run("clear")
+						print("You Broke the Code")
+						print("Score: "..count*30)
+						write("Code ")
+						for place=1,3+(columns-3),1 do
+							term.setBackgroundColor(code[place])
+							write(" ")
+						end
+						sleep(2)
+						break
+					end
+					count = count+1
+				end
+				if(count==13)then
+					shell.run("clear")
+					print("You Didnt Brake the Code")
+					print("Score: "..count*30)
+					write("Code ")
+					for place=1,3+(columns-3),1 do
+						term.setBackgroundColor(code[place])
+						write(" ")
+					end
+					sleep(2)
+					break
+				end
+			end
+		elseif(yclick==1)then
+			if(xclick>=49)then
+				break
+			end
+		end
+	end
+end
+
+while true do
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	local x,y = term.getSize()
+	shell.run("clear")
+	menu()
+	local Event, key, pram1, pram2 = os.pullEvent("mouse_click")
+	if(pram2>=y/2-2 and pram2<=y/2+1)then
+		if(pram1>=x/2-10 and pram1<=x/2-5)then
+			columns = 4
+			game()
+		elseif(pram1>=x/2-3 and pram1<=x/2+4)then
+			columns = 5
+			game()
+		elseif(pram1>=x/2+6 and pram1<=x/2+11)then
+			columns = 6
+			game()
+		end		
+	elseif(pram2==1)then
+		if(pram1>=49)then
+			break
+		end
+	end
+end

@@ -1,0 +1,96 @@
+Object = {x=0,
+	      y=0,
+		  width = 0,
+		  height = 0,
+		  oType = "Object",
+		  visible = true,
+		  focused = false,
+		  priority = 1}
+		  
+function init(x,y,w,h,t)
+	if(t==nil)then
+		t = "Object"
+	end
+	util.checkInputs({x,y,w,h,t},{"number","number","number","number","string"},t)
+	self = setmetatable({x=x,
+						y=y,
+						width=w,
+						height=h,
+						oType=t},{__index==Object})
+	return self
+end
+
+function getTablePointer()
+	return Object
+end
+
+function Object:getType()
+	return self.oType
+end
+
+function Object:getX()
+	return self.x
+end
+
+function Object:getY()
+	return self.y
+end
+
+function Object:getWidth()
+	return self.width
+end
+
+function Object:getHeight()
+	return self.height
+end
+
+function Object:getVisible()
+	return self.visible
+end
+
+function Object:getFocused()
+	return self.focused
+end
+
+function Object:setVisibility(bool)
+	util.checkInputs({bool},{"boolean"},self:getType())
+	self.visible = bool
+end
+
+function Object:setFocused(bool)
+	util.checkInputs({bool},{"boolean"},self:getType())
+	self.focused = bool
+end
+
+function Object:move(dx,dy)
+	util.checkInputs({dx,dy},{"number","number"},self:getType())
+	self.x = self.x+dx
+	self.y = self.y+dy
+end
+
+function Object:relocate(x,y)
+	util.checkInputs({x,y},{"number","number"},self:getType())
+	self.x = x
+	self.y = y
+end
+
+function Object:resize(w,h)
+	util.checkInputs({w,h},{"number","number"},self:getType())
+	self.width = w
+	self.height = h
+end
+
+function Object:touching(x,y)
+	util.checkInputs({x,y},{"number","number"},self:getType())
+	return util.inside(self:getX(),self:getY(),self:getWidth(),self:getHeight(),x,y)
+end
+
+function Object:clicked(x,y)
+	util.checkInputs({x,y},{"number","number"},self:getType())
+	return self:touching(x,y)
+end
+
+function Object:draw()
+end
+
+

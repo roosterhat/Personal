@@ -1,0 +1,32 @@
+EffectArea = {
+			  func = function()end,
+			  predicate = function()return true end}
+			  
+function init(x,y,w,h,f,p)
+	if(p==nil)then
+		p = function()return true end
+	end
+	if(type(p)=="boolean")then
+		p = function() return p end
+	end
+	pages.checkInputs({x,y,w,h,f,p},{"number","number","number","number","function","function"},"EffectArea")
+	self = Object.init(x,y,w,h,"EffectArea")
+	self.func = f
+	self.predicate = p
+	
+	setmetatable(self,{__index=setmetatable(EffectArea,{__index=Object.getTablePointer()})})
+	self.priority = 3
+	return self
+end
+
+function getTablePointer()
+	return EffectArea
+end
+
+function EffectArea:clicked(x,y)
+	if(self:touching(x,y) and self.predicate() and sel:getVisible())then
+		self.func()
+		return true
+	end
+	return false
+end

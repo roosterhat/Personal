@@ -1,0 +1,57 @@
+ballx=2
+bally=2
+xvel=math.random(3,15)
+yvel=0
+
+function drawBall()
+  --ballx = math.floor(ballx)
+  --bally = math.floor(bally)
+  term.setBackgroundColor(colors.black)
+  shell.run("clear")
+  term.setBackgroundColor(colors.white)
+  term.setCursorPos(ballx,bally)
+  write(" ")
+end
+
+function moveBall()
+  ballx = ballx+xvel
+  bally = bally+yvel
+  if(ballx<=1)then
+    xvel = xvel*-1
+    ballx = 2
+  end
+  if(ballx>=51)then
+    xvel = xvel*-1
+    ballx = 50
+  end
+  if(bally<=1)then
+    yvel = yvel*-1
+    bally = 2
+  end
+  if(bally>=19)then
+    yvel = yvel*-.8
+    bally = 18
+  end
+end
+
+timer = os.startTimer(.1)
+while true do
+  drawBall()
+  Event,key,xpos,ypos = os.pullEvent()
+  if(Event=="mouse_drag")then
+  	if(xpos==math.ceil(ballx))then
+  		if(ypos==math.ceil(bally))then
+  			ballx = xpos
+  			bally = ypos
+  			xvel = 0
+  			yvel = 0
+  		end
+  	end
+  elseif(Event=="timer" and key==timer)then
+    moveBall()
+    yvel = yvel+1
+    xvel = xvel*.9
+    timer = os.startTimer(.1)
+  end
+  
+end

@@ -1,0 +1,44 @@
+Button = {
+		  text = "",
+		  color = colors.white,
+		  textColor = colors.black,
+		  enabled = true,
+		  func = function()end}
+		  
+function init(t,x,y,w,h,c,tc,f)--Text,x position, y position, width, height, color, text color, button function
+	util.checkInputs({t,xpos,ypos,wid,high,c,tc,f},{"string","number","number","number","number","number","number","function"},"Button.init")
+	local temp = Object.init(x,y,w,h,"Button")
+	temp.text = t
+	temp.color = c
+	temp.textColor = tc
+	temp.func = f
+	self = setmetatable(temp,{__index=setmetatable(Button,{__index=Object.getTablePointer()})})
+	return self
+end
+
+function getTablePointer()
+	return Button
+end
+
+function Button:getEnabled()
+	return self.enabled
+end
+
+function Button:setEnabled(bool)
+	util.checkInputs({bool},{"boolean"},"setEnabled")
+	self.enabled = bool
+end
+
+function Button:clicked(x,y)
+	if(self:touching(x,y) and self:getEnabled() and self:getVisible())then
+		self.func()
+		return true
+	end
+	return false
+end
+
+function Button:draw(dObj)
+	dObj:fillArea(self.color,self:getX(),self:getY(),self:getWidth(),self:getHeight())      
+	dObj:writeTextCentered(self.text,self:getX(),self:getY(),self:getWidth(),self:getHeight(),self.textcolor,self.color)
+end
+

@@ -1,0 +1,94 @@
+Window = {
+		  header = "",
+		  grabbed = false,
+		  movePoint = 0,
+		  panel = {},
+		  headerPanel = {}}
+		  
+function init(t,x,y,w,h)
+	util.checkInputs({t,xpos,ypos,w,h},{"string","number","number","number","number",},"Window")
+	local temp = Panel.init(x,y,w,h+1)
+	temp.header = t
+	temp.panel = Panel.init(x,y+1,w,h,colors.white)
+	temp.headerPanel = Panel.init(x,y,w,1,colors.lightGray,{Label.init(t,1,1,#t,1,colors.lightGray,colors.gray),
+															Button.init(" x ",w-2,1,3,1,colors.red,colors.white,function()self:closeWindow()end)})
+	
+	self = setmetatable(temp,{__index=setmetatable(Window,{__index=Panel.getTablePointer()})})
+	return self
+end
+
+function getTablePointer()
+	return Window
+end
+
+function Window:getType()
+	return "Window"
+end	
+
+function Window:update()
+	self.panel = Panel.init(self:getX(),self:getY()+1,self:getWidth(),self:getHeight(),self.color,self.panel:getObject())
+	--self.headerPanel = Panel.init(self:getX(),self:getY(),self:getWidth(),1,colors.lightGray,{Label.init(self.header,1,1,#self.header,1,colors.lightGray,colors.gray),
+	--																						  Button.init(" x ",self:getWidth()-2,1,3,1,colors.red,colors.white,function()self:closeWindow()end)})
+	self.headerPanel = Panel.init(self:getX(),self:getY(),self:getWidth(),1,colors.lightGray,self.headerPanel:getObjects())
+end
+
+function Window:closeWindow()
+	self:setVisibility(false)
+	self:setFocused(false)
+end
+
+function Window:move(x,y)
+	self:relocate(x,y)
+	--self:update()
+end
+
+function Window:resize(w,h)--  <- this needes to be fixed
+	self:resize(w,h)
+	self:update()
+end
+
+function Window:addObject(o,p)
+	self.panel:addObject(o,p)
+end
+
+function Window:removeObject(o)
+	self.panel:removeObject(o)
+end
+
+function Window:getObjects(oType)
+	return self.panel:getObjects(oType)
+end
+
+function Window:dragged(x,y)
+	if(self.grabbed and self:getVisible())then
+		self:move(x-self.movePoint,y)
+		self:setFocused(true)
+		return true
+	end
+	self:setFocused(false)
+	return false
+end
+
+function Window:clicked(x,y)
+	self.grabbed = false
+	if(self:getVisible() and self:touching(x,y))then
+		if(self.headerPanel:touching(x,y))then
+			self.grabbed = true
+			self.movePoint = x-self:getX()
+		end
+		self:setFocused(true)
+		return self.headerPanel:clicked(x,y) or self.panel:clicked(x,y)
+	end
+	self:setFocused(false)
+	return false
+end
+
+function Window:draw(d)
+	if(self:getVisible())then
+		self.headerPanel:draw(d)
+		self.panel:draw(d)
+	end
+end
+
+
+

@@ -1,0 +1,115 @@
+ScrollBar = {
+			 length = 0,
+			 itemAmount = 0,
+			 horizontal = false,
+			 backgroundColor = colors.lightGray,
+			 barColor = colors.gray,
+			 arrowColor = colors.lightGray,
+			 textColor = colors.gray,
+			 scroll = 0,
+			 selected = false,
+			 grabPoint = 0,
+			 bg = {},
+			 bar = {},
+			 arrow1 = {},
+			 arrow2 = {}}
+			 
+function init(x,y,l,ia,s)
+	if(s==nil)then
+		s = false
+	end
+	pages.checkInputs({x,y,l,ia,s},{"number","number","number","number","number"},"ScrollBar")
+	local w = 1
+	local ln = l
+	if(s)then
+		w = l
+		ln = 1
+	end
+	self = Object.init(x,y,w,ln,"ScrollBar")
+	self.itemAmount = ia
+	self.horizontal = s
+	self.length = l
+	
+	setmetatable(self,{__index=setmetatable(ScrollBar,{__index=Object.getTablePointer()})})
+	self:setup()
+	return self
+end
+
+function getTablePointer()
+	return ScrollBar
+end
+
+function ScrollBar:setup()
+	local l = self.getBarLen()
+	local a1 = function()if(self.scroll>0)then self.scroll = self.scroll-1 end end
+	local a2 = function()if(self.scroll<self.length)then self.scroll = self.scroll+1 end end
+	if(self.horizontal)then
+		self.bar = Label.init("",self.scroll+2,1,l,1,self.barColor,colors.white)
+		self.arrow1 = Button.init("<",1,1,1,1,self.arrowColor,self.textColor,a1)
+		self.arrow2 = Button.init(">",self.length+2,1,1,1,self.arrowColor,self.textColor,a2)
+		self.bg = Panel.init(self:getX(),self:getY(),self.length+2,1,self.backGroundColor,{self.bar,self.arrow1,self.arrow2})
+	else
+		self.bar = Label.init("",1,self.scroll+2,1,l,self.barColor,colors.white)
+		self.arrow1 = Button.init("^",1,1,1,1,self.arrowColor,self.textColor,a1)
+		self.arrow2 = Button.init("v",1,self.length+2,1,1,self.arrowColor,self.textColor,a2)
+		self.bg = Panel.init(self:getX(),self:getY(),1,self.length+2,self.backGroundColor,{self.bar,self.arrow1,self.arrow2})
+	end
+end
+
+function ScrollBar:move(x,y)
+	self.bg:move(x,y)
+end
+
+function ScrollBar:relocate(x,y)
+	self:move(x,y)
+end
+
+function ScrollBar:getBarLength()
+	if((self.length/self.itemAmount)<1)then
+		return 1
+	else
+		return math.floor(self.length/self.itemAmount)
+	end
+end
+
+function ScrollBar:update(i)
+	self.itemAmount = i
+end
+
+function ScrollBar:dragged(x,y)
+	if(self.selected and self:getVisible())then
+		if(self.sideWays)then
+			self.scroll = self.scroll+(x-(self.grabPoint))
+		else
+			self.scroll = self.scroll+(y-(self.grabPoint))
+		end
+		if(self.scroll<0)then
+			self.scroll = 0
+		end
+		if(self.scroll+self:getBarLen()>self.length)then
+			self.scroll = self.length
+		end
+	end
+end
+
+function ScrollBar:clicked(x,y)
+	if(self:getVisible())then
+		if(self.bar:clicked(x,y))then
+			self.selected = true
+			if(self.horizontal)then
+				self.grabPoint = x-(self:getX()+self.scroll+1)
+			else
+				self.grabPoint = y-(self:getY()+self.scroll+1)
+			end
+		else
+			self.selected = false
+		end
+		return self.bg:clicked(x,y)
+	end
+end
+
+function ScrollBar:draw(d)
+	if(this:getVisible())then
+		this.bg:draw(d)
+	end
+end

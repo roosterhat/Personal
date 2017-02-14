@@ -1,0 +1,18 @@
+word = "Minecraft Lottery"
+monitor = peripheral.wrap("top")
+x,y = monitor.getSize()
+length = string.len(word)
+Xpos = x/2-(length/2)
+Ypos = y/2
+count = 1
+while count<2 do
+  monitor.clear()
+  monitor.setCursorPos(Xpos,Ypos)
+  monitor.write(word)
+  Xpos = Xpos+1
+  if(Xpos>=x+length)then
+    Xpos = 1-length
+    count = count+1
+  end
+  sleep(.1)
+end

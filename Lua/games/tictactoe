@@ -1,0 +1,343 @@
+space = {}
+for derp = 0,8,1 do
+	space[derp] = " "
+end
+turn = "Player's"
+selection = 0
+x = 1
+y = 1
+done = false
+winner = "noone"
+
+function title()
+	term.clear()
+	term.setCursorPos(1,1)
+	print("TicTacToe")
+	width,height = term.getSize()
+	for derp = 1,width-1,1 do
+		write("-")
+	end
+	print("It's the "..turn.." Turn")
+	print()
+end	
+
+function drawBoard()
+	title()
+	count = 0
+	for rows = 1,3,1 do
+		for columns = 1,3,1 do
+			if(columns==x and rows==y) then
+				write("["..space[count].."]")
+				selection=count
+			else
+				write(" "..space[count].." ")
+			end
+			if(columns == 1 or columns == 2) then
+				write("|")
+			end
+			count = count+1
+		end
+		if(rows == 1 or rows == 2) then
+			print()
+			write("---+---+---")
+			print()
+		end
+	end
+end
+
+function playersTurn()
+	g = false
+	while g == false do
+		drawBoard()
+		Event, key = os.pullEvent("key")
+		if (key==200) then
+			y=y-1
+		elseif (key==208) then
+			y=y+1
+		elseif(key==205)then
+			x=x+1
+		elseif(key==203)then
+			x=x-1
+		end
+		if(x<1)then
+			x = 1
+		elseif(x>3)then
+			x = 3
+		elseif(y<1)then
+			y = 1
+		elseif(y>3)then
+			y = 3
+		end	
+		if(key==28)then
+			if (space[selection] == " ") then
+				space[selection] = "X"
+				g = true
+			end
+		end
+	end
+end
+
+function checkWin()
+	local count = 0
+	for place=0,2,1 do
+		if(space[place]~=" ")then
+			if(space[place+(3)]==space[place] and space[place+(6)]==space[place])then
+				if(space[place]=="X")then
+					winner = "player"
+				else	
+					winner = "computer"
+				end
+				space[place]="|"
+				space[place+3]="|"
+				space[place+6]="|"
+			end
+			
+		end
+	end
+	for place=0,6,3 do
+		if(space[place]~=" ")then
+			if(space[place+(1)]==space[place] and space[place+(2)]==space[place])then
+				if(space[place]=="X")then
+					winner = "player"
+				else	
+					winner = "computer"
+				end
+				space[place]="-"
+				space[place+1]="-"
+				space[place+2]="-"
+			end
+			
+		end
+	end
+
+	if(space[0]==space[4] and space[0]==space[8] and space[4]~=" ") then
+		if(space[0]=="X")then
+			winner="Player"
+		elseif(space[0]=="O")then
+			winner="Computer"
+		end
+		space[0]="\\"
+		space[4]="\\"
+		space[8]="\\"
+	end
+	if(space[2]==space[4] and space[2]==space[6] and space[4]~=" ") then
+		if(space[2]=="X")then
+			winner="Player"
+		elseif(space[2]=="O")then
+			winner="Computer"
+		end
+		space[2]="/"
+		space[4]="/"
+		space[6]="/"
+	end
+	
+	for place=0,8,1 do
+		if(space[place]==" ")then
+			break
+		else
+			count = count+1
+		end
+	end
+	--print(count)
+	--sleep(1)
+	if (count==9)then
+		drawBoard()
+		print("Its a tie game")
+		return true
+	end
+	
+	if(winner~="noone")then
+		drawBoard()
+		print("The "..winner.." has won")
+		return true 
+	else
+		return false
+	end
+end
+
+function checkBoard()
+	if(space[0]=="X" and space[1]=="X")then
+		if(space[2]==" ")then
+			space[2]="O"
+		else
+			pickRand()
+		end
+	elseif(space[0]=="X" and space[2]=="X")then
+		if(space[1]==" ")then
+			space[1]="O"
+		else
+			pickRand()
+		end
+	elseif(space[1]=="X" and space[2]=="X")then
+		if(space[0]==" ")then
+			space[0]="O"
+		else
+			pickRand()
+		end
+	elseif(space[3]=="X" and space[4]=="X")then
+		if(space[5]==" ")then
+			space[5]="O"
+		else
+			pickRand()
+		end
+	elseif(space[3]=="X" and space[5]=="X")then
+		if(space[4]==" ")then
+			space[4]="O"
+		else
+			pickRand()
+		end
+	elseif(space[4]=="X" and space[5]=="X")then
+		if(space[3]==" ")then
+			space[3]="O"
+		else
+			pickRand()
+		end
+	elseif(space[6]=="X" and space[7]=="X")then
+		if(space[8]==" ")then
+			space[8]="O"
+		else
+			pickRand()
+		end
+	elseif(space[6]=="X" and space[8]=="X")then
+		if(space[7]==" ")then
+			space[7]="O"
+		else
+			pickRand()
+		end
+	elseif(space[7]=="X" and space[8]=="X")then
+		if(space[6]==" ")then
+			space[6]="O"
+		else
+			pickRand()
+		end
+	elseif(space[0]=="X" and space[3]=="X")then
+		if(space[6]==" ")then
+			space[6]="O"
+		else
+			pickRand()
+		end
+	elseif(space[0]=="X" and space[6]=="X")then
+		if(space[3]==" ")then
+			space[3]="O"
+		else
+			pickRand()
+		end
+	elseif(space[3]=="X" and space[6]=="X")then
+		if(space[0]==" ")then
+			space[0]="O"
+		else
+			pickRand()
+		end
+	elseif(space[1]=="X" and space[4]=="X")then
+		if(space[7]==" ")then
+			space[7]="O"
+		else
+			pickRand()
+		end	
+	elseif(space[1]=="X" and space[7]=="X")then
+		if(space[4]==" ")then
+			space[4]="O"
+		else
+			pickRand()
+		end
+	elseif(space[4]=="X" and space[7]=="X")then
+		if(space[1]==" ")then
+			space[1]="O"
+		else
+			pickRand()
+		end
+	elseif(space[2]=="X" and space[5]=="X")then
+		if(space[8]==" ")then
+			space[8]="O"
+		else
+			pickRand()
+		end	
+	elseif(space[2]=="X" and space[8]=="X")then
+		if(space[5]==" ")then
+			space[5]="O"
+		else
+			pickRand()
+		end
+	elseif(space[5]=="X" and space[8]=="X")then
+		if(space[2]==" ")then
+			space[2]="O"
+		else
+			pickRand()
+		end
+	elseif(space[0]=="X" and space[4]=="X")then
+		if(space[8]==" ")then
+			space[8]="O"
+		else
+			pickRand()
+		end
+	elseif(space[0]=="X" and space[8]=="X")then
+		if(space[4]==" ")then
+			space[4]="O"
+		else
+			pickRand()
+		end
+	elseif(space[4]=="X" and space[8]=="X")then
+		if(space[0]==" ")then
+			space[0]="O"
+		else
+			pickRand()
+		end
+	elseif(space[2]=="X" and space[4]=="X")then
+		if(space[6]==" ")then
+			space[6]="O"
+		else
+			pickRand()
+		end
+	elseif(space[2]=="X" and space[6]=="X")then
+		if(space[4]==" ")then
+			space[4]="O"
+		else
+			pickRand()
+		end
+	elseif(space[4]=="X" and space[6]=="X")then
+		if(space[2]==" ")then
+			space[2]="O"
+		else
+			pickRand()
+		end
+	else
+		pickRand()
+	end
+	
+end
+
+function pickRand()
+	herp=true
+	while herp==true do
+		derp = math.random (0,8)
+		if(space[derp]==" ")then
+			space[derp]="O"
+			herp=false
+		end
+	end
+end
+
+function computersTurn()
+	drawBoard()
+	checkBoard()
+end
+
+while done==false do
+	turn = "Player's"
+	playersTurn()
+	if(checkWin())then
+		done = true
+	end
+	if(done==false)then
+		turn = "Computer's"
+		computersTurn()
+		if(checkWin())then
+			done = true
+		end
+	end
+end
+
+sleep(2)
+term.clear()
+term.setCursorPos(1,1)
+

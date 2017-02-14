@@ -1,0 +1,121 @@
+Panel = {
+		 color=colors.white,
+		 objects = {},
+		 drawingObject = {}}
+		 
+function init(x,y,w,h,c,o)
+	if(c==nil)then
+		c = colors.white
+	end
+	if(o==nil)then
+		o = {}
+	else 
+		for _,o in ipairs(o)do
+			if(o.offset==nil)then
+				o.offset = {math.min(o:getX()-1,w),math.min(o:getY()-1,h)}
+			end
+			o:move(o.offset[1]+x,o.offset[2]+y)
+		end
+	end
+	util.checkInputs({x,y,w,h,bcg,o},{"number","number","number","number","number","table"},"Panel")
+	local temp = Object.init(x,y,w,h,"Panel")
+	temp.color = c
+	temp.objects = o
+	temp.drawingObject = DrawingObject.init(x,y,w,h)
+	self = setmetatable(temp,{__index=setmetatable(Panel,{__index=Object.getTablePointer()})})
+	return self
+end
+
+function getTablePointer()
+	return Panel
+end
+
+function Panel:getObjects(oType)
+	local objs = self.objects
+	temp = {}
+	if(oType==nil)then
+		return objs
+	else
+		for n,o in ipairs(objs) do
+			if(o:getType()==oType)then
+				temp[#temp+1] = o
+			end
+		end
+		return temp
+	end
+end
+
+function Panel:getNumberObjects()
+	return #self.objects
+end
+
+function Panel:setColor(c)
+	util.checkInputs({c},{"number"},"setColor")
+	self.color = c
+end
+
+function Panel:addObject(obj,p)
+	if(obj~=nil)then
+		if(obj:getType()~=nil)then
+			obj.offset = {math.min(obj:getX()-1,self:getWidth()),math.min(obj:getY()-1,self:getHeight())}
+			obj:relocate(obj.offset[1]+self:getX(),obj.offset[2]+self:getY())
+			if(p~=nil)then
+				obj.priority = p
+			else
+				if(obj.priority~=nil)then
+				else
+					obj.priority = 0
+				end
+			end
+			self.objects[#self.objects+1]=obj
+		end
+	end
+end
+
+function Panel:removeObject(obj)
+	temp = {}
+	for _,o in ipairs(this.objects) do
+		if(o~=obj)then
+			temp[#temp+1] = o
+		end
+	end
+	this.objects = temp
+end
+
+function Panel:repositionObjects()
+	for i,o in ipairs(this.objects) do
+		o:relocate(o.offset[1]+self:getX(),o.offset[2]+self:getY())
+	end
+end
+
+function Panel:move(x,y)
+	self:relocate(x,y)
+	self:repositionObjects(x,y)
+end
+
+function Panel:clicked(x,y)
+	if(self:getVisible())then
+		if(self:touching(x,y))then
+			self:setFocused(true)
+			for i,o in ipairs(util.getQueue(self.objects)) do
+				o:clicked(x,y)
+			end
+			return true
+		else
+			self:setFocused(false)
+		end
+	end
+	self:setFocused(false)
+	return false
+end
+
+function Panel:draw(d)
+	self.drawingObject:setBufferState(d:getBufferState())
+	if(self:getVisible())then
+		self.drawingObject:fillArea(self.color,self:getX(),self:getY(),self:getWidth(),self:getHeight())
+		for n,o in ipairs(util.getQueue(self.objects)) do
+			o:draw(self.drawingObject)
+		end
+		d:drawImage(self.drawingObject:getScreenBuffer())
+	end
+end

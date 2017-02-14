@@ -1,0 +1,93 @@
+DropDown = {
+			name = "",
+			color = colors.white,
+			textColor = colors.black,
+			enabled = true,
+			down = false,
+			elements = e}
+			
+function init(n,x,y,w,c,tc,e)
+	if(e==nil)then
+		e = {}
+	end
+	pages.checkInputs({n,xpos,ypos,l,c,tc,e},{"string","number","number","number","number","number","table"},"DropDown")
+	local temp = Object.init(x,y,w,1,"DropDown")
+	temp.name = n
+	temp.color = c
+	temp.textColor = tc
+	temp.elements = e
+	temp.header = Button.init(n,x,y,w,1,c,tc,function()self.down = not self.down end)
+	temp.dropPanel = Panel.init(x,y,w,#e,colors.lightGray)
+	
+	self = setmetatable(temp,{__index=setmetatable(DropDown,{__index=Object.getTablePointer()})})
+	self:update()
+	return self
+end
+
+function getTablePointer()
+	return DropDown
+end
+
+function DropDown:getEnabled()
+	return self.enabled
+end
+
+function DropDown:setEnabled(bool)
+	pages.checkInputs({bool},{"boolean"},"setEnabled")
+end
+
+function DropDown:getDown()
+	return self.down
+end
+
+function DropDown:getLongestElement()
+	local long = 0
+	for _,o in ipairs(this.elements)do
+		if(#o.name>long)then
+			long = #o.name
+		end
+	end
+	return long or self:getWidth()>long
+end
+
+function DropDown:addElement(n,f)
+	checkInputs({n,f},{"string","function"},"addElement")
+	self.elements[#self.elements+1] = {name = n,func = f}
+	self:update()
+end
+
+function DropDown:update()
+	local temp = {}
+	local w = self:getLongestElement()
+	for i,o in ipairs(self.elements)do
+		temp[#temp+1] = Button.init(o.name,1,i,w,1,self.color,self.textColor,o.func)
+	end
+	self.dropPanel = Panel.init(self:getX(),self:getY(),w,#self.elements,colors.lightGray,temp)
+end
+
+function DropDown:touching(x,y)
+	return self.header:touching(x,y) or self.dropDown:touching(x,y)
+end
+
+function DropDown:clicked(x,y)
+	if(self.header:clicked(x,y))then
+		return true
+	elseif(self.down)then
+		if(self.dropPanel:clicked(x,y))then
+			self.dropPanel:setFocused(true)
+			return true
+		else
+			self.dropPanel:setFocused(false)
+		end
+	else
+		self.down = false
+	end
+	return false
+end
+
+function DropDown:draw(d)
+	self.header:draw(d)
+	if(self:getVisible() and self.down)then
+		self.dropPanel:draw(d)
+	end
+end

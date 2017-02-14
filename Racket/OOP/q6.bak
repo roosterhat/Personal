@@ -1,0 +1,3 @@
+#lang class/2
+
+(define-class empty%

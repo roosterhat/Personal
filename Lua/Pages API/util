@@ -1,0 +1,132 @@
+function deepCopy(source,target)
+	for i,e in ipairs(source)do
+		if(type(e)=="table")then
+			target[i] = {}
+			deepCopy(e,target[i])
+		else
+			target[i] = e
+		end
+	end
+end
+
+function contains(list,element)
+	return indexOf(list,element)>-1
+end
+
+function indexOf(l,i)
+	for index,e in ipairs(l)do
+		if(i==e)then
+			return index
+		end
+	end
+	return -1
+end
+
+function inside(x,y,w,h,mx,my)
+	return mx>=x and mx<(x+w) and my>=y and my<(y+h)
+end
+
+function checkInputs(inputs,expect,source)
+	if(type(inputs)~="table")then
+		inputs = {inputs}
+	end
+	if(type(expect)~="table")then
+		expect = {expect}
+	end
+	if(type(source)~="string")then
+		source = "Method"
+	end
+	for i,var in ipairs(inputs) do
+		if(type(var)~=expect[i])then
+			term.setTextColor(colors.red)
+			term.setBackgroundColor(colors.black)
+			return error(source.." expects "..expect[i]..", but input["..i.."] is a "..type(var))
+		end
+	end
+end
+
+function reverseList(l)
+	local temp = {}
+	for i=#l,1,-1 do
+		temp[#temp+1] = l[i]
+	end
+	return temp
+end
+
+function sortList(l,comp)--list and comparator, if no comparator is given assumes that list contains integers
+	if(comp==nil)then
+		comp = function(a,b) return a>b end
+	end
+	for i=2,#l,1 do
+		if(type(l[i])=="number")then
+			local x = l[i]
+			local j = i-1
+			while j>0 and comp(l[j],x) do
+				l[j+1] = l[j]
+				j = j-1
+			end
+			l[j+1] = x
+		end
+	end
+end
+
+function getDimensions(list)
+	local w,h = -1,-1
+	for y,l in ipairs(list)do
+		for x,_ in ipairs(l)do
+			if(x>w)then
+				w = x
+			end
+			h = y
+		end
+	end
+	return w,h
+end
+
+function getQueue(l)
+	local queue = {}
+	local c = 0
+	if(type(l)=="table")then
+		while(c<=getHighestPriorityLevel(l))do
+			for _,o in ipairs(l)do
+				if(not o:getFocused())then
+					if(c>0)then
+						if(o.priority~=nil)then
+							if(o.priority==c)then
+								queue[#queue+1] = o
+							end
+						end
+					else
+						if(o.priority==nil)then
+							queue[#queue+1] = o
+						elseif(o.priority==0)then
+							queue[#queue+1] = o
+						end
+					end
+				end
+			end
+			c = c+1
+		end
+		for _,o in ipairs(l)do
+			if(o:getFocused())then
+				queue[#queue+1] = o
+			end
+		end
+		return queue																																	
+	else
+		return l
+	end
+end
+
+function getHighestPriorityLevel(l)
+	local max = 0
+	for _,o in ipairs(l)do
+		if(o.priority~=nil)then
+			if(o.priority>max)then
+				max = o.priority
+			end
+		end
+	end
+	return max
+end
+

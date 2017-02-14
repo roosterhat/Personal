@@ -1,0 +1,30 @@
+id = 70
+rednet.open("back")
+
+function title()
+	term.clear()
+	term.setCursorPos(1,1)
+	print("  ^")
+	print("< O >    [d]")
+	print("  v    [space]   [shift]") 
+end
+
+while true do
+	title()
+	local Event,key,pram1,pram2 = os.pullEvent("key")
+	if(key==keys.up)then
+		rednet.send(id,"forward")
+	elseif(key==keys.down)then
+		rednet.send(id,"back")
+	elseif(key==keys.right)then
+		rednet.send(id,"right")
+	elseif(key==keys.left)then
+		rednet.send(id,"left")
+	elseif(key==keys.space)then
+		rednet.send(id,"up")
+	elseif(key==42 or key==54)then
+		rednet.send(id,"down")
+	elseif(key==32)then
+		rednet.send(id,"dig")
+	end
+end

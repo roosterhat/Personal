@@ -1,0 +1,85 @@
+rows = {}
+count = 0
+currentPlayer = "R"
+running = true
+
+function fillTable()
+	for x=1,7,1 do
+		rows[x] = {}
+		for y=1,6,1 do 
+			rows[x][y] = "N"
+		end
+	end	
+end
+
+function clear()
+	term.clear()
+	term.setCursorPos(1,1)
+end
+
+function drawBoard()
+	term.setBackgroundColor(colors.blue)
+	for place=1,13,1 do
+		print("               ")
+	end
+	
+	for row=1,7,1 do
+		for column=6,1,-1 do
+			if(rows[row][column]=="N") then
+				term.setBackgroundColor(colors.black)
+			elseif(rows[row][column]=="R") then
+				term.setBackgroundColor(colors.red)
+			elseif(rows[row][column]=="Y") then
+				term.setBackgroundColor(colors.yellow)
+			end
+			term.setCursorPos(row*2,column*2)
+			write(" ")
+		end
+	end
+	term.setCursorPos(17,1)
+	if(currentPlayer=="R")then
+		term.setBackgroundColor(colors.red)
+		write("Reds turn")
+	else
+		term.setBackgroundColor(colors.yellow)
+		write("Yellows turn")
+	end
+	term.setCursorPos(38,1)
+	term.setBackgroundColor(colors.gray)
+	write("Clear")
+	term.setCursorPos(49,1)
+	term.setBackgroundColor(colors.red)
+	write(" X ")
+	term.setBackgroundColor(colors.black)
+end
+
+fillTable()
+
+while running do
+	if(count%2==0)then
+		currentPlayer = "R"
+	else
+		currentPlayer = "Y"
+	end
+	clear()
+	drawBoard()
+	Event,key,xpos,ypos = os.pullEvent("mouse_click")
+	if(xpos<=14 and xpos%2==0) then
+		for place=6,1,-1 do 
+			if (rows[xpos/2][place]=="N")then
+				rows[xpos/2][place] = currentPlayer
+				break
+			end
+		end
+		
+		count = count+1
+	elseif(ypos==1) then
+		if(xpos>=38 and xpos<=42) then
+			fillTable()
+			count = 0
+		elseif(xpos>=49 and xpos<=52)then
+			running = false
+		end
+	end
+end
+clear()

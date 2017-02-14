@@ -1,0 +1,6 @@
+#lang class/2
+
+(define-class empty% (fields)
+  (define (first) (error "list empty"))
+  (define (rest) (error "list empty"))
+  (define (cons e) (new list% e this)))

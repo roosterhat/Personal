@@ -1,0 +1,131 @@
+dirs = {}
+dirs["rom"] = {}
+dirs["rom"]["open"] = false
+dirs["rom"]["dir"] = {}
+x,y = term.getSize()
+BG = paintutils.loadImage("background")
+function drawBackground()
+	term.setTextColor(colors.black)
+	shell.run("clear")
+	paintutils.drawImage(BG,1,1)
+	term.setCursorPos(1,19)
+	term.setBackgroundColor(colors.white)
+	for place=1,x,1 do
+		write(" ")
+	end
+	for place=1,x,1 do
+		term.setCursorPos(x-1,2+place)
+		write("  ")
+	end
+	term.setCursorPos(17,19)
+	term.setBackgroundColor(colors.lightGray)
+	write(" ")
+	term.setCursorPos(50,2)
+	write("  ")
+	term.setCursorPos(6,1)
+	write("^")
+	term.setBackgroundColor(colors.white)
+	term.setCursorPos(x-12,1)
+	write("Search")
+	term.setCursorPos(7,1)
+	write(path)
+	term.setCursorPos(1,1)
+end
+
+function getFiles(parentDir)
+	term.setCursorPos(1,1)
+	local temp = string.sub(path,3,#path)
+	local files = fs.list("rom")
+	local extensions = {}
+	for _,file in ipairs(files) do
+		if(fs.exists(temp.."/"..file))then
+			if(fs.isDir(temp.."/"..file))then
+				table.insert(extensions,"directory")
+				--dirs[file] = {}
+				--dirs[file]["open"] = false
+				--dirs[file]["dir"] = {}
+			else
+				table.insert(extensions,"file")
+			end
+		end
+	end
+	--write(textutils.serialize(extensions))
+	--sleep(2)
+	return extensions,files
+end
+
+function writeFileState(directory)
+	if(dirs[directory]["open"])then
+		write("- "..directory)
+	else
+		write("+ "..directory)
+	end
+end
+
+function populateDA(currentFile,depth)
+	local count=1
+	local types,files = getFiles(currentFile)
+	--write(textutils.serialize(types))
+	dirs[currentFile]["dir"] = files
+	term.setCursorPos(1,2+depth)
+	writeFileState(currentFile)
+	if(dirs[currentFile]["open"])then
+		--write(textutils.serialize(dirs[currentFile]["dir"]))
+		for value,file in pairs(dirs[currentFile]["dir"]) do
+			--write(count.." "..depth)
+			term.setCursorPos(1+depth,2+depth+count)
+			if(types[count]=="directory")then
+				write("+ "..file)
+			else
+				write(file)
+			end
+			count = count+1
+		end
+	end
+end
+
+
+while true do
+	path = "C:rom/"
+	local count = 2
+	for file,value in pairs(dirs) do
+		--path = path..file.."/"
+		if(dirs[file]["open"])then
+			populateDA(file,count)
+			count = count+1
+		else
+			populateDA(file,count)
+			break
+		end
+		break
+	end
+	drawBackground()
+	path = "C:"
+	local count = 2
+	--write(textutils.serialize(dirs))
+	--sleep(3)
+	for file,value in pairs(dirs) do
+		--print(file)
+		--path = path..file.."/"
+		if(dirs[file]["open"])then
+			populateDA(file,count)
+			count = count+1
+		else
+			populateDA(file,count)
+			break
+		end
+		break
+	end
+	local Event,key,xpos,ypos = os.pullEvent("mouse_click")
+	if(ypos==4)then
+		if(xpos==1)then
+			if(dirs["rom"]["open"])then
+				dirs["rom"]["open"] = false
+			else
+				dirs["rom"]["open"] = true
+			end
+		end
+	end
+end
+term.setCursorPos(1,1)
+print("done")
