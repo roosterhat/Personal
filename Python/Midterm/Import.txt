@@ -1,0 +1,7 @@
+user,customer1,12345,Customer
+user,customer2,password1,customer
+user,admin1,pass,Admin
+category,Console,electronics
+physical,PS4,Sony Playstation 4,500,Console,100
+physical,Xbox1,Microsoft Xbox 1,400,Console,100
+digital,Steam Code,Steam Product Code,40,digital
