@@ -150,7 +150,7 @@ class MazeRunner:
         while self.hasMove(pos,dir):
             if self.canChangeDir(pos,dir):
                 for direction in self.getPossibleMoves(pos,dir):
-                    self.backTrack(self.makeMove(pos,self. getOppositeDir(dir)))
+                    self.backTrack(self.move(pos,self. getOppositeDir(dir)))
                     if self.traverseSegment(self.makeMove(pos,direction),direction):
                         return True
                     else:
