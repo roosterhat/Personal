@@ -102,7 +102,7 @@ public class Matrix {
         }
         else
         {
-            //throw new Exception("Matrix Dimensions do not match");
+            throw new Exception("Matrix Dimensions do not match");
         }
     }
     
@@ -130,7 +130,7 @@ public class Matrix {
         }
         else
         {
-            //throw new Exception("Matrix Dimensions do not match");
+            throw new Exception("Matrix Dimensions do not match");
         }
     }
     
@@ -286,7 +286,7 @@ public class Matrix {
     
     public double round(double d)
     {
-        return Double.parseDouble(String.format("%"+(getLongestValue()+3)+".2f",d));
+        return Double.parseDouble(String.format("%.2f",d));
     }
     
     private void checkContents()
@@ -309,19 +309,6 @@ public class Matrix {
     private boolean checkDimensions(Matrix m)
     {
         return rows==m.rows && columns==m.columns;
-    }
-    
-    private boolean checkDimensions(Matrix m,int r,int c)
-    {
-        return m.rows==r && m.columns==c;
-    }
-    
-    private boolean checkDimensions(Matrix m,int[] r,int[] c)
-    {
-        for(int i=0;i<r.length;i++)
-            if(m.rows==r[i] && m.columns==c[i])
-                return true;
-        return false;
     }
     
     private int getLongestValue()
@@ -350,6 +337,7 @@ public class Matrix {
             }
             res += "\n";
         }
+        System.out.println(res);
         return res;
     }
     
@@ -360,19 +348,19 @@ public class Matrix {
     
     public String toHtml(int dec)
     {
-        //System.out.println("|"+String.format("%8.2f",1.00)+"|");
         String[] colors = {"#C0C0C0","#FFFFFF"};
-        String f = "%-"+(getLongestValue()+dec+1)+"."+dec+"f";
+        String f = "%-"+(getLongestValue()+dec+2)+"."+dec+"f";
         String res = "";
         for(int r = 0;r<rows;r++)
         {
             for(int c = 0;c<columns;c++)
             {
-                res += "<span style=\"background-color:"+colors[(r+c)%2]+";\">"+String.format(f, contents[r][c])+"</span>";
+                res += "<span style=\"background-color:"+colors[(r+c)%2]+";\">"+
+                        String.format(f, contents[r][c]).replaceAll("\\s", ((char)160)+"")+"</span>";
             }
             res += "<p>";
         }
-        return res;
+        return res+"";
     }
     
     public Matrix clone()

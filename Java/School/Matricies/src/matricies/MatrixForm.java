@@ -28,12 +28,12 @@ public class MatrixForm extends javax.swing.JPanel {
      * Creates new form MatrixForm
      */
     MainForm _main;
-    int index;
+    String name;
     Matrix matrix;
     JTextField[][] boxes;
-    public MatrixForm(Matrix m,MainForm mf, int i) {
+    public MatrixForm(Matrix m,MainForm mf, String n) {
         _main = mf;
-        index = i;
+        name = n;
         matrix = m;
         boxes = new JTextField[m.rows][m.columns];
         initComponents();
@@ -174,7 +174,7 @@ public class MatrixForm extends javax.swing.JPanel {
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         int res = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this matrix?","Confirm Delete",JOptionPane.WARNING_MESSAGE);
         if(res==JOptionPane.OK_OPTION)
-            _main.delete(index);
+            _main.delete(name);
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
@@ -182,7 +182,7 @@ public class MatrixForm extends javax.swing.JPanel {
             for(int c=0;c<matrix.columns;c++)
                 if(r<boxes.length && c<boxes[r].length)
                     matrix.set(Double.parseDouble(boxes[r][c].getText()), r, c);
-        _main.newOutput("Update ["+_main.names.get(index)+"] <br>"+matrix.toHtml());
+        _main.newOutput("Update ["+name+"] <br>"+matrix.toHtml());
         drawMatrix();
     }//GEN-LAST:event_jButton3ActionPerformed
 
@@ -195,18 +195,18 @@ public class MatrixForm extends javax.swing.JPanel {
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
-        JTextField name = new JTextField(5);
+        JTextField namefield = new JTextField(5);
         JPanel myPanel = new JPanel();
         myPanel.add(new JLabel("Name: "));
-        myPanel.add(name);
+        myPanel.add(namefield);
         int res = JOptionPane.showConfirmDialog(
                     this,myPanel,"Set Name",JOptionPane.OK_CANCEL_OPTION);
         
         if(res == JOptionPane.OK_OPTION)
         {
-            String n = name.getText().replaceAll("\\s", "");
+            String n = namefield.getText().replaceAll("\\s", "");
             if(!n.equals(""))
-                _main.rename(index, n);
+                _main.rename(name, n);
         }
         
     }//GEN-LAST:event_jButton6ActionPerformed
@@ -221,7 +221,7 @@ public class MatrixForm extends javax.swing.JPanel {
                 else
                     temp[r][c] = newMatrixBox(r,c);
         boxes = temp.clone();
-        _main.newOutput("Resize ["+_main.names.get(index)+"] -> "+matrix.rows+","+matrix.columns+"<br>"+matrix.toHtml());
+        _main.newOutput("Resize ["+name+"] -> "+matrix.rows+","+matrix.columns+"<br>"+matrix.toHtml());
     }
     
     public void drawMatrix()
@@ -256,7 +256,7 @@ public class MatrixForm extends javax.swing.JPanel {
                 int row = r;
                 int col = c;
                 matrix.set(Double.parseDouble(e.getActionCommand()), row, col);
-                _main.newOutput("Change ["+_main.names.get(index)+"] "+row+","+col+"<br>"+matrix.toHtml());
+                _main.newOutput("Change ["+name+"] "+row+","+col+"<br>"+matrix.toHtml());
                 drawMatrix();
             }
         });
