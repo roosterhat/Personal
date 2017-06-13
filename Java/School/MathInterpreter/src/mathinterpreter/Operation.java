@@ -6,47 +6,56 @@
 package mathinterpreter;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 /**
  *
  * @author ostlinja
  */
-class Operation {
+public abstract class Operation {
     String operator;
+    String regex;
     int weight;
-    TwoPartFunction function;
-    public Operation(String s,int w,TwoPartFunction f){
-        operator = s;
-        weight = w;
-        function = f;
+    int inputSide;
+    static int LEFT = -1;
+    static int RIGHT = 1;
+    static int BOTH = 0;
+    FunctionInterface function;
+    Converter converter;
+
+    public Operation(String operator,int weight,int inputSide,FunctionInterface function)
+    {
+        this(operator,weight,inputSide,function,null);
     }
     
-    public String execute(double x,double y){
-        return function.execute(x,y).toString();
-    }
-}
-
-class SingleOperation{
-    String operator;
-    int weight;
-    OnePartFunction function;
-    public SingleOperation(String s,int w,OnePartFunction f){
-        operator = s;
-        weight = w;
-        function = f;
+    public Operation(String operator,int weight,int inputSide,FunctionInterface function, Converter converter)
+    {
+        this.operator = operator;
+        this.weight = weight;
+        this.inputSide = inputSide;
+        this.function = function;
+        this.converter = converter;
+        regex = genRegex(operator);
     }
     
-    public String execute(double x){
-        return function.execute(x).toString();
+    private String genRegex(String s){
+        if(s.matches("["+Pattern.quote("\\^$.|?*+/")+"]"))
+            s = "\\"+s;
+        return "("+s+")";
+    }
+    
+    public String execute(ArrayList<String> parts){
+        return "";
+    }
+    
+    public String toString(){
+        return operator;
     }
 }
 
-interface TwoPartFunction<E>
-{      
-    public E execute(double x,double y);
-}
 
-interface OnePartFunction<E>
-{      
-    public E execute(double x);
-}
+
+
+
+
+
