@@ -63,8 +63,8 @@ public class GraphPane extends java.awt.Canvas{
         ArrayList<DPoint> graphPoints = new ArrayList();
         for (double i = xrange.start; i < xrange.end; i+=0.1) {
             double x1 = i * xScale + padding;
-            double y1 = (equation.fD(x1)) * yScale + padding;
-            graphPoints.add(new DPoint(x1, y1));
+            //double y1 = (equation.fD(x1)) * yScale + padding;
+            //graphPoints.add(new DPoint(x1, y1));
         }
 
         // draw white background

@@ -15,18 +15,18 @@ public class Parenthesis extends Pair{
     public Parenthesis(){
         super("(",")",5,(ParenFunction)x->{
             ArrayList res = new ArrayList();
-            if(x.get(1) instanceof Operation || x.get(1) instanceof Pair){
+            if(x.get(1) instanceof Operation){
                if(((Operation)x.get(1)).inputSide==Operation.LEFT)
                    res.add("*");
             }
-            else if(x.get(1)!=null)
+            else if(x.get(1) instanceof String)
                 res.add("*");
             res.add(x.get(0));
-            if(x.get(2) instanceof Operation || x.get(2) instanceof Pair){
+            if(x.get(2) instanceof Operation){
                if(((Operation)x.get(2)).inputSide==Operation.RIGHT)
                    res.add("*");
             }
-            else if(x.get(2)!=null)
+            else if(x.get(2) instanceof String)
                 res.add("*");
             return res;
         });

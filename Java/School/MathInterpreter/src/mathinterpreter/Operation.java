@@ -13,19 +13,19 @@ import java.util.regex.Pattern;
  * @author ostlinja
  */
 public abstract class Operation {
-    String operator;
-    String regex;
-    int weight;
-    int inputSide;
-    static int LEFT = -1;
-    static int RIGHT = 1;
-    static int BOTH = 0;
-    FunctionInterface function;
-    Converter converter;
+    public String operator;
+    public String regex;
+    public int weight;
+    public int inputSide;
+    public static int LEFT = -1;
+    public static int RIGHT = 1;
+    public static int BOTH = 0;
+    public FunctionInterface function;
+    public Converter converter;
 
     public Operation(String operator,int weight,int inputSide,FunctionInterface function)
     {
-        this(operator,weight,inputSide,function,null);
+        this(operator,weight,inputSide,function,x->x);
     }
     
     public Operation(String operator,int weight,int inputSide,FunctionInterface function, Converter converter)
@@ -44,7 +44,7 @@ public abstract class Operation {
         return "("+s+")";
     }
     
-    public String execute(ArrayList<String> parts){
+    public String execute(ArrayList<String> parts)throws Exception{
         return "";
     }
     

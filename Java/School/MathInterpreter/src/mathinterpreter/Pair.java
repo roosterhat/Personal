@@ -33,7 +33,7 @@ public abstract class Pair  {
     }
     
     public ArrayList execute(ArrayList args){//[args]: inside, left, right
-        return args;
+        return (ArrayList)args.subList(0, 0);
     }
     
     public String toString(){

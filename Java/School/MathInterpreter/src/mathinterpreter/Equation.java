@@ -21,23 +21,23 @@ public class Equation extends MathInterpreter{
     }
     
     public Equation(String s){
-        super(s);
+        super();
         setDecimalDepth(5);
         setOperators();
-        setFunctions();
+        //setFunctions();
         setPairs();
-        constants = new <DoubleOperation>ArrayList();
+        constants = new <BinaryOperation>ArrayList();
         setConstants();
-        parseEquation(equation);
+        setEquation(s);
     }
     
     private void setOperators(){
-        addOperation(new DoubleOperation<Double>("+",0,(x,y)->df.format(x+y)));
-        addOperation(new DoubleOperation<Double>("-",0,(x,y)->df.format(x-y)));
-        addOperation(new DoubleOperation<Double>("*",1,(x,y)->df.format(x*y)));
-        addOperation(new DoubleOperation<Double>("/",1,(x,y)->df.format(x/y)));
-        addOperation(new DoubleOperation<Double>("^",2,(x,y)->df.format(Math.pow(x,y))));
-        addOperation(new DoubleOperation<Double>("E",2,(x,y)->df.format(x*Math.pow(10, y)),
+        addOperation(new BinaryOperation<Double>("+",0,(x,y)->df.format(x+y)));
+        addOperation(new BinaryOperation<Double>("-",0,(x,y)->df.format(x-y)));
+        addOperation(new BinaryOperation<Double>("*",1,(x,y)->df.format(x*y)));
+        addOperation(new BinaryOperation<Double>("/",1,(x,y)->df.format(x/y)));
+        addOperation(new BinaryOperation<Double>("^",2,(x,y)->df.format(Math.pow(x,y))));
+        addOperation(new BinaryOperation<Double>("E",2,(x,y)->df.format(x*Math.pow(10, y)),
                 x->{
                     if(x.equals(""))
                         return 1.0;
@@ -45,32 +45,42 @@ public class Equation extends MathInterpreter{
                         return Double.valueOf(x);
                 }));
         
-    }
-       
-    private void setFunctions(){
-        addOperation(new SingleOperation<Double>("sin",3,x->df.format(Math.sin(x))));
-        addOperation(new SingleOperation<Double>("cos",3,x->df.format(Math.cos(x))));
-        addOperation(new SingleOperation<Double>("tan",3,x->df.format(Math.tan(x))));
-        addOperation(new SingleOperation<Double>("csc",3,x->df.format(1/Math.sin(x))));
-        addOperation(new SingleOperation<Double>("sec",3,x->df.format(1/Math.cos(x))));
-        addOperation(new SingleOperation<Double>("cot",3,x->df.format(1/Math.tan(x))));
-        addOperation(new SingleOperation<Double>("asin",3,x->df.format(Math.asin(x))));
-        addOperation(new SingleOperation<Double>("acos",3,x->df.format(Math.acos(x))));
-        addOperation(new SingleOperation<Double>("atan",3,x->df.format(Math.atan(x))));
-        addOperation(new SingleOperation<Double>("acsc",3,x->df.format(1/Math.asin(x))));
-        addOperation(new SingleOperation<Double>("asec",3,x->df.format(1/Math.acos(x))));
-        addOperation(new SingleOperation<Double>("acot",3,x->df.format(1/Math.atan(x))));
-        addOperation(new SingleOperation<Double>("log",3,x->df.format(Math.log(x))));
-        addOperation(new SingleOperation<Double>("ln",3,x->df.format(Math.log(x))));
-        addOperation(new SingleOperation<Double>("abs",3,x->df.format(Math.abs(x))));
-        addOperation(new SingleOperation<Double>("sqrt",3,x->df.format(Math.sqrt(x))));
-        addOperation(new SingleOperation("!",3,Operation.LEFT,
+        addOperation(new UniaryOperation<Double>("sin",3,x->df.format(Math.sin(x))));
+        addOperation(new UniaryOperation<Double>("cos",3,x->df.format(Math.cos(x))));
+        addOperation(new UniaryOperation<Double>("tan",3,x->df.format(Math.tan(x))));
+        addOperation(new UniaryOperation<Double>("csc",3,x->df.format(1/Math.sin(x))));
+        addOperation(new UniaryOperation<Double>("sec",3,x->df.format(1/Math.cos(x))));
+        addOperation(new UniaryOperation<Double>("cot",3,x->df.format(1/Math.tan(x))));
+        addOperation(new UniaryOperation<Double>("asin",3,x->df.format(Math.asin(x))));
+        addOperation(new UniaryOperation<Double>("acos",3,x->df.format(Math.acos(x))));
+        addOperation(new UniaryOperation<Double>("atan",3,x->df.format(Math.atan(x))));
+        addOperation(new UniaryOperation<Double>("acsc",3,x->df.format(1/Math.asin(x))));
+        addOperation(new UniaryOperation<Double>("asec",3,x->df.format(1/Math.acos(x))));
+        addOperation(new UniaryOperation<Double>("acot",3,x->df.format(1/Math.atan(x))));
+        addOperation(new UniaryOperation<Double>("log",3,x->df.format(Math.log(x))));
+        addOperation(new UniaryOperation<Double>("ln",3,x->df.format(Math.log(x))));
+        addOperation(new UniaryOperation<Double>("abs",3,x->df.format(Math.abs(x))));
+        addOperation(new UniaryOperation<Double>("sqrt",3,x->df.format(Math.sqrt(x))));
+        addOperation(new UniaryOperation("!",2,Operation.LEFT,
                 x->{
                     double res = 1;
                     for(int i=((Double)x).intValue();i>0;i--)
                         res*=i;
                     return String.valueOf(res);
                 }));
+        
+    }
+       
+    private void setFunctions(){
+        addFunction(new Function("pow",3,x->{
+            return String.valueOf(Math.pow((Double)x.get(0),(Double)x.get(1)));
+        }));
+        addFunction(new Function("max",3,x->{
+            double max = (double)x.get(0);
+            for(double n: (ArrayList<Double>)x)
+                max = Math.max(n, max);
+            return String.valueOf(max);
+        }));
     }
     
     private void setPairs(){
@@ -100,9 +110,9 @@ public class Equation extends MathInterpreter{
         return res.substring(0, res.length()-1);
     }
     
-    public ArrayList<Operation> getOperators(){
+    public ArrayList<Operation> getOperations(){
         ArrayList<Operation> temp = (ArrayList<Operation>)getConstants().clone();
-        temp.addAll(super.getOperators());
+        temp.addAll(super.getOperations());
         return temp;
     }
     
@@ -128,7 +138,7 @@ public class Equation extends MathInterpreter{
         for(Operation o: constants)
             if(o.operator.equals(op))
                 return true;
-        return super.isValidOperator(op);
+        return super.isValidOperation(op);
     }
 
     //replaces all constants with their respective values
@@ -143,23 +153,23 @@ public class Equation extends MathInterpreter{
         return eq;
     }
     
-    public String f(int x){
+    public String f(int x)throws Exception{
         return f((double)x);
     }
     
     //attempts to solve the equation for the given value
-    public String f(double x){
+    public String f(double x)throws Exception{
         ArrayList eq = getParsedEquation();
         eq = subsituteVariable(eq,x);
         eq = substituteConstants(eq);
         return evaluate(eq);
     }
     
-    public double fD(double x){
+    public double fD(double x)throws Exception{
         return Double.valueOf(f(x));
     }
     
-    public double fD(int x){
+    public double fD(int x)throws Exception{
         return Double.valueOf(f(x));
     }
 }
@@ -168,7 +178,7 @@ class ConstantOperation extends Operation
 {
     public ConstantOperation(String o,ConstantFunction f)
     {
-        super(o,0,Operation.BOTH,f);
+        super(o,0,Operation.RIGHT,f);
     }
     
     public String execute(){
