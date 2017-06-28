@@ -211,7 +211,7 @@ public class MatrixForm extends javax.swing.JPanel {
         
     }//GEN-LAST:event_jButton6ActionPerformed
 
-    private void updateSize()
+    public void updateSize()
     {
         JTextField[][] temp = new JTextField[matrix.rows][matrix.columns];
         for(int r=0;r<matrix.rows;r++)

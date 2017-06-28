@@ -113,6 +113,7 @@ public class Matrix {
                 set(get(r,c)+v,r,c);
     }
     
+    
     public void multiply(double v)
     {
         for(int r = 0;r<rows;r++)
@@ -186,7 +187,7 @@ public class Matrix {
         return round(det);
     }
    
-    public Matrix GaussJordan()
+    public Matrix gaussJordan()
     {
         Matrix m = clone();
         for(int r=0;r<rows;r++)
@@ -199,6 +200,14 @@ public class Matrix {
         }
         m.roundAll();
         return m;
+    }
+    
+    public Matrix getInverted(){
+        Matrix temp = clone();
+        for(int r=0;r<rows;r++)
+            for(int c=0;c<columns;c++)
+                temp.set(1/get(r,c), r, c);
+        return temp;
     }
     
     private Matrix invertValue(Matrix m,int row)
@@ -337,7 +346,6 @@ public class Matrix {
             }
             res += "\n";
         }
-        System.out.println(res);
         return res;
     }
     
