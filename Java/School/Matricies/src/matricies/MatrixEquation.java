@@ -151,7 +151,7 @@ class MatrixOperation extends Operation{
         super(o,w,side,f,c);
     }
     
-    public boolean isNumber(String s){return s.matches("\\-?\\d+(\\.\\d?)?");}
+    public boolean isNumber(String s){return s.matches("\\-?\\d+(\\.\\d*)?");}
         
     public String execute(ArrayList<String> parts)throws Exception{
         if(isNumber(parts.get(0)))
