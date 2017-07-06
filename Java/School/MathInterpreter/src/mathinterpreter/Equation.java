@@ -24,7 +24,7 @@ public class Equation extends MathInterpreter{
         super();
         setDecimalDepth(5);
         setOperators();
-        //setFunctions();
+        setFunctions();
         setPairs();
         constants = new <BinaryOperation>ArrayList();
         setConstants();
@@ -35,7 +35,11 @@ public class Equation extends MathInterpreter{
         addOperation(new BinaryOperation<Double>("+",0,(x,y)->df.format(x+y)));
         addOperation(new BinaryOperation<Double>("-",0,(x,y)->df.format(x-y)));
         addOperation(new BinaryOperation<Double>("*",1,(x,y)->df.format(x*y)));
-        addOperation(new BinaryOperation<Double>("/",1,(x,y)->df.format(x/y)));
+        addOperation(new BinaryOperation<Double>("/",1,(x,y)->{
+                        if(y==0)
+                            throw new Exception("Divide by zero Error");
+                        return df.format(x/y);
+                    }));
         addOperation(new BinaryOperation<Double>("^",2,(x,y)->df.format(Math.pow(x,y))));
         addOperation(new BinaryOperation<Double>("E",2,(x,y)->df.format(x*Math.pow(10, y)),
                 x->{
@@ -57,10 +61,22 @@ public class Equation extends MathInterpreter{
         addOperation(new UniaryOperation<Double>("acsc",3,x->df.format(1/Math.asin(x))));
         addOperation(new UniaryOperation<Double>("asec",3,x->df.format(1/Math.acos(x))));
         addOperation(new UniaryOperation<Double>("acot",3,x->df.format(1/Math.atan(x))));
-        addOperation(new UniaryOperation<Double>("log",3,x->df.format(Math.log(x))));
-        addOperation(new UniaryOperation<Double>("ln",3,x->df.format(Math.log(x))));
+        addOperation(new UniaryOperation<Double>("log",3,x->{
+                        if(x<0)
+                            throw new Exception("Cannot preform 'log' on negative number: '"+x+"'");
+                        return df.format(Math.log(x));
+                    }));
+        addOperation(new UniaryOperation<Double>("ln",3,x->{
+                        if(x<0)
+                            throw new Exception("Cannot preform 'ln' on negative number: '"+x+"'");
+                        return df.format(Math.log(x));
+                    }));
         addOperation(new UniaryOperation<Double>("abs",3,x->df.format(Math.abs(x))));
-        addOperation(new UniaryOperation<Double>("sqrt",3,x->df.format(Math.sqrt(x))));
+        addOperation(new UniaryOperation<Double>("sqrt",3,x->{
+                        if(x<0)
+                            throw new Exception("'sqrt' or '"+x+"' results in Imaginary Number");
+                        return df.format(Math.sqrt(x));
+                    }));
         addOperation(new UniaryOperation("!",2,Operation.LEFT,
                 x->{
                     double res = 1;
@@ -72,14 +88,17 @@ public class Equation extends MathInterpreter{
     }
        
     private void setFunctions(){
-        addFunction(new Function("pow",3,x->{
-            return String.valueOf(Math.pow((Double)x.get(0),(Double)x.get(1)));
-        }));
         addFunction(new Function("max",3,x->{
             double max = (double)x.get(0);
             for(double n: (ArrayList<Double>)x)
                 max = Math.max(n, max);
             return String.valueOf(max);
+        }));
+        addFunction(new Function("min",3,x->{
+            double min = (double)x.get(0);
+            for(double n: (ArrayList<Double>)x)
+                min = Math.min(n, min);
+            return String.valueOf(min);
         }));
     }
     
@@ -153,24 +172,30 @@ public class Equation extends MathInterpreter{
         return eq;
     }
     
-    public String f(int x)throws Exception{
-        return f((double)x);
+    public String f(int...arguments)throws Exception{
+        double[] res = new double[arguments.length];
+        for(int i=0;i<arguments.length;i++)
+            res[i] = (double)arguments[i];
+        return f(res);
     }
     
     //attempts to solve the equation for the given value
-    public String f(double x)throws Exception{
+    public String f(double... arguments)throws Exception{
+        ArrayList args = new ArrayList();
+        for(double val:arguments)
+            args.add(val);
         ArrayList eq = getParsedEquation();
-        eq = subsituteVariable(eq,x);
+        eq = subsituteVariables(eq,args);
         eq = substituteConstants(eq);
         return evaluate(eq);
     }
     
-    public double fD(double x)throws Exception{
-        return Double.valueOf(f(x));
+    public double fD(double... args)throws Exception{
+        return Double.valueOf(f(args));
     }
     
-    public double fD(int x)throws Exception{
-        return Double.valueOf(f(x));
+    public double fD(int... args)throws Exception{
+        return Double.valueOf(f(args));
     }
 }
 

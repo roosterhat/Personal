@@ -11,11 +11,12 @@ public class Integration {
     
     public static void main(String[] args) {
         Equation e = new Equation("e^x/x^2");
-        //Equation e = new Equation("25/sqrt(4-(x^4))");
+        Equation e2 = new Equation("25/sqrt(pi(x^4))");
         int lower = 1;
         int upper = 4;
         int n = 10;
         new Integration().integrate(e,lower,upper,n);
+        new Integration().integrate(e2,lower,upper,n);
     }
     
     public void integrate(Equation eq,double lower,double upper,int steps){

@@ -6,6 +6,9 @@
 package mathinterpreter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -26,6 +29,10 @@ public class MathInterpreter {
         eq5v2.setDecimalDepth(10);
         Equation eq6 = new Equation("abs((5-15)/2)");
         Equation eq7 = new Equation("2^x^x");
+        Equation eq8 = new Equation("x+2y");
+        Equation eq9 = new Equation();
+        eq9.variables.add("<x>");
+        eq9.setEquation("3<x>+x");
         try{
             System.out.println(eq+" = "+eq.f(3));        
             System.out.println(eq2+" = "+eq2.f(2));
@@ -34,50 +41,61 @@ public class MathInterpreter {
             System.out.println(eq4+" = "+eq4.f(3));
             System.out.println(eq5+"         = "+eq5.f(-8));
             System.out.println(eq5v2+" = "+eq5v2.f(7));
-            System.out.println(eq6+" = "+eq6.f(3));
+            System.out.println(eq6+" = "+eq6.f(0));
             System.out.println(eq7+" = "+eq7.f(3));
-            /*Equation test = new Equation("pow[2,x]");
-            System.out.println(test.f(4)); 
-            Equation test2 = new Equation("-max[2,2x,50+1,6,7,12,8]");       
-            System.out.println(test2.f(26));*/
+            System.out.println(eq8+" = "+eq8.f(2,3));
+            System.out.println(eq9+" = "+eq9.f(1,2));
+            
+            Equation test = new Equation("max[2,2x,50+3,6,7,12,8]");       
+            System.out.println(test+" = "+test.f(26));
+            Equation test2 = new Equation("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");       
+            System.out.println(test2+" = "+test2.f(10));
         }catch(Exception e){System.out.println(e);}
         
         try{
             double area = 0;
+            double start = 0;
+            double end = 10;
             double step = 0.001;
-            Equation integral = new Equation("sinx");
+            Equation integral = new Equation("e^x");
             long startTime = System.nanoTime();
-            for(double i=0;i<100;i+=step)
+            for(double i=start;i<=end;i+=step)
                 area+=integral.fD(i);
             long endTime = System.nanoTime();
 
             long duration = (endTime - startTime)/1000000;
+            System.out.println(String.format("\nArea of '%s' from %.1f to %.1f",integral,start,end));
             System.out.println("Area: "+area*step);
-            System.out.println("Time: "+duration);
-        }catch(Exception e){System.out.println(e);}
-        
-
-       
-        
+            System.out.println("Time: "+duration+" ms");
+        }catch(Exception e){System.out.println(e);}        
     }
     
     String equation;
-    protected String variable = "x";
+    private ArrayList<String> defaultVariable = new ArrayList(Arrays.asList("x","y","z"));
     private ArrayList<Operation> operators;
     private ArrayList<Function> functions;
     private ArrayList<Pair> pairs;
     private ArrayList parsedEquation;
-    public ArrayList extra;
     private StringParser sp;
+    protected ArrayList<String> variables;
+    public ArrayList extra;
+    public ArrayList<String> illegalCharacters;
     
     public MathInterpreter(){
+        variables = new ArrayList();
+        variables.addAll(defaultVariable);
         sp = new StringParser(this);
         operators = new ArrayList();
         functions = new ArrayList();
         pairs = new ArrayList();
         parsedEquation = new ArrayList();
         extra = new ArrayList();
+        illegalCharacters = new ArrayList();
+        illegalCharacters.add("�");
+        illegalCharacters.add("∞");
+        illegalCharacters.add("NaN");
     }
+    
     
     public String getEquation(){return equation;}
     
@@ -85,39 +103,44 @@ public class MathInterpreter {
     public void setEquation(String eq){
         equation = eq;
         parsedEquation = new ArrayList();
-        parseEquation(equation);
-        System.out.println(parsedEquation);
+        parseEquation();
+        //System.out.println(parsedEquation);
     }
     
+    //returns the parsed equation
+    //represents all individual components of <equation>
     public ArrayList getParsedEquation(){
         return (ArrayList)parsedEquation.clone();
     }
     
+    //returns true/false if given string is an operator
     public boolean isValidOperation(String op){
-        for(Operation o:getOperations())
-            if(o.operator.equals(op))
-                return true;
-        return false;
+        return getOperator(op)!=null;
     }
     
+    //adds a operator, then sorts the list based on operator weight
     public void addOperation(Operation op){
         operators.add(op);
         operators.sort((x,y)->((Operation)x).weight-((Operation)y).weight);
     }
     
+    //returns all operators
     public ArrayList<Operation> getOperations(){
         return operators;
     }
     
+    //removes a specific operator
     public void removeOperator(String op){
         operators.removeIf(o->o.operator.equals(op));
     }
     
+    //clears all the operators
     public void clearOperators(){
         operators = new ArrayList<Operation>();
     }
     
-    public Operation getOperation(String op)
+    //returns a Operation object for the given String
+    public Operation getOperator(String op)
     {
         for(Operation o:getOperations())
             if(o.operator.equals(op))
@@ -125,30 +148,33 @@ public class MathInterpreter {
         return null;
     }
     
+    //returns true/false if string is a function
     public boolean isValidFunction(String func){
-        for(Function o:getFunctions())
-            if(func.matches(o.regex))
-                return true;
-        return false;
+        return getFunction(func)!=null;
     }
     
+    //adds a functions, then sorts list by function weight
     public void addFunction(Function op){
         functions.add(op);
         functions.sort((x,y)->((Function)x).weight-((Function)y).weight);
     }
     
+    //returns all functions
     public ArrayList<Function> getFunctions(){
         return functions;
     }
     
+    //removes a specific function
     public void removeFunction(String func){
         functions.removeIf(o->o.name.equals(func));
     }
     
+    //clears all function
     public void clearFunctions(){
         functions = new ArrayList<Function>();
     }
     
+    //Returns a Function object for the given String
     public Function getFunction(String func)
     {
         for(Function o:functions)
@@ -157,32 +183,35 @@ public class MathInterpreter {
         return null;
     }
     
-    
+    //Adds a Pair then sorts the list by weights
     public void addPair(Pair p){
         pairs.add(p);
         pairs.sort((x,y)->((Pair)y).weight-((Pair)x).weight);
         
     }
     
+    //returns an ArrayList of all Pairs
     public ArrayList<Pair> getPairs(){
         return pairs;
     }
     
+    //removes a specific Pair
     public void removePair(String p){
         pairs.removeIf(o->p.matches(o.regex));
     }
     
+    //clears all Pairs
     public void clearPairs(){
         pairs = new ArrayList<Pair>();
     }
     
+    //return true/false if given string is a Pair
     public boolean isValidPair(String p){
-        for(Pair o:getPairs())
-            if(o.left.equals(p)||o.right.equals(p))
-                return true;
-        return false;
+        return getPair(p)!=null;
     }
     
+    //Returns the Pair object for the given String
+    //can be either side of the pair
     public Pair getPair(String p)
     {
         for(Pair o:pairs)
@@ -191,43 +220,12 @@ public class MathInterpreter {
         return null;
     }
     
-    
-    //returns a regular expression containing all of the operators
-    protected String getOperatorExpression(){
-        String reg = "";
-        for(Operation o:getOperations())
-            reg+=o.regex+"|";
-        return reg;
-    }
-    
-    //returns a regular expression containing all of the pairs
-    protected String getPairExpression(){
-        String reg = "";
-        for(Pair p:getPairs())
-            reg+=p.regex+"|";
-        return reg;
-    }
-    
-    protected String getFunctionExpression(){
-        String reg = "";
-        for(Function f:getFunctions())
-            reg+=f.regex+"|";
-        return reg;
-    }
-    
-    protected String getExtraExpression(){
-        String reg = "";
-        for(String s: (ArrayList<String>)extra)
-            reg+="("+s+")|";
-        return reg;
-    }
-    
     //functions the same as the isNegativeNumber but handles ArrayLists
     //used when the negative sign and number are split
     protected boolean isNegativeNumber(ArrayList s,int index){
         if(((String)s.get(index)).equals("-"))
             if((index==0)  ||
-                    ((index>0 && isValidOperation((String)s.get(index-1)) && getOperation((String)s.get(index-1)).inputSide!=Operation.LEFT) && 
+                    ((index>0 && isValidOperation((String)s.get(index-1)) && getOperator((String)s.get(index-1)).inputSide!=Operation.LEFT) && 
                     (index<s.size() && isNumber((String)s.get(index+1)))))
                 return true;
         return false;
@@ -238,17 +236,33 @@ public class MathInterpreter {
         return s.matches("\\-?\\d+(\\.\\d+)?");
     }
     
-    //substitues all elements of the given ArrayList matching the predefined variable identifier with the given value
-    public ArrayList subsituteVariable(ArrayList eq,double x){
-        for(int i=1;i<eq.size();i++)
-            if(((String)eq.get(i)).equals(variable))
-                eq.set(i, String.valueOf(x));
+    
+    private ArrayList<String> getRelaventVariables(ArrayList eq){
+        Set<String> temp = new HashSet();
+        for(String part: (ArrayList<String>)eq)
+            if(variables.contains(part))
+                temp.add(part);
+        ArrayList res = new ArrayList(temp);
+        res.sort((x,y)->variables.indexOf(x)-variables.indexOf(y));
+        return res;
+    }
+    
+    //substitues all elements of the given ArrayList matching the predefined variable identifiers with the given values
+    //Uses the values in terms of order of defined variables
+    //You only need to provide values for the variables that are used
+    //i.e. 'z+y' using {x,y,z} variables, example inputs are f(2,1) => '1+2'
+    protected ArrayList subsituteVariables(ArrayList eq,ArrayList<Double> values){
+        ArrayList<String> vars = getRelaventVariables(eq);
+        for(String var: vars)
+            while(eq.contains(var))                
+                eq.set(eq.indexOf(var), String.valueOf(values.get(vars.indexOf(var))));
         return eq;
     }
     
     //Parses the given equation into its component parts and stores them in parsedEquation
-    public void parseEquation(String eq)
+    public void parseEquation()
     {
+        String eq = equation;
         int pos = 0;
         int newpos = 0;
         while(pos<eq.length()){
@@ -256,12 +270,12 @@ public class MathInterpreter {
             String part = eq.substring(pos, newpos);
             part = part.replaceAll(" ", "");
             if(part.length()>0){
-                if(part.equals(variable)){
+                if(variables.contains(part)){
                     parsedEquation.add("(");
                     parsedEquation.add(part);
                     parsedEquation.add(")");
                 }
-                else if(isValidOperation(part) && getOperation(part).inputSide==Operation.RIGHT){
+                else if(isValidOperation(part) && getOperator(part).inputSide==Operation.RIGHT){
                     if(parsedEquation.size()>0 && isNumber((String)parsedEquation.get(parsedEquation.size()-1))){
                         parsedEquation.add("*");
                         parsedEquation.add(part);
@@ -323,7 +337,7 @@ public class MathInterpreter {
         if(index>=0 && index<eq.size()){
             String s = (String)eq.get(index);
             if(isValidOperation(s))
-                return getOperation(s);
+                return getOperator(s);
             else if(isValidFunction(s))
                 return getFunction(s);
             else
@@ -332,7 +346,9 @@ public class MathInterpreter {
         return null;
     }
     
-    //evaluates the given equation for any pairs and evaluates the inner scope of the pair
+    //evaluates the given equation <eq> for the given Pair and evaluates the inner scope of the Pair
+    //Pair structure: <Pair bound> arguments <Pair bound>
+    //i.e. (1+2) => 3
     protected ArrayList evaluatePair(ArrayList eq,Pair p)throws Exception
     {
         Pattern pattern = Pattern.compile(p.regex);
@@ -364,6 +380,7 @@ public class MathInterpreter {
         return res;
     }
     
+    //evaluates the given equation for functions separators and functions and evaluates each, then returns them in a list
     protected ArrayList evaluateFunctionParameters(ArrayList eq,Function f)throws Exception{
         ArrayList res = new ArrayList();
         ArrayList names = functionNames();
@@ -388,6 +405,10 @@ public class MathInterpreter {
         return res;
     }
     
+    //evaluates the given function over the given equation <eq>
+    //executes each functions with its corresponding arguments
+    //function structure: <function name><function bound> arg1, arg2, ... , argN <function bound>
+    //i.e. max[1,2,3,4] => 4
     protected ArrayList evaluateFunction(ArrayList eq,Function f)throws Exception{
         Pattern bounds = Pattern.compile(f.bounds.regex);
         while(eq.contains(f.name)){
@@ -403,7 +424,7 @@ public class MathInterpreter {
         return eq;
     }
     
-    //evalutes the equation for any of the given Operation
+    //evalutes the equation <eq> for the given Operation
     protected ArrayList evaluateOperator(ArrayList eq,Operation o)throws Exception
     {
         while(eq.contains(o.operator)){
@@ -436,53 +457,69 @@ public class MathInterpreter {
                     throw new Exception("Missing right operand for '"+o+"' in '"+unparseEquation(eq)+"'");
             }
             try{eq = condense(eq,o.execute(parts),r);}
-            catch(Exception e){throw new Exception("Failed to execute '"+o+"' in '"+unparseEquation(eq)+"' "+e.getMessage());}
+            catch(Exception e){throw new Exception("Failed to execute '"+o+"' in '"+unparseEquation(eq)+"': "+e.getMessage());}
         }
         return eq;
     }
     
-    //attemps to evalute the given equation to completion, by evalutating all Pairs and Operations
-    protected String evaluate(ArrayList eq)throws Exception
-    {
+    private ArrayList getRelavent(ArrayList subject, ArrayList target){
+        ArrayList res = (ArrayList)subject.clone();
+        res.removeIf(x->!target.contains(x.toString()));
+        return res;
+    }
+    
+    private ArrayList<Task> getTasks(){
         ArrayList<Task> tasks = new ArrayList();
         tasks.add((Task)(x)->{
-            for(Pair p: pairs){
+            for(Pair p: getPairs()){
                 if(x.contains(p.left))
                     x = evaluatePair(x,p);
             }
             return x;
         });
         tasks.add((Task)(x)->{
-            for(Function f: functions){
+            for(Function f: (ArrayList<Function>)getRelavent(getFunctions(),x)){
                 if(x.contains(f.name))
                     x = evaluateFunction(x,f);
             }
             return x;
         });
         tasks.add((Task)(x)->{
-            for(Operation o: operators){
+            for(Operation o: (ArrayList<Operation>)getRelavent(getOperations(),x)){
                 if(x.contains(o.operator))
                     x = evaluateOperator(x,o);
             }
             return x;
         });
-        for(Task t: tasks){
-            if(eq.size()==1)return (String)eq.get(0);
+        return tasks;
+    }
+    
+    //attemps to evalute the given equation <eq> to completion, by evalutating all Pairs, Functions and Operations
+    protected String evaluate(ArrayList eq)throws Exception
+    {
+        for(Task t: getTasks()){
+            if(eq.size()==1)
+                break;
             else
                 eq = t.preform(eq);
         }
         if(eq.size()>0)
-            return (String)eq.get(0);
+            if(!illegalCharacters.contains(((String)eq.get(0))))
+                return (String)eq.get(0);
+            else
+                throw new Exception("Illegal Character: "+(String)eq.get(0));
         else
             return "";
     }
     
-    public String f(double x)throws Exception{
+    //Used to evaluate the equation with the given arguments
+    public String f(double... arguments)throws Exception{
         ArrayList eq = getParsedEquation();
-        eq = subsituteVariable(eq,x);
+        eq = subsituteVariables(eq,new ArrayList(Arrays.asList(arguments)));
         return evaluate(eq);
     }
     
+    //returns a string representation of the given equation
     public String unparseEquation(ArrayList eq){
         String res = "";
         for(String s: (ArrayList<String>)eq)
@@ -490,6 +527,7 @@ public class MathInterpreter {
         return res;
     }
     
+    //returns the equation 
     public String toString(){
         return equation;
     }

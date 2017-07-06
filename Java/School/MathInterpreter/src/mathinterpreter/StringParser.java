@@ -28,35 +28,31 @@ public class StringParser {
     {
         if(!s.equals(""))
             if(s.charAt(index)=='-')
-                if(((index>0 && _main.isValidOperation(""+s.charAt(index-1)) && _main.getOperation(""+s.charAt(index-1)).inputSide!=Operation.LEFT) && 
+                if(((index>0 && _main.isValidOperation(""+s.charAt(index-1)) && _main.getOperator(""+s.charAt(index-1)).inputSide!=Operation.LEFT) && 
                     (index<s.length() && isNumber(""+s.charAt(index+1)))))
                     return true;
         return false;
     }
     
     //determines if a given string is a number
-    public boolean isNumber(String s){
+    private boolean isNumber(String s){
         return s.matches(numRegex);
     }
     
     private ArrayList getAll(){
-        ArrayList all = new ArrayList();
+        Set<String> hs = new HashSet<>();
         for(Operation o:_main.getOperations())
-            all.add(o.toString());
+            hs.add(o.toString());
         for(Function f:_main.getFunctions()){
-            all.add(f.name);all.add(f.bounds.left);all.add(f.bounds.right);all.add(f.separator);
+            hs.add(f.name);hs.add(f.bounds.left);hs.add(f.bounds.right);hs.add(f.separator);
         }
         for(Pair p:_main.getPairs()){
-            all.add(p.left);all.add(p.right);
+            hs.add(p.left);hs.add(p.right);
         }
         for(String s:(ArrayList<String>)_main.extra)
-            all.add(s);
-        all.add(_main.variable);
-        Set<String> hs = new HashSet<>();
-        hs.addAll(all);
-        all.clear();
-        all.addAll(hs);
-        return all;
+            hs.add(s);
+        hs.addAll(_main.variables);
+        return new ArrayList(hs);
     }
     
     private ArrayList getRelevant(ArrayList a, String target){
@@ -106,8 +102,8 @@ public class StringParser {
     }
     
     private String compileRegex(ArrayList a){
-        String exp = "["+_main.variable+"]";
-        Pattern reserved = Pattern.compile("["+Pattern.quote("\\^$.|?*+/()[]{}")+"]");
+        String exp = "";
+        Pattern reserved = Pattern.compile("["+Pattern.quote("\\^$.,|?*+/()[]{}")+"]");
         for(String x: (ArrayList<String>)a){
             if(reserved.matcher(x).matches())
                 exp+="|"+Pattern.quote(x);
@@ -123,29 +119,28 @@ public class StringParser {
         String buffer = "";
         ArrayList all = getRelevant(getAll(),s);
         String expression = compileRegex(all);
-        Pattern general = Pattern.compile(".*("+expression+")");
-        Pattern number = Pattern.compile(numRegex+".+");
+        Pattern expressionPattern = Pattern.compile(".*("+expression+")");
+        Pattern numberGeneral = Pattern.compile(numRegex+".+");
+        Pattern numberSpecific = Pattern.compile(numRegex);
         
         for(int i=index;i<s.length();i++)
         {
             buffer+=s.charAt(i);
-            if(!buffer.equals("") && general.matcher(buffer).matches())
+            if(!buffer.equals("") && expressionPattern.matcher(buffer).matches())
             {
                 buffer = buffer.replaceAll(" ", "");
-                //if(!isNegativeNumber(s,i)){             
-                    ArrayList most = getMostLikely(all,buffer,0);
-                    if(number.matcher(buffer).matches()){
-                        for(int x=1;x<=buffer.length();x++)
-                            if(!buffer.substring(0,x).equals(""))
-                                if(!isNumber(buffer.substring(0,x)))// && !isNegativeNumber(buffer.substring(0,x),x-1))
-                                    return i-(buffer.length()-x);
+                ArrayList most = getMostLikely(all,buffer,0);
+                if(numberGeneral.matcher(buffer).matches()){
+                    for(int x=1;x<=buffer.length();x++)
+                        if(!buffer.substring(0,x).equals("") && 
+                           !numberSpecific.matcher(buffer.substring(0,x)).matches())
+                            return i-(buffer.length()-x);
+                }
+                else
+                    for(String p: (ArrayList<String>)most){
+                        if(buffer.matches(Pattern.quote(p)))
+                            return i+1;
                     }
-                    else
-                        for(String p: (ArrayList<String>)most){
-                            if(buffer.matches(Pattern.quote(p)))
-                                return i+1;
-                        }
-                //}
             }                
         }
         return s.length();
