@@ -24,14 +24,39 @@ public class StringParser {
     
     public ArrayList parseString(String input){
         ArrayList output = new ArrayList();
-        Range range = new Range(0,input.length());
+        int rangeLength = Math.max(getLongestToken(),getLongestNumber(input));
+        Range range = new Range(0,Math.min(rangeLength,input.length()));
         while(range.start<input.length())
         {
             Range part = findPart(input,range);
             output.add(input.substring(part.start,part.end));
             range.start = part.end;
+            range.end = Math.min(range.start+rangeLength,input.length());
         }
         return output;
+    }
+    
+    private int getLongestNumber(String input){
+        if(input.matches(".*\\d.*")){
+            Pattern number = Pattern.compile("\\-?\\d*(\\.\\d*)?");
+            int longest = 0;
+            int current = 0;
+            for(char c: input.toCharArray())
+                if(number.matcher(String.valueOf(c)).matches())
+                    longest = Math.max(longest,++current);
+                else
+                    current = 0;
+            return longest;        
+        }
+        else
+            return 0;
+    }
+    
+    private int getLongestToken(){
+        int longest = 0;
+        for(String token:tokens)
+            longest = Math.max(longest,token.length());
+        return longest;
     }
     
     private ArrayList getRelevant(ArrayList a, String target){
@@ -71,18 +96,6 @@ public class StringParser {
         final double most = max;
         possible.removeIf(x-> res.get(possible.indexOf(x)) < most-margin);
         return possible;
-    }
-    
-    private String compileRegex(ArrayList a){
-        String exp = "";
-        Pattern reserved = Pattern.compile("["+Pattern.quote("\\^$.,|?*+/()[]{}")+"]");
-        for(String x: (ArrayList<String>)a){
-            if(reserved.matcher(x).matches())
-                exp+="|"+Pattern.quote(x);
-            else
-                exp+="|"+x;
-        }
-        return exp;
     }
     
     private ArrayList<Entry<String,Range>> findAllMatches(String input,Range range){
@@ -132,13 +145,6 @@ public class StringParser {
             area.end = Math.max(area.end, r.end);
         }
         return area;
-    }
-    
-    private ArrayList<String> getKeyset(ArrayList<Entry<String,Range>> entries){
-        ArrayList<String> keyset = new ArrayList();
-        for(Entry<String,Range> entry: entries)
-            keyset.add(entry.key);
-        return keyset;
     }
     
     private ArrayList<Entry<String,Range>> refineMatches(String input, ArrayList<Entry<String,Range>> matches){

@@ -58,20 +58,34 @@ public class MathInterpreter {
             System.out.println(test2+" = "+test2.f(10));
         }catch(Exception e){System.out.println(e);}
         
+        
+        Equation test = new Equation();
+        int tests = 10000;
+        long startTime = System.nanoTime();
+        for(int i=0;i<tests;i++)
+            test.setEquation("(csclnx*cotlnx)/(2x)");
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime)/1000000;
+        System.out.println("\nParsing Test");
+        System.out.println(test+" => "+test.getParsedEquation());
+        System.out.println(tests+" times in "+duration+" ms");
+        
+        
         try{
             double area = 0;
             double start = 0;
             double end = 10;
             double step = 0.001;
             Equation integral = new Equation("e^x");
-            long startTime = System.nanoTime();
+            startTime = System.nanoTime();
             for(double i=start;i<=end;i+=step)
                 area+=integral.fD(i);
-            long endTime = System.nanoTime();
+            endTime = System.nanoTime();
 
-            long duration = (endTime - startTime)/1000000;
+            duration = (endTime - startTime)/1000000;
             System.out.println(String.format("\nArea of '%s' from %.1f to %.1f",integral,start,end));
             System.out.println("Area: "+area*step);
+            System.out.println("Steps: "+(end-start)/step);
             System.out.println("Time: "+duration+" ms");
         }catch(Exception e){System.out.println(e);}        
     }
@@ -281,39 +295,6 @@ public class MathInterpreter {
         return eq;
     }
     
-    //Parses the given equation into its component parts and stores them in parsedEquation
-    /*public void parseEquation()
-    {
-        String eq = equation;
-        int pos = 0;
-        int newpos = 0;
-        while(pos<eq.length()){
-            newpos = sp.findPart(eq,pos);
-            String part = eq.substring(pos, newpos);
-            part = part.replaceAll(" ", "");
-            if(part.length()>0){
-                if(variables.contains(part)){
-                    parsedEquation.add("(");
-                    parsedEquation.add(part);
-                    parsedEquation.add(")");
-                }
-                else if(isValidOperation(part) && getOperator(part).inputSide==Operation.RIGHT){
-                    if(parsedEquation.size()>0 && isNumber((String)parsedEquation.get(parsedEquation.size()-1))){
-                        parsedEquation.add("*");
-                        parsedEquation.add(part);
-                    }
-                    else{
-                        parsedEquation.add(part);
-                    }
-                }
-                else{
-                    parsedEquation.add(part);
-                }
-            }
-            pos = newpos;
-        }
-    }*/
-    
     private ArrayList getAll(){
         Set<String> hs = new HashSet<>();
         for(Operation o:(ArrayList<Operation>)getOperations())
@@ -333,6 +314,7 @@ public class MathInterpreter {
     public void parseEquation(){
         sp.tokens = getAll();
         parsedEquation = sp.parseString(equation);
+        parsedEquation.removeIf(x->x.equals(" "));
         for(int i=0;i<parsedEquation.size();i++){
             String part = (String)parsedEquation.get(i);
             if(variables.contains(part)){
@@ -476,7 +458,8 @@ public class MathInterpreter {
                 int start = index+1;
                 int end = findMatchingPair(eq,f.bounds,start);
                 ArrayList part = evaluateFunctionParameters(new ArrayList(eq.subList(start+1, end)),f);
-                eq = condense(eq,f.execute(part),new Range(index,end));
+                try{eq = condense(eq,f.execute(part),new Range(index,end));}
+                catch(Exception e){throw new Exception("Function '"+f.name+"' failed , Exception: "+e);}
             }else
                 throw new Exception("Missing bounds '"+f.bounds+"' after '"+f.name+"' in '"+unparseEquation(eq)+"'");
         }
