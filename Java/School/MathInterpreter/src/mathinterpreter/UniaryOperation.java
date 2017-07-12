@@ -26,7 +26,7 @@ public class UniaryOperation<E> extends Operation{
     }
     
     @Override
-    public String execute(ArrayList<String> parts){
+    public String execute(ArrayList<String> parts)throws Exception{
         return ((UniaryFunction)function).execute(converter.convert(parts.get(0)));
     }
 

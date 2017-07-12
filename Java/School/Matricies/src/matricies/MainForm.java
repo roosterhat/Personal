@@ -45,7 +45,7 @@ public class MainForm extends javax.swing.JFrame {
     ArrayList<Command> commands;
     ArrayList<Command> creators;
     File importFile;
-    MathInterpreter equation;
+    Equation equation;
     boolean shiftState = false;
     public MainForm() {
         matricies = new HashMap();
@@ -78,6 +78,7 @@ public class MainForm extends javax.swing.JFrame {
         jComboBox2 = new javax.swing.JComboBox();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Matrices");
 
         jComboBox1.setModel(new javax.swing.DefaultComboBoxModel(getCommands()));
         jComboBox1.addActionListener(new java.awt.event.ActionListener() {
@@ -258,20 +259,31 @@ public class MainForm extends javax.swing.JFrame {
         if(evt.getKeyCode()==KeyEvent.VK_ENTER && shiftState){
             try{
                 int index = jTextArea1.getLineOfOffset(jTextArea1.getCaretPosition());
-                String text = jTextArea1.getText().split("\n")[index];
-                if(text.contains(" :="))
-                    text = text.substring(0,text.indexOf(" :="));
+                String[] text = jTextArea1.getText().split("\n");
+                String line = text[index];
+                if(line.contains(" :="))
+                    line = line.substring(0,line.indexOf(" :="));
                 
-                String res = preformEquation(text);
+                String res = preformEquation(line);
                 
-                if(!res.equals(""))
-                    jTextArea1.setText(addResult(jTextArea1.getText(),index,res));
+                if(!res.equals("")){
+                    jTextArea1.setText(addResult(text,index,res));
+                    String t = jTextArea1.getText();
+                    int length = t.length();
+                    int pos = 0;
+                    for(int i=0; i<=index;i++)
+                    {
+                        int x = t.indexOf("\n", pos+1);
+                        pos += t.substring(pos, x==-1 ? length : x).length();
+                    }
+                    jTextArea1.setCaretPosition(pos);
+                }
                 Matrix m = matricies.get(res);
                 if(m!=null)
-                    newOutput(text+" = "+res+"<br>"+m.toHtml());
+                    newOutput(line+" = "+res+"<br>"+m.toHtml());
                 else
-                    newOutput(text+" = "+res);
-            }catch(Exception e){}
+                    newOutput(line+" = "+res);
+            }catch(Exception e){e.printStackTrace(System.out);}
             
         }
     }//GEN-LAST:event_jTextArea1KeyPressed
@@ -290,14 +302,15 @@ public class MainForm extends javax.swing.JFrame {
                                         + "New Matrix   :  new[<Rows>, <Columns>]\n"
                                         + "New Identity :  id[<Rows>, <Columns>]\n"
                                         + "Set Value    :  set[<Matrix>, <Row>, <Column>, <Value>]\n"
-                                        + "Resize       :  resize[<Rows>, <Columns>]");
+                                        + "Resize       :  resize[<Rows>, <Columns>]\n\n"
+                                        + "(Case Sensitive)");
         matrixCommands.setEditable(false);
         matrixCommands.setFont(new Font("Monospaced", Font.BOLD, 18));
         
         JTabbedPane mathCommands = new JTabbedPane();
         
         String s = "";
-        for(Operation o: equation.getOperations())
+        for(Operation o: (ArrayList<Operation>)equation.getOperations())
             s += o.operator+"\n";
         JTextArea t = new JTextArea(s);
         t.setEditable(false);
@@ -305,7 +318,7 @@ public class MainForm extends javax.swing.JFrame {
         mathCommands.add(t);
         
         s="";
-        for(Function f: equation.getFunctions())
+        for(Function f: (ArrayList<Function>)equation.getFunctions())
             s += f.name+"\n";
         t = new JTextArea(s);
         t.setEditable(false);
@@ -313,7 +326,7 @@ public class MainForm extends javax.swing.JFrame {
         mathCommands.add(t);
         
         s="";
-        for(Pair p: equation.getPairs())
+        for(Pair p: (ArrayList<Pair>)equation.getPairs())
             s += p+"\n";
         t = new JTextArea(s);
         t.setEditable(false);
@@ -337,20 +350,19 @@ public class MainForm extends javax.swing.JFrame {
         dialog.show();
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    public String addResult(String text,int index,String res){
+    public String addResult(String[] text,int index,String res){
         String result = "";
-        String[] lines = text.split("\n");
-        for(int i=0;i<lines.length;i++)
+        for(int i=0;i<text.length;i++)
         {
             if(i==index){
-                String line = lines[i];
+                String line = text[i];
                 if(line.contains(" :="))
                     line = line.substring(0, line.indexOf(" :="));
                 result += line+" := "+res;
             }
             else
-                result += lines[i];
-            if(i!=lines.length-1)
+                result += text[i];
+            if(i!=text.length-1)
                 result+="\n";
         }
         return result;
@@ -753,6 +765,7 @@ public class MainForm extends javax.swing.JFrame {
             jTabbedPane1.setTitleAt(jTabbedPane1.indexOfTab(oldname), newname);
             matricies.put(newname, matricies.get(oldname));
             matricies.remove(oldname);
+            equation.extra.set(equation.extra.indexOf(oldname), newname);
             return newname;
         }
         return oldname;
@@ -760,6 +773,7 @@ public class MainForm extends javax.swing.JFrame {
     
     public void delete(String name)
     {
+        newOutput("Delete ["+name+"]");
         jTabbedPane1.remove(jTabbedPane1.indexOfTab(name));
         matricies.remove(name);
         equation.extra.remove(name);

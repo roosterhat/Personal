@@ -7,7 +7,9 @@ package mathinterpreter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -32,7 +34,7 @@ public class MathInterpreter {
         Equation eq8 = new Equation("x+2y");
         Equation eq9 = new Equation();
         eq9.variables.add("<x>");
-        eq9.setEquation("3<x>+x");
+        eq9.setEquation("3<x>+xy");
         try{
             System.out.println(eq+" = "+eq.f(3));        
             System.out.println(eq2+" = "+eq2.f(2));
@@ -44,7 +46,11 @@ public class MathInterpreter {
             System.out.println(eq6+" = "+eq6.f(0));
             System.out.println(eq7+" = "+eq7.f(3));
             System.out.println(eq8+" = "+eq8.f(2,3));
-            System.out.println(eq9+" = "+eq9.f(1,2));
+            Map values = new HashMap();
+            values.put("<x>", 2);
+            values.put("x", 3);
+            values.put("y", 4);
+            System.out.println(eq9+" = "+eq9.f(values));
             
             Equation test = new Equation("max[2,2x,50+3,6,7,12,8]");       
             System.out.println(test+" = "+test.f(26));
@@ -251,16 +257,32 @@ public class MathInterpreter {
     //Uses the values in terms of order of defined variables
     //You only need to provide values for the variables that are used
     //i.e. 'z+y' using {x,y,z} variables, example inputs are f(2,1) => '1+2'
-    protected ArrayList subsituteVariables(ArrayList eq,ArrayList<Double> values){
+    protected ArrayList subsituteVariables(ArrayList eq,ArrayList values)throws Exception{
         ArrayList<String> vars = getRelaventVariables(eq);
         for(String var: vars)
-            while(eq.contains(var))                
-                eq.set(eq.indexOf(var), String.valueOf(values.get(vars.indexOf(var))));
+            while(eq.contains(var)){
+                if(values.size()>vars.indexOf(var))
+                    eq.set(eq.indexOf(var), String.valueOf(values.get(vars.indexOf(var))));
+                else
+                    throw new Exception("No value specified for variable '"+var+"'");
+            }
+        return eq;
+    }
+    
+    protected ArrayList subsituteVariables(ArrayList eq,Map<String,String> values)throws Exception{
+        ArrayList<String> vars = getRelaventVariables(eq);
+        for(String var: values.keySet()){
+            vars.removeIf(x->var.equals(x) && eq.contains(var));
+            while(eq.contains(var))
+                eq.set(eq.indexOf(var), String.valueOf(values.get(var)));
+        }
+        if(vars.size()>0)
+            throw new Exception("No value specified for variable(s) "+vars);
         return eq;
     }
     
     //Parses the given equation into its component parts and stores them in parsedEquation
-    public void parseEquation()
+    /*public void parseEquation()
     {
         String eq = equation;
         int pos = 0;
@@ -290,6 +312,42 @@ public class MathInterpreter {
             }
             pos = newpos;
         }
+    }*/
+    
+    private ArrayList getAll(){
+        Set<String> hs = new HashSet<>();
+        for(Operation o:(ArrayList<Operation>)getOperations())
+            hs.add(o.toString());
+        for(Function f: (ArrayList<Function>)getFunctions()){
+            hs.add(f.name);hs.add(f.bounds.left);hs.add(f.bounds.right);hs.add(f.separator);
+        }
+        for(Pair p: (ArrayList<Pair>)getPairs()){
+            hs.add(p.left);hs.add(p.right);
+        }
+        for(String s:(ArrayList<String>)extra)
+            hs.add(s);
+        hs.addAll(variables);
+        return new ArrayList(hs);
+    }
+    
+    public void parseEquation(){
+        sp.tokens = getAll();
+        parsedEquation = sp.parseString(equation);
+        for(int i=0;i<parsedEquation.size();i++){
+            String part = (String)parsedEquation.get(i);
+            if(variables.contains(part)){
+                parsedEquation.add(i+1, ")");
+                parsedEquation.add(i, "(");
+                i+=2;
+            }
+            else if(isValidOperation(part) && getOperator(part).inputSide==Operation.RIGHT){
+                if(i>0 && isNumber((String)parsedEquation.get(i-1))){
+                    parsedEquation.add(i,"*");
+                    i+=1;
+                }
+            }
+        }           
+                
     }
     
     //finds the matching Pair to <p> in the ArrayList at the given index
@@ -380,6 +438,7 @@ public class MathInterpreter {
         return res;
     }
     
+    
     //evaluates the given equation for functions separators and functions and evaluates each, then returns them in a list
     protected ArrayList evaluateFunctionParameters(ArrayList eq,Function f)throws Exception{
         ArrayList res = new ArrayList();
@@ -438,7 +497,7 @@ public class MathInterpreter {
                     continue;
                 }
                 else
-                    throw new Exception("No Suitable senario found for '-' in '"+unparseEquation(eq)+"'");
+                    throw new Exception("No possible senario found for '-' in '"+unparseEquation(eq)+"'");
             }              
             ArrayList parts = new ArrayList();
             Range r = new Range(index,index);
@@ -513,9 +572,15 @@ public class MathInterpreter {
     }
     
     //Used to evaluate the equation with the given arguments
-    public String f(double... arguments)throws Exception{
+    public String f(String... arguments)throws Exception{
         ArrayList eq = getParsedEquation();
         eq = subsituteVariables(eq,new ArrayList(Arrays.asList(arguments)));
+        return evaluate(eq);
+    }
+    
+    public String f(Map<String,String> arguments)throws Exception{
+        ArrayList eq = getParsedEquation();
+        eq = subsituteVariables(eq,arguments);
         return evaluate(eq);
     }
     

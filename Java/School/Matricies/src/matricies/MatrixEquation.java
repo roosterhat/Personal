@@ -18,6 +18,7 @@ public class MatrixEquation extends Equation{
     MatrixConverter mc;
     public MatrixEquation(MainForm m){
         this("",m);
+        variables = new ArrayList();
     }
     
     public MatrixEquation(String s,MainForm m){

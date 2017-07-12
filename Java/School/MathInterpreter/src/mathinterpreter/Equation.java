@@ -74,7 +74,7 @@ public class Equation extends MathInterpreter{
         addOperation(new UniaryOperation<Double>("abs",3,x->df.format(Math.abs(x))));
         addOperation(new UniaryOperation<Double>("sqrt",3,x->{
                         if(x<0)
-                            throw new Exception("'sqrt' or '"+x+"' results in Imaginary Number");
+                            throw new Exception("Cannot preform 'sqrt' on negative number: '"+x+"'");
                         return df.format(Math.sqrt(x));
                     }));
         addOperation(new UniaryOperation("!",2,Operation.LEFT,
@@ -172,13 +172,13 @@ public class Equation extends MathInterpreter{
         return eq;
     }
     
-    public String f(int...arguments)throws Exception{
+    public String f(int... arguments)throws Exception{
         double[] res = new double[arguments.length];
         for(int i=0;i<arguments.length;i++)
             res[i] = (double)arguments[i];
         return f(res);
     }
-    
+   
     //attempts to solve the equation for the given value
     public String f(double... arguments)throws Exception{
         ArrayList args = new ArrayList();

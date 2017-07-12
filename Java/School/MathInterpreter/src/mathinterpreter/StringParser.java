@@ -1,12 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package mathinterpreter;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -16,43 +15,23 @@ import java.util.regex.Pattern;
  */
 public class StringParser {
     MathInterpreter _main;
-    String numRegex = "\\-?\\d+(\\.\\d*)?";
+    ArrayList<String> tokens;
     
     public StringParser(MathInterpreter m){
         _main = m;
+        tokens = new ArrayList();
     }
     
-    //returns boolean whether or not the String starting at the given index is a negative number
-    //has to start at the '-' character at the start of the number
-    private boolean isNegativeNumber(String s,int index)
-    {
-        if(!s.equals(""))
-            if(s.charAt(index)=='-')
-                if(((index>0 && _main.isValidOperation(""+s.charAt(index-1)) && _main.getOperator(""+s.charAt(index-1)).inputSide!=Operation.LEFT) && 
-                    (index<s.length() && isNumber(""+s.charAt(index+1)))))
-                    return true;
-        return false;
-    }
-    
-    //determines if a given string is a number
-    private boolean isNumber(String s){
-        return s.matches(numRegex);
-    }
-    
-    private ArrayList getAll(){
-        Set<String> hs = new HashSet<>();
-        for(Operation o:_main.getOperations())
-            hs.add(o.toString());
-        for(Function f:_main.getFunctions()){
-            hs.add(f.name);hs.add(f.bounds.left);hs.add(f.bounds.right);hs.add(f.separator);
+    public ArrayList parseString(String input){
+        ArrayList output = new ArrayList();
+        Range range = new Range(0,input.length());
+        while(range.start<input.length())
+        {
+            Range part = findPart(input,range);
+            output.add(input.substring(part.start,part.end));
+            range.start = part.end;
         }
-        for(Pair p:_main.getPairs()){
-            hs.add(p.left);hs.add(p.right);
-        }
-        for(String s:(ArrayList<String>)_main.extra)
-            hs.add(s);
-        hs.addAll(_main.variables);
-        return new ArrayList(hs);
+        return output;
     }
     
     private ArrayList getRelevant(ArrayList a, String target){
@@ -80,19 +59,12 @@ public class StringParser {
         }
         return prob;
     } 
-    
-    private ArrayList getPossible(ArrayList all,String target){
-        ArrayList temp = (ArrayList)all.clone();
-        temp.removeIf(x->!target.matches(".*["+Pattern.quote((String)x)+"].*"));
-        return temp;
-    }
-    
-    private ArrayList getMostLikely(ArrayList all, String target,double margin){
+       
+    private ArrayList<Entry<String,Range>> getMostLikely(ArrayList<Entry<String,Range>> possible, String target, double margin){
         ArrayList<Double> res = new ArrayList();
-        ArrayList possible = getPossible(all,target);
         double max = 0;
-        for(String s: (ArrayList<String>)possible){
-            double val = probabilityOfMatch(s,target);
+        for(Entry<String,Range> entry: possible){
+            double val = probabilityOfMatch(entry.key,target);
             max = Math.max(max, val);
             res.add(val);
         }
@@ -113,36 +85,102 @@ public class StringParser {
         return exp;
     }
     
-    //finds the next continuous part of the equation <s> starting at the given index
-    //returns the index of the end of the part
-    protected int findPart(String s,int index){
-        String buffer = "";
-        ArrayList all = getRelevant(getAll(),s);
-        String expression = compileRegex(all);
-        Pattern expressionPattern = Pattern.compile(".*("+expression+")");
-        Pattern numberGeneral = Pattern.compile(numRegex+".+");
-        Pattern numberSpecific = Pattern.compile(numRegex);
-        
-        for(int i=index;i<s.length();i++)
-        {
-            buffer+=s.charAt(i);
-            if(!buffer.equals("") && expressionPattern.matcher(buffer).matches())
-            {
-                buffer = buffer.replaceAll(" ", "");
-                ArrayList most = getMostLikely(all,buffer,0);
-                if(numberGeneral.matcher(buffer).matches()){
-                    for(int x=1;x<=buffer.length();x++)
-                        if(!buffer.substring(0,x).equals("") && 
-                           !numberSpecific.matcher(buffer.substring(0,x)).matches())
-                            return i-(buffer.length()-x);
-                }
-                else
-                    for(String p: (ArrayList<String>)most){
-                        if(buffer.matches(Pattern.quote(p)))
-                            return i+1;
-                    }
-            }                
+    private ArrayList<Entry<String,Range>> findAllMatches(String input,Range range){
+        ArrayList<Entry<String,Range>> output = new ArrayList();
+        ArrayList<String> relaventTokens = getRelevant(tokens,input);
+        for(String token:relaventTokens){
+            int pos = range.start;
+            int length = token.length();
+            while(input.substring(pos, range.end).contains(token)){
+                int index = input.indexOf(token,pos);
+                output.add(new Entry(token, new Range(index,index + length)));
+                pos = index + length;
+            }
         }
-        return s.length();
+        return output;
+    }
+    
+    private ArrayList<Entry<String,Range>> getIntersections(ArrayList<Entry<String,Range>> entries, Entry<String,Range> token){
+        ArrayList<Entry<String,Range>> output = new ArrayList();
+        int index = entries.indexOf(token);
+        Range range = token.value;
+        Entry<String,Range> entry = token;
+        while(range.end > entry.value.start){
+            output.add(new Entry(entry.key,entry.value));
+            if(entries.size()-1>index)
+                entry = entries.get(++index);
+            else
+                break;
+        }
+        return output;  
+    }
+    
+    private ArrayList<ArrayList<Entry<String,Range>>> getGroups(ArrayList<Entry<String,Range>> matches){
+        ArrayList<ArrayList<Entry<String,Range>>>output = new ArrayList();
+        ArrayList<Entry<String,Range>> tokens = (ArrayList<Entry<String,Range>>)matches.clone();
+        tokens.sort((x,y)->x.value.start-y.value.start);
+        for(Entry<String,Range> entry: tokens)
+            output.add(getIntersections(tokens,entry));
+        return output;        
+    }
+    
+    private Range getTotalArea(ArrayList<Entry<String,Range>> entries){
+        Range area = new Range(0,0);
+        for(Entry<String,Range> entry: entries){
+            Range r = entry.value;
+            area.start = Math.min(area.start,r.start);
+            area.end = Math.max(area.end, r.end);
+        }
+        return area;
+    }
+    
+    private ArrayList<String> getKeyset(ArrayList<Entry<String,Range>> entries){
+        ArrayList<String> keyset = new ArrayList();
+        for(Entry<String,Range> entry: entries)
+            keyset.add(entry.key);
+        return keyset;
+    }
+    
+    private ArrayList<Entry<String,Range>> refineMatches(String input, ArrayList<Entry<String,Range>> matches){
+        ArrayList<Entry<String, Range>> output = new ArrayList();
+        ArrayList<ArrayList<Entry<String,Range>>> groups = getGroups(matches);
+        for(ArrayList<Entry<String, Range>> group:groups){
+            Range totalArea = getTotalArea(group);
+            ArrayList<Entry<String,Range>> mostLikely = getMostLikely(group,input.substring(totalArea.start, totalArea.end),0);
+            if(mostLikely.size()>0)
+                output.add(mostLikely.get(0));
+        }
+        return output;
+    }
+    
+    private Range getClosest(ArrayList<Entry<String,Range>> matches, Range range){
+        Entry<String,Range> closest = null;
+        for(Entry<String,Range> entry: matches){
+            if(closest==null)
+                closest = entry;
+            else if(closest.value.start>entry.value.start)
+                closest = entry;
+        }
+        if(closest==null)
+            return range;
+        return closest.value;
+    }
+    
+    private Range findPart(String input, Range range){
+        ArrayList<Entry<String,Range>> matches = findAllMatches(input,range);
+        ArrayList<Entry<String,Range>> refinedMatches = refineMatches(input,matches);
+        Range part = getClosest(refinedMatches,range);
+        if(part.start!=range.start)
+            return new Range(range.start,part.start);
+        return part;
+    }
+}
+
+class Entry<K, V>{
+    K key;
+    V value;
+    public Entry(K key, V value){
+        this.key = key;
+        this.value = value;
     }
 }

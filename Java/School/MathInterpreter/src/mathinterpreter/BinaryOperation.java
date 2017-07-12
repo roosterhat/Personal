@@ -20,7 +20,7 @@ public class BinaryOperation<E> extends Operation{
     }
     
     @Override
-    public String execute(ArrayList<String> parts){
+    public String execute(ArrayList<String> parts)throws Exception{
         return ((BinaryFunction)function).execute(converter.convert(parts.get(0)), converter.convert(parts.get(1)));
     }
     
