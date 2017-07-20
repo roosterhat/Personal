@@ -2,11 +2,6 @@
 package mathinterpreter;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -14,17 +9,15 @@ import java.util.regex.Pattern;
  * @author ostlinja
  */
 public class StringParser {
-    MathInterpreter _main;
     ArrayList<String> tokens;
     
-    public StringParser(MathInterpreter m){
-        _main = m;
+    public StringParser(){
         tokens = new ArrayList();
     }
     
     public ArrayList parseString(String input){
         ArrayList output = new ArrayList();
-        int rangeLength = Math.max(getLongestToken(),getLongestNumber(input));
+        int rangeLength = tokens.isEmpty() ? input.length() : Math.max(getLongestPart(input),getLongestToken());
         Range range = new Range(0,Math.min(rangeLength,input.length()));
         while(range.start<input.length())
         {
@@ -36,20 +29,27 @@ public class StringParser {
         return output;
     }
     
-    private int getLongestNumber(String input){
-        if(input.matches(".*\\d.*")){
-            Pattern number = Pattern.compile("\\-?\\d*(\\.\\d*)?");
-            int longest = 0;
-            int current = 0;
-            for(char c: input.toCharArray())
-                if(number.matcher(String.valueOf(c)).matches())
-                    longest = Math.max(longest,++current);
-                else
-                    current = 0;
-            return longest;        
+    private String compileRegex(){
+        String exp = "";
+        Pattern reserved = Pattern.compile("["+Pattern.quote("\\^$.,|?*+/()[]{}")+"]");
+        for(String x: tokens){
+            if(reserved.matcher(x).matches())
+                exp+="|"+Pattern.quote(x);
+            else
+                exp+="|"+x;
         }
-        else
-            return 0;
+        if(tokens.isEmpty())
+            return "|";
+        return exp;
+    }
+    
+    private int getLongestPart(String input){
+        Pattern tokenExpression = Pattern.compile("["+compileRegex()+"]");
+        String[] parts = tokenExpression.split(input);
+        int longest = 0;
+        for(String part:parts)
+            longest = Math.max(longest,part.length());
+        return longest;
     }
     
     private int getLongestToken(){
@@ -66,24 +66,8 @@ public class StringParser {
     }
     
     private double probabilityOfMatch(String subject, String target){
-        double prob = 0;
-        double charval = 1.0/target.length();
-        boolean consecutive = true;
-        Pattern pattern = Pattern.compile("["+Pattern.quote(subject)+"]");
-        for(char c:target.toCharArray()){
-            if(pattern.matcher(String.valueOf(c)).matches()){
-                if(consecutive)
-                    prob+=charval;
-                else{
-                    prob+=charval/2;
-                    consecutive = true;
-                }
-            }
-            else
-                consecutive = false;
-        }
-        return prob;
-    } 
+        return subject.length()/target.length();
+    }
        
     private ArrayList<Entry<String,Range>> getMostLikely(ArrayList<Entry<String,Range>> possible, String target, double margin){
         ArrayList<Double> res = new ArrayList();
@@ -129,11 +113,10 @@ public class StringParser {
     }
     
     private ArrayList<ArrayList<Entry<String,Range>>> getGroups(ArrayList<Entry<String,Range>> matches){
-        ArrayList<ArrayList<Entry<String,Range>>>output = new ArrayList();
-        ArrayList<Entry<String,Range>> tokens = (ArrayList<Entry<String,Range>>)matches.clone();
-        tokens.sort((x,y)->x.value.start-y.value.start);
-        for(Entry<String,Range> entry: tokens)
-            output.add(getIntersections(tokens,entry));
+        ArrayList<ArrayList<Entry<String,Range>>> output = new ArrayList();
+        ArrayList<Entry<String,Range>> tokenGroups = (ArrayList<Entry<String,Range>>)matches.clone();
+        tokenGroups.sort((x,y)->x.value.start-y.value.start);
+        tokenGroups.forEach(x->output.add(getIntersections(tokenGroups,x)));
         return output;        
     }
     
@@ -149,8 +132,7 @@ public class StringParser {
     
     private ArrayList<Entry<String,Range>> refineMatches(String input, ArrayList<Entry<String,Range>> matches){
         ArrayList<Entry<String, Range>> output = new ArrayList();
-        ArrayList<ArrayList<Entry<String,Range>>> groups = getGroups(matches);
-        for(ArrayList<Entry<String, Range>> group:groups){
+        for(ArrayList<Entry<String, Range>> group: getGroups(matches)){
             Range totalArea = getTotalArea(group);
             ArrayList<Entry<String,Range>> mostLikely = getMostLikely(group,input.substring(totalArea.start, totalArea.end),0);
             if(mostLikely.size()>0)
