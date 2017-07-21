@@ -28,23 +28,23 @@ public class StringParser {
         }
         return output;
     }
-    
-    private String compileRegex(){
+        
+    private String compileRegex(String input){
         String exp = "";
         Pattern reserved = Pattern.compile("["+Pattern.quote("\\^$.,|?*+/()[]{}")+"]");
-        for(String x: tokens){
+        for(String x: (ArrayList<String>)getRelevant(tokens, input)){
             if(reserved.matcher(x).matches())
                 exp+="|"+Pattern.quote(x);
             else
                 exp+="|"+x;
         }
-        if(tokens.isEmpty())
+        if(exp.isEmpty())
             return "|";
         return exp;
     }
     
     private int getLongestPart(String input){
-        Pattern tokenExpression = Pattern.compile("["+compileRegex()+"]");
+        Pattern tokenExpression = Pattern.compile("["+compileRegex(input)+"]");
         String[] parts = tokenExpression.split(input);
         int longest = 0;
         for(String part:parts)
