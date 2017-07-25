@@ -121,12 +121,17 @@ public class StringParser {
     }
     
     private Range getTotalArea(ArrayList<Entry<String,Range>> entries){
-        Range area = new Range(0,0);
-        for(Entry<String,Range> entry: entries){
-            Range r = entry.value;
-            area.start = Math.min(area.start,r.start);
-            area.end = Math.max(area.end, r.end);
+        Range area;
+        if(!entries.isEmpty()){
+            area = entries.get(0).value;
+            for(Entry<String,Range> entry: entries){
+                Range r = entry.value;
+                area.start = Math.min(area.start,r.start);
+                area.end = Math.max(area.end, r.end);
+            }
         }
+        else
+            area = new Range(0,0);
         return area;
     }
     

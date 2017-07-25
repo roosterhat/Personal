@@ -87,5 +87,7 @@ public class TestCases {
             System.out.println("Steps: "+(end-start)/step);
             System.out.println("Time: "+duration+" ms");
         }catch(Exception e){System.out.println(e);}
+        
     }
+    
 }
