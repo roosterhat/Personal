@@ -18,14 +18,14 @@ public class ParsingTests {
     
     public void run(){
         ArrayList<String> testStrings = new ArrayList();
-        testStrings.add("sinpi");
-        testStrings.add("sincospi");
-        testStrings.add("sincostanpi");
-        testStrings.add("sincostancscpi");
-        testStrings.add("sincostancscsecpi");
+        testStrings.add("-4--(x!)");
+        testStrings.add("(1+(cosx)^2)/(cosx)^2");
+        testStrings.add("sin(pi/x)");
+        testStrings.add("238*10^(-x-1)");
+        testStrings.add("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");
         testStrings.add("(csclnx*cotlnx)/(2x)");
-        for(String equation: testStrings)
-            testEquation(equation,10000);
+        
+        testStrings.forEach(x->testEquation(x,10000));    
     }
     
     public void testEquation(String equation, int amount){

@@ -17,7 +17,8 @@ public class StringParser {
     
     public ArrayList parseString(String input){
         ArrayList output = new ArrayList();
-        int rangeLength = tokens.isEmpty() ? input.length() : Math.max(getLongestPart(input),getLongestToken());
+        ArrayList<String> relaventTokens = getRelevant(tokens, input);
+        int rangeLength = tokens.isEmpty() ? input.length() : getLongestPart(input,relaventTokens)+getLongestToken(relaventTokens);
         Range range = new Range(0,Math.min(rangeLength,input.length()));
         while(range.start<input.length())
         {
@@ -29,22 +30,23 @@ public class StringParser {
         return output;
     }
         
-    private String compileRegex(String input){
+    private String compileRegex(ArrayList<String> tokns){
         String exp = "";
         Pattern reserved = Pattern.compile("["+Pattern.quote("\\^$.,|?*+/()[]{}")+"]");
-        for(String x: (ArrayList<String>)getRelevant(tokens, input)){
+        for(String x: tokns){
             if(reserved.matcher(x).matches())
-                exp+="|"+Pattern.quote(x);
+                exp+=Pattern.quote(x)+"|";
             else
-                exp+="|"+x;
+                exp+=x+"|";
         }
         if(exp.isEmpty())
             return "|";
-        return exp;
+        else
+            return exp.substring(0, exp.length()-1);
     }
     
-    private int getLongestPart(String input){
-        Pattern tokenExpression = Pattern.compile("["+compileRegex(input)+"]");
+    private int getLongestPart(String input,ArrayList<String> tokns){
+        Pattern tokenExpression = Pattern.compile("("+compileRegex(tokns)+")");
         String[] parts = tokenExpression.split(input);
         int longest = 0;
         for(String part:parts)
@@ -52,9 +54,9 @@ public class StringParser {
         return longest;
     }
     
-    private int getLongestToken(){
+    private int getLongestToken(ArrayList<String> tokns){
         int longest = 0;
-        for(String token:tokens)
+        for(String token:tokns)
             longest = Math.max(longest,token.length());
         return longest;
     }
@@ -112,7 +114,7 @@ public class StringParser {
         return output;  
     }
     
-    private ArrayList<ArrayList<Entry<String,Range>>> getGroups(ArrayList<Entry<String,Range>> matches){
+    private ArrayList<ArrayList<Entry<String ,Range>>> getGroups(ArrayList<Entry<String,Range>> matches){
         ArrayList<ArrayList<Entry<String,Range>>> output = new ArrayList();
         ArrayList<Entry<String,Range>> tokenGroups = (ArrayList<Entry<String,Range>>)matches.clone();
         tokenGroups.sort((x,y)->x.value.start-y.value.start);
