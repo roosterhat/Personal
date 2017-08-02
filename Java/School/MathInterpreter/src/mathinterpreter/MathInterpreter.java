@@ -7,7 +7,6 @@ package mathinterpreter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -20,7 +19,7 @@ import java.util.regex.Pattern;
 public class MathInterpreter {
     
     String equation;
-    private ArrayList<String> defaultVariable = new ArrayList(Arrays.asList("x","y","z"));
+    final private ArrayList<String> defaultVariable = new ArrayList(Arrays.asList("x","y","z"));
     private ArrayList<Operation> operators;
     private ArrayList<Function> functions;
     private ArrayList<Pair> pairs;
@@ -53,7 +52,6 @@ public class MathInterpreter {
         equation = eq;
         parsedEquation = new ArrayList();
         parseEquation();
-        //System.out.println(parsedEquation);
     }
     
     //returns the parsed equation
@@ -85,7 +83,7 @@ public class MathInterpreter {
     
     //clears all the operators
     public void clearOperators(){
-        operators = new ArrayList<Operation>();
+        operators.clear();
     }
     
     //returns a Operation object for the given String
@@ -120,7 +118,7 @@ public class MathInterpreter {
     
     //clears all function
     public void clearFunctions(){
-        functions = new ArrayList<Function>();
+        functions.clear();
     }
     
     //Returns a Function object for the given String
@@ -151,7 +149,7 @@ public class MathInterpreter {
     
     //clears all Pairs
     public void clearPairs(){
-        pairs = new ArrayList<Pair>();
+        pairs.clear();
     }
     
     //return true/false if given string is a Pair
@@ -243,7 +241,7 @@ public class MathInterpreter {
     public void parseEquation(){
         sp.tokens = getAll();
         parsedEquation = sp.parseString(equation);
-        parsedEquation.removeIf(x->x.equals(" "));
+        parsedEquation.removeIf(x->((String)x).replace(" ","").isEmpty());
         for(int i=0;i<parsedEquation.size();i++){
             String part = (String)parsedEquation.get(i);
             if(variables.contains(part)){

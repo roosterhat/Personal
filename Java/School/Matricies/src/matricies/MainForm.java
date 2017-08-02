@@ -302,7 +302,7 @@ public class MainForm extends javax.swing.JFrame {
                                         + "New Matrix   :  new[<Rows>, <Columns>]\n"
                                         + "New Identity :  id[<Rows>, <Columns>]\n"
                                         + "Set Value    :  set[<Matrix>, <Row>, <Column>, <Value>]\n"
-                                        + "Resize       :  resize[<Rows>, <Columns>]\n\n"
+                                        + "Resize       :  resize[<Matrix>, <Rows>, <Columns>]\n\n"
                                         + "(Case Sensitive)");
         matrixCommands.setEditable(false);
         matrixCommands.setFont(new Font("Monospaced", Font.BOLD, 18));
@@ -371,6 +371,7 @@ public class MainForm extends javax.swing.JFrame {
     public String preformEquation(String e){
         if(!e.equals("")){
             equation.setEquation(e);
+            //System.out.println(equation.getParsedEquation());
             String res;
             try{res = equation.f(0);}
             catch(Exception ex){res = ex.getMessage();}
