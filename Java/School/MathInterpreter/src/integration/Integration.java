@@ -107,9 +107,7 @@ public class Integration {
     
     public double richardson(int steps, double lower,double upper){
         try{
-            double c = new Equation("2x^2*x^2/(2x^2-x^2)").fD(steps);
-            c *= (upper-lower);
-            double diff = c/Math.pow(steps*2,2);
+            double diff = new Equation("2x^2*x^2/(2x^2-x^2)(y-z)/(2x)^2").fD(steps,upper,lower);
             double integral = upper+diff;
             return integral;
         }catch(Exception e){System.out.println(e);}
