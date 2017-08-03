@@ -23,9 +23,9 @@ public class MathInterpreter {
     private ArrayList<Operation> operators;
     private ArrayList<Function> functions;
     private ArrayList<Pair> pairs;
-    private ArrayList parsedEquation;
+    private ArrayList<String> parsedEquation;
     private StringParser sp;
-    protected ArrayList<String> variables;
+    public ArrayList<String> variables;
     public ArrayList extra;
     public ArrayList<String> illegalCharacters;
     

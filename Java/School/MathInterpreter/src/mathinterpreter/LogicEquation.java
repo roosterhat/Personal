@@ -5,8 +5,6 @@
  */
 package mathinterpreter;
 
-import java.util.ArrayList;
-
 /**
  *
  * @author ostlinja
@@ -23,7 +21,7 @@ public class LogicEquation extends MathInterpreter{
     public LogicEquation(String eq)
     {
         super();
-        variables = new ArrayList();
+        variables.clear();
         for(char c='a';c<='z';c++)
             variables.add(String.valueOf(c));
         addPair(new BasicParenthesis());

@@ -1,6 +1,0 @@
-mathinterpreter.TwoPartFunction
-mathinterpreter.OnePartFunction
-mathinterpreter.Function
-mathinterpreter.SingleOperation
-mathinterpreter.Operation
-mathinterpreter.TrigOperation
