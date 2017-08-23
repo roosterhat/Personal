@@ -1,2 +1,0 @@
-mathinterpreter.StringParser
-mathinterpreter.Entry

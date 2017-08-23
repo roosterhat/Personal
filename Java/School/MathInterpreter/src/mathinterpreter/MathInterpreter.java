@@ -17,7 +17,6 @@ import java.util.regex.Pattern;
  * @author ostlinja
  */
 public class MathInterpreter {
-    
     String equation;
     final private ArrayList<String> defaultVariable = new ArrayList(Arrays.asList("x","y","z"));
     private ArrayList<Operation> operators;

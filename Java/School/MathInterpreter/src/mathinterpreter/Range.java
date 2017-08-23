@@ -22,7 +22,7 @@ public class Range {
     }
     
     public boolean contains(int point){
-        return contains(point);
+        return contains((double)point);
     }
     
     public boolean contains(double point){
@@ -31,6 +31,10 @@ public class Range {
     
     public int length(){
         return end-start;
+    }
+    
+    public boolean compare(Range r){
+        return r.start==start && r.end==r.end;
     }
     
     public String toString(){

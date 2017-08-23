@@ -2,7 +2,6 @@
 package mathinterpreter;
 
 import java.util.ArrayList;
-import java.util.regex.Pattern;
 
 /**
  *
@@ -15,52 +14,14 @@ public class StringParser {
         tokens = new ArrayList();
     }
     
+    public StringParser(ArrayList<String> tokens){
+        this.tokens = tokens;
+    }
+    
     public ArrayList parseString(String input){
-        ArrayList output = new ArrayList();
-        ArrayList<String> relaventTokens = getRelevant(tokens, input);
-        int rangeLength = tokens.isEmpty() ? input.length() : getLongestPart(input,relaventTokens)+getLongestToken(relaventTokens);
-        Range range = new Range(0,Math.min(rangeLength,input.length()));
-        while(range.start<input.length())
-        {
-            Range part = findPart(input,range);
-            output.add(input.substring(part.start,part.end));
-            range.start = part.end;
-            range.end = Math.min(range.start+rangeLength,input.length());
-        }
-        return output;
+        return findComponents(input);
     }
-        
-    private String compileRegex(ArrayList<String> tokns){
-        String exp = "";
-        Pattern reserved = Pattern.compile("["+Pattern.quote("\\^$.,|?*+/()[]{}")+"]");
-        for(String x: tokns){
-            if(reserved.matcher(x).matches())
-                exp+=Pattern.quote(x)+"|";
-            else
-                exp+=x+"|";
-        }
-        if(exp.isEmpty())
-            return "|";
-        else
-            return exp.substring(0, exp.length()-1);
-    }
-    
-    private int getLongestPart(String input,ArrayList<String> tokns){
-        Pattern tokenExpression = Pattern.compile("("+compileRegex(tokns)+")");
-        String[] parts = tokenExpression.split(input);
-        int longest = 0;
-        for(String part:parts)
-            longest = Math.max(longest,part.length());
-        return longest;
-    }
-    
-    private int getLongestToken(ArrayList<String> tokns){
-        int longest = 0;
-        for(String token:tokns)
-            longest = Math.max(longest,token.length());
-        return longest;
-    }
-    
+           
     private ArrayList getRelevant(ArrayList a, String target){
         ArrayList temp = (ArrayList)a.clone();
         temp.removeIf(x->!target.contains((String)x));
@@ -103,22 +64,34 @@ public class StringParser {
         ArrayList<Entry<String,Range>> output = new ArrayList();
         int index = entries.indexOf(token);
         Range range = token.value;
-        Entry<String,Range> entry = token;
-        while(range.end > entry.value.start){
-            output.add(new Entry(entry.key,entry.value));
+        while(range.end > token.value.start){
+            output.add(new Entry(token.key,token.value));
             if(entries.size()-1>index)
-                entry = entries.get(++index);
+                token = entries.get(++index);
             else
                 break;
         }
         return output;  
     }
     
+    private boolean containsIntersection(ArrayList<ArrayList<Entry<String,Range>>> intersections, Entry<String,Range> token){
+        boolean contains = false;
+        for(ArrayList<Entry<String,Range>> i: intersections)
+            for(Entry<String,Range> entry: i)
+                if(token.value.compare(entry.value))
+                    contains = true;
+        return contains;
+    }
+    
     private ArrayList<ArrayList<Entry<String ,Range>>> getGroups(ArrayList<Entry<String,Range>> matches){
         ArrayList<ArrayList<Entry<String,Range>>> output = new ArrayList();
         ArrayList<Entry<String,Range>> tokenGroups = (ArrayList<Entry<String,Range>>)matches.clone();
         tokenGroups.sort((x,y)->x.value.start-y.value.start);
-        tokenGroups.forEach(x->output.add(getIntersections(tokenGroups,x)));
+        tokenGroups.forEach(x->
+        {
+            if(!containsIntersection(output, x))
+                output.add(getIntersections(tokenGroups,x));
+        });
         return output;        
     }
     
@@ -148,26 +121,24 @@ public class StringParser {
         return output;
     }
     
-    private Range getClosest(ArrayList<Entry<String,Range>> matches, Range range){
-        Entry<String,Range> closest = null;
-        for(Entry<String,Range> entry: matches){
-            if(closest==null)
-                closest = entry;
-            else if(closest.value.start>entry.value.start)
-                closest = entry;
-        }
-        if(closest==null)
-            return range;
-        return closest.value;
+    private ArrayList<Entry<String,Range>> findTokens(String input, Range range){
+        ArrayList<Entry<String,Range>> matches = findAllMatches(input,range);
+        return refineMatches(input,matches);
     }
     
-    private Range findPart(String input, Range range){
-        ArrayList<Entry<String,Range>> matches = findAllMatches(input,range);
-        ArrayList<Entry<String,Range>> refinedMatches = refineMatches(input,matches);
-        Range part = getClosest(refinedMatches,range);
-        if(part.start!=range.start)
-            return new Range(range.start,part.start);
-        return part;
+    private ArrayList<String> findComponents(String input){
+        ArrayList<String> components = new ArrayList();
+        ArrayList<Entry<String,Range>> matches = findTokens(input, new Range(0,input.length()));
+        Range current = new Range(0,0);
+        for(Entry<String,Range> entry: matches){
+            if(entry.value.start>current.end)
+                components.add(input.substring(current.end, entry.value.start));
+            current = entry.value;
+            components.add(input.substring(current.start, current.end));
+        }
+        components.add(input.substring(current.end));
+        components.removeIf(x->x.isEmpty());
+        return components;
     }
 }
 
@@ -178,4 +149,5 @@ class Entry<K, V>{
         this.key = key;
         this.value = value;
     }
+    
 }

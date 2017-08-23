@@ -25,7 +25,7 @@ public class ParsingTests {
         testStrings.add("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");
         testStrings.add("(csclnx*cotlnx)/(2x)");
         
-        testStrings.forEach(x->testEquation(x,10000));    
+        testStrings.forEach(x->testEquation(x,10000));
     }
     
     public void testEquation(String equation, int amount){

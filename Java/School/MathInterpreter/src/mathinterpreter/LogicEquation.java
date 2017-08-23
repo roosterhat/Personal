@@ -12,7 +12,7 @@ package mathinterpreter;
 public class LogicEquation extends MathInterpreter{
     public static void main(String[] args) {
         LogicEquation eq = new LogicEquation("~((x&y)|z)");
-        try{System.out.println(eq.f(true,true,false));}catch(Exception e){System.out.println(e.getMessage());}
+        //try{System.out.println(eq.f(true,true,false));}catch(Exception e){System.out.println(e.getMessage());}
     }
     public LogicEquation()
     {
