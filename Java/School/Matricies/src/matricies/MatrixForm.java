@@ -96,7 +96,7 @@ public class MatrixForm extends javax.swing.JPanel {
 
         jScrollPane1.setViewportView(jPanel1);
 
-        jButton5.setText("Round");
+        jButton5.setText("Decimal Length");
         jButton5.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton5ActionPerformed(evt);
@@ -191,7 +191,20 @@ public class MatrixForm extends javax.swing.JPanel {
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        matrix.roundAll();
+        JTextField depth = new JTextField(5);
+        depth.setText(String.valueOf(matrix.getDecimalDepth()));
+        JPanel panel = new JPanel();
+        panel.add(new JLabel("Decimal Depth"));
+        panel.add(depth);
+        int res = JOptionPane.showConfirmDialog(
+                    this,panel,"Set Decimal Depth",JOptionPane.OK_CANCEL_OPTION);
+        if(res == JOptionPane.OK_OPTION)
+        {
+            String d = depth.getText();
+            if(!d.isEmpty())
+                if(d.matches("\\d"));
+                    matrix.setDecimalDepth(Integer.valueOf(d)); 
+        }
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
@@ -205,8 +218,10 @@ public class MatrixForm extends javax.swing.JPanel {
         if(res == JOptionPane.OK_OPTION)
         {
             String n = namefield.getText().replaceAll("\\s", "");
-            if(!n.equals(""))
+            if(!n.equals("")){
                 _main.rename(name, n);
+                name = n;
+            }
         }
         
     }//GEN-LAST:event_jButton6ActionPerformed

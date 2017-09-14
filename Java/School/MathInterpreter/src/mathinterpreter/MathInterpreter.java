@@ -317,23 +317,27 @@ public class MathInterpreter {
     //i.e. (1+2) => 3
     protected ArrayList evaluatePair(ArrayList eq,Pair p)throws Exception
     {
-        Pattern pattern = Pattern.compile(p.regex);
         while(eq.contains(p.left)){
             int i = eq.indexOf(p.left);
             String part = (String)eq.get(i);
             if(isValidPair(part))
             {
-                if(pattern.matcher(part).matches()){
-                    int start = i;
-                    int end = findMatchingPair(eq,p,i);                 
-
-                    ArrayList temp = new ArrayList();
-                    temp.add(evaluate(new ArrayList(eq.subList(start+1, end))));//inside
-                    temp.add(getAdjacent(eq,start-1));//left
-                    temp.add(getAdjacent(eq,end+1));//right
-
-                    eq = condense(eq,p.execute(temp),new Range(start,end));
-                }
+                int start = i; 
+                int end = findMatchingPair(eq,p,i);   
+                
+                ArrayList temp = new ArrayList();
+                temp.add(getAdjacent(eq,start-1));//left
+                temp.add(getAdjacent(eq,end+1));//right
+                ArrayList<String> res = p.executeExternal(temp);
+                
+                ArrayList<String> cond = new ArrayList();
+                if(res.get(0)!=null && !res.get(0).isEmpty())
+                    cond.add(res.get(0));
+                cond.add(evaluate(p.executeInternal(new ArrayList(eq.subList(start+1, end)))));
+                if(res.get(1)!=null && !res.get(1).isEmpty())
+                    cond.add(res.get(1));
+                
+                eq = condense(eq,cond,new Range(start,end));
             }
         }
         return eq;

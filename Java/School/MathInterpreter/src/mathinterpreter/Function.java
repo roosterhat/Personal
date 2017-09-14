@@ -15,23 +15,19 @@ import java.util.regex.Pattern;
 public class Function {//Similar to Operaitons but takes multiple arguments enclosed in the given Pair
     public Pair bounds;
     public String name;
-    public FunctionFunction function;
+    public PairFunctionInterface<String> function;
     public Converter converter;
     public int weight;
     public String regex;
     public String separator = ",";
     
-    public Function(String name,int weight, FunctionFunction function){
+    public Function(String name,int weight, PairFunctionInterface<String> function){
         this(name,weight,function,x->Double.valueOf(x));
     }
     
-    public Function(String name,int weight, FunctionFunction function, Converter converter){
-        this(name,weight,function,converter,new FunctionPair());
-    }
-    
-    public Function(String name, int weight, FunctionFunction function, Converter converter, Pair bounds){
+    public Function(String name, int weight, PairFunctionInterface<String> function, Converter converter){
         this.name = name;
-        this.bounds = bounds;
+        this.bounds = new FunctionPair();
         this.weight = weight;
         this.function = function;
         this.converter = converter;
@@ -44,7 +40,7 @@ public class Function {//Similar to Operaitons but takes multiple arguments encl
         return "("+s+")|"+bounds.regex+"|("+separator+")";
     }
     
-    public ArrayList convert(ArrayList<String> a){
+    public ArrayList convert(ArrayList<String> a)throws Exception{
         ArrayList res = new ArrayList();
         for(String s: a)
             res.add(converter.convert(s));
@@ -62,10 +58,6 @@ public class Function {//Similar to Operaitons but takes multiple arguments encl
 
 class FunctionPair extends Pair{
     public FunctionPair(){
-        super("[","]",5,(PairFunction)x->{return (ArrayList)x.subList(0, 0);});
+        super("[","]",5);
     }
-}
-
-interface PairFunction extends FunctionInterface{
-    ArrayList execute(ArrayList a)throws Exception;
 }

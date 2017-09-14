@@ -1,3 +1,0 @@
-mathinterpreter.ConstantFunction
-mathinterpreter.Equation
-mathinterpreter.ConstantOperation

@@ -77,7 +77,7 @@ public class Equation extends MathInterpreter{
                             throw new Exception("Cannot preform 'sqrt' on negative number: '"+x+"'");
                         return df.format(Math.sqrt(x));
                     }));
-        addOperation(new UniaryOperation("!",2,Operation.LEFT,
+        addOperation(new UniaryOperation<Double>("!",2,Operation.LEFT,
                 x->{
                     double res = 1;
                     for(int i=((Double)x).intValue();i>0;i--)
@@ -161,7 +161,7 @@ public class Equation extends MathInterpreter{
     }
 
     //replaces all constants with their respective values
-    private ArrayList substituteConstants(ArrayList eq)
+    private ArrayList substituteConstants(ArrayList eq)throws Exception
     {
         String exp = getConstantExpression();
         for(int i=0;i<eq.size();i++){
@@ -206,12 +206,11 @@ class ConstantOperation extends Operation
         super(o,0,Operation.RIGHT,f);
     }
     
-    public String execute(){
+    public String execute()throws Exception{
         return ((ConstantFunction)function).execute();
     }
 }
 
-interface ConstantFunction extends FunctionInterface
-{
+interface ConstantFunction extends FunctionInterface{
     public String execute();
 }

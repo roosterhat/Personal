@@ -372,7 +372,7 @@ public class MainForm extends javax.swing.JFrame {
         if(!e.equals("")){
             equation.setEquation(e);
             //System.out.println(equation.getParsedEquation());
-            String res;
+            String res = "";
             try{res = equation.f(0);}
             catch(Exception ex){res = ex.getMessage();}
             updateAllTabs();

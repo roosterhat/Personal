@@ -6,6 +6,7 @@
 package mathinterpreter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  *
@@ -17,14 +18,21 @@ public abstract class Pair  {
     String right;
     String regex;
     int weight;
-    FunctionInterface function;
-    public Pair(String l, String r, int w, FunctionInterface f)
+    protected PairFunctionInterface<ArrayList> internalFunction;
+    protected PairFunctionInterface<ArrayList> externalFunction;
+    public Pair(String l, String r, int w)
     {
         left = l;
         right = r;
         weight = w;
-        function = f;
         regex = genRegex(l,r);
+        internalFunction = x->x;
+        externalFunction = x->{
+            ArrayList res = new ArrayList();
+            res.add(null);
+            res.add(null);
+            return res;
+        };
     }
     
     
@@ -32,8 +40,12 @@ public abstract class Pair  {
         return "(\\"+left+")|(\\"+right+")";
     }
     
-    public ArrayList execute(ArrayList args){//[args]: inside, left, right
-        return new ArrayList(args.subList(0, 1));
+    public ArrayList executeInternal(ArrayList args)throws Exception{
+        return internalFunction.execute(args);
+    }
+    
+    public ArrayList executeExternal(ArrayList args)throws Exception{
+        return externalFunction.execute(args);
     }
     
     public String toString(){

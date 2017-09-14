@@ -40,7 +40,7 @@ public abstract class Operation {
     
     private String genRegex(String s){
         if(s.matches("["+Pattern.quote("\\^$.|?*+/")+"]"))
-            s = "\\"+s;
+            s = Pattern.quote(s);
         return "("+s+")";
     }
     

@@ -26,11 +26,12 @@ public class MatrixEquation extends Equation{
         mc = new MatrixConverter(_main.matricies);
         setOperators();
         setFunctions();
+        setPairs();
         setEquation(s);
     }
 
     
-    public void setOperators(){       
+    private void setOperators(){       
         addOperation(new MatrixOperation("dot",1,Operation.BOTH,(x,y)->{
             Matrix temp = mc.convert(y);
             Matrix m = x.dot(temp);
@@ -52,7 +53,7 @@ public class MatrixEquation extends Equation{
         },mc));
     }
     
-    public void setFunctions(){
+    private void setFunctions(){
         addFunction(new Function("add",0,x->{
             Matrix m = mc.convert((String)x.get(0));
             String val = (String)x.get(1);
@@ -143,6 +144,11 @@ public class MatrixEquation extends Equation{
             return name;
         },x->x));
     }
+    
+    private void setPairs()
+    {
+        addPair(new Literal());
+    }
 }
 
 class MatrixOperation extends Operation{
@@ -181,7 +187,26 @@ class MatrixConverter implements Converter<Matrix>
     }
 }
 
+class Literal extends Pair
+{
+    public Literal(){
+        super("{","}",1);
+        internalFunction = (LiteralFunction)x->{
+            ArrayList res = new ArrayList();
+            String comp = "";
+            for(String s: (ArrayList<String>)x)
+               comp+=s;
+            res.add(comp);
+            return res;
+        };
+    }
+}
+
 interface MatrixFunction extends FunctionInterface
 {
     public String execute(Matrix x, String y)throws Exception;
+}
+
+interface LiteralFunction extends PairFunctionInterface{
+    public ArrayList execute(ArrayList a);
 }

@@ -76,8 +76,8 @@ public class StringParser {
     
     private boolean containsIntersection(ArrayList<ArrayList<Entry<String,Range>>> intersections, Entry<String,Range> token){
         boolean contains = false;
-        for(ArrayList<Entry<String,Range>> i: intersections)
-            for(Entry<String,Range> entry: i)
+        if(intersections.size()>0)
+            for(Entry<String,Range> entry: intersections.get(intersections.size()-1))
                 if(token.value.compare(entry.value))
                     contains = true;
         return contains;

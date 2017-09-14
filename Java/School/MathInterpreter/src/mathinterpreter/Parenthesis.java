@@ -13,30 +13,26 @@ import java.util.ArrayList;
  */
 public class Parenthesis extends Pair{
     public Parenthesis(){
-        super("(",")",5,(ParenFunction)x->{
+        super("(",")",5);
+        externalFunction = x->
+        {
             ArrayList res = new ArrayList();
-            if(x.get(1) instanceof Operation){
-               if(((Operation)x.get(1)).inputSide==Operation.LEFT)
-                   res.add("*");
-            }
+            if(x.get(0) instanceof Operation && ((Operation)x.get(0)).inputSide==Operation.LEFT)
+                res.add("*");
+            else if(x.get(0) instanceof String)
+                res.add("*");
+            else
+                res.add("");
+            
+            if(x.get(1) instanceof Operation && ((Operation)x.get(1)).inputSide==Operation.RIGHT)
+                res.add("*");
             else if(x.get(1) instanceof String)
                 res.add("*");
-            res.add(x.get(0));
-            if(x.get(2) instanceof Operation){
-               if(((Operation)x.get(2)).inputSide==Operation.RIGHT)
-                   res.add("*");
-            }
-            else if(x.get(2) instanceof String)
-                res.add("*");
+            else
+                res.add("");
+            
             return res;
-        });
-    }
-    
-    public ArrayList execute(ArrayList a){
-        return ((ParenFunction)function).execute(a);
+        };
     }
 }
 
-interface ParenFunction extends FunctionInterface{
-    ArrayList execute(ArrayList a);
-}

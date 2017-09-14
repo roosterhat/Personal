@@ -1,2 +1,0 @@
-mathinterpreter.ParenFunction
-mathinterpreter.Parenthesis

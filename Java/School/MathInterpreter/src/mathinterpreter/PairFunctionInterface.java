@@ -5,9 +5,12 @@
  */
 package mathinterpreter;
 
+import java.util.ArrayList;
+
 /**
  *
  * @author ostlinja
  */
-public class PairFunctionInterface {
+public interface PairFunctionInterface<K> extends FunctionInterface{
+    public K execute(ArrayList a)throws Exception;
 }

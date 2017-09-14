@@ -12,6 +12,7 @@ package matricies;
 public class Matrix {
     int rows,columns;
     double[][] contents;
+    private int decimalDepth = 2;
     
     public Matrix()
     {
@@ -36,6 +37,7 @@ public class Matrix {
     public int getNumRows(){return rows;}
     public int getNumColumns(){return columns;}
     public double[][] getContents(){return contents;}
+    public int getDecimalDepth(){return decimalDepth;}
     
     public double[][] getRows(){return getContents();}
     public double[][] getColumns()
@@ -45,6 +47,11 @@ public class Matrix {
             for(int r = 0;r<rows;r++)
                 res[c][r] = contents[r][c];
         return res;
+    }
+    
+    public void setDecimalDepth(int depth){
+        if(depth>0)
+            decimalDepth = depth;
     }
     
     public void setRows(int r)
@@ -141,6 +148,7 @@ public class Matrix {
         if(columns==m.rows)
         {
             temp = new Matrix(rows, m.columns);
+            temp.setDecimalDepth(getDecimalDepth());
             for(int r = 0;r<rows;r++)
                 for(int c = 0;c<m.columns;c++)
                     temp.set(sum(getRows()[r],m.getColumns()[c]),r,c);  
@@ -155,6 +163,7 @@ public class Matrix {
     public void transpose()
     {
         Matrix temp = new Matrix(columns,rows);
+        temp.setDecimalDepth(getDecimalDepth());
         for(int r=0;r<rows;r++)
             for(int c=0;c<columns;c++)
                 temp.set(get(r,c), c, r);
@@ -176,6 +185,7 @@ public class Matrix {
                 m = invertValue(m,r);
                 m = negateValuesLower(m,r);
                 Matrix id = newIdentity(m.rows);
+                id.setDecimalDepth(m.getDecimalDepth());
                 id.set(old,r,r);
                 try{m = id.dot(m);}catch(Exception e){System.out.println(e);}
             }
@@ -213,6 +223,7 @@ public class Matrix {
     private Matrix invertValue(Matrix m,int row)
     {
         Matrix id = newIdentity(m.rows);
+        id.setDecimalDepth(m.getDecimalDepth());
         id.set(1/m.get(row, row),row,row);
         try{m = id.dot(m);}catch(Exception e){System.out.println("InverValue Failed\n"+e);}
         return m;
@@ -221,6 +232,7 @@ public class Matrix {
     private Matrix negateValuesFull(Matrix m,int row)
     {
         Matrix id = newIdentity(m.rows);
+        id.setDecimalDepth(m.getDecimalDepth());
         for(int i=0;i<rows;i++)
             if(i!=row)
                 id.set(-1*m.get(i, row), i, row);
@@ -231,6 +243,7 @@ public class Matrix {
     private Matrix negateValuesUpper(Matrix m,int row)
     {
         Matrix id = newIdentity(m.rows);
+        id.setDecimalDepth(m.getDecimalDepth());
         for(int i=0;i<row;i++)
             if(i!=row)
                 id.set(-1*m.get(i, row), i, row);
@@ -241,6 +254,7 @@ public class Matrix {
     private Matrix negateValuesLower(Matrix m,int row)
     {
         Matrix id = newIdentity(m.rows);
+        id.setDecimalDepth(m.getDecimalDepth());
         for(int i=row;i<rows;i++)
             if(i!=row)
                 id.set(-1*m.get(i, row), i, row);
@@ -251,6 +265,7 @@ public class Matrix {
     private Matrix pivotMatrix(Matrix m,int row)
     {
         Matrix tempID = newIdentity(m.rows);
+        tempID.setDecimalDepth(m.getDecimalDepth());
         double[] t = tempID.getRows()[row];
         for(int r=row;r<m.rows;r++)
         {
@@ -295,7 +310,7 @@ public class Matrix {
     
     public double round(double d)
     {
-        return Double.parseDouble(String.format("%.2f",d));
+        return Double.parseDouble(String.format("%."+decimalDepth+"f",d));
     }
     
     private void checkContents()
@@ -351,7 +366,7 @@ public class Matrix {
     
     public String toHtml()
     {
-        return toHtml(2);
+        return toHtml(decimalDepth);
     }
     
     public String toHtml(int dec)
@@ -377,6 +392,8 @@ public class Matrix {
         for(int a=0;a<rows;a++)
             for(int b=0;b<columns;b++)
                 c[a][b] = contents[a][b];
-        return new Matrix(rows,columns,c);
+        Matrix m = new Matrix(rows,columns,c);
+        m.setDecimalDepth(decimalDepth);
+        return m;
     }
 }

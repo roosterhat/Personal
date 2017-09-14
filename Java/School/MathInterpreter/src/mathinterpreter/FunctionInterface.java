@@ -7,7 +7,7 @@ package mathinterpreter;
 
 /**
  *
- * @author ostlinja
+ * @author eriko
  */
 public interface FunctionInterface {
 }

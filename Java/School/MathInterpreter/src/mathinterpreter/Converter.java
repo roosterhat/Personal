@@ -11,5 +11,5 @@ package mathinterpreter;
  */
 public interface Converter<E>
 {
-    public E convert(String x);
+    public E convert(String x)throws Exception;
 }

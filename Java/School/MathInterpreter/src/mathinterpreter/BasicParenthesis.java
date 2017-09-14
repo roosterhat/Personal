@@ -13,10 +13,7 @@ import java.util.ArrayList;
  */
 public class BasicParenthesis extends Pair{
     public BasicParenthesis(){
-        super("(",")",5,(BasicParenFunction)x->{return (ArrayList)x.subList(0, 0);});
+        super("(",")",5);
     }
 }
 
-interface BasicParenFunction extends FunctionInterface{
-    ArrayList execute(ArrayList a);
-}
