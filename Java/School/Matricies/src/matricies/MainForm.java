@@ -200,8 +200,7 @@ public class MainForm extends javax.swing.JFrame {
     private String[] getCreators(){
         ArrayList<String> res = new ArrayList();
         res.add("New...");
-        for(Command c: creators)
-            res.add(c.name);
+        creators.forEach(x->res.add(x.name));
         return Arrays.copyOf(res.toArray(),res.size(),String[].class);
     }
     
@@ -222,8 +221,7 @@ public class MainForm extends javax.swing.JFrame {
     private String[] getCommands(){
         ArrayList<String> res = new ArrayList();
         res.add("Commands...");
-        for(Command c: commands)
-            res.add(c.name);
+        commands.forEach(x->res.add(x.name));
         return Arrays.copyOf(res.toArray(),res.size(),String[].class);
     }
     
@@ -769,6 +767,8 @@ public class MainForm extends javax.swing.JFrame {
             equation.extra.set(equation.extra.indexOf(oldname), newname);
             return newname;
         }
+        else
+            JOptionPane.showMessageDialog(null, "A matrix called '"+newname+"' already exists", "", JOptionPane.ERROR_MESSAGE);
         return oldname;
     }
     

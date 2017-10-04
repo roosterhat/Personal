@@ -1,0 +1,5 @@
+In January 2004, NASA landed exploration vehicles on Mars. Part of the descent consisted of the following stages: 
+Stage A: Friction with the atmosphere reduced the speed from 19300 km/h to 1600 km/h in 4.0 min. 
+Stage B: A parachute then opened to slow it down to 321 km/h in 94 s. 
+Stage C: Retro rockets then fired to reduce its speed to zero over a distance of 75 m. 
+Assume that each stage followed immediately after the preceding one and that the acceleration during each stage was constant.

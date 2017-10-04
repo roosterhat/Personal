@@ -16,7 +16,7 @@ public class TestCases {
     public static void main(String[] args) {
         new TestCases().run();        
     }
-    
+   
     public void run(){
         Equation eq = new Equation("-4--(x!)");
         Equation eq2 = new Equation("(1+(cosx)^2)/(cosx)^2");
