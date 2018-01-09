@@ -35,7 +35,7 @@ class ArrayPQueue:
         return self.queue[0]['item']
 
 s = ArrayPQueue()
-s.add(10,0)
+s.add(10)
 s.add(4,5)
 s.add(3,3)
 s.add(21,3)

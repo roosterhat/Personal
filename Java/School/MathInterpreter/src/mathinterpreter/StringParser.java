@@ -29,7 +29,7 @@ public class StringParser {
     }
     
     private double probabilityOfMatch(String subject, String target){
-        return subject.length()/target.length();
+        return Math.abs((subject.length()-target.length())/target.length()*100);
     }
        
     private ArrayList<Entry<String,Range>> getMostLikely(ArrayList<Entry<String,Range>> possible, String target, double margin){

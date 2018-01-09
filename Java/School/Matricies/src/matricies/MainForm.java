@@ -47,6 +47,7 @@ public class MainForm extends javax.swing.JFrame {
     File importFile;
     Equation equation;
     boolean shiftState = false;
+    
     public MainForm() {
         matricies = new HashMap();
         commands = createCommands();
@@ -128,6 +129,8 @@ public class MainForm extends javax.swing.JFrame {
         );
 
         jTabbedPane2.addTab("Equation", jPanel1);
+
+        jScrollPane2.getVerticalScrollBar().setUnitIncrement(16);
 
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);

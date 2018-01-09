@@ -106,8 +106,8 @@ public class MatrixEquation extends Equation{
        
         
         addFunction(new Function("new",5,x->{
-            int r = x.size()>=2 ? Integer.valueOf((String)x.get(0)) : 2;
-            int c = x.size()>=2 ? Integer.valueOf((String)x.get(1)) : 2;
+            int r = x.size()>=2 ? (int)Double.parseDouble((String)x.get(0)) : 2;
+            int c = x.size()>=2 ? (int)Double.parseDouble((String)x.get(1)) : 2;
             Matrix m = new Matrix(r,c);
             if(x.size()==3)
                 return _main.createNew(m,String.valueOf(x.get(2)));
@@ -116,8 +116,8 @@ public class MatrixEquation extends Equation{
         },x->x));
         
         addFunction(new Function("id",5,x->{
-            int r = x.size()>=2 ? Integer.valueOf((String)x.get(0)) : 2;
-            int c = x.size()>=2 ? Integer.valueOf((String)x.get(1)) : 2;
+            int r = x.size()>=2 ? (int)Double.parseDouble((String)x.get(0)) : 2;
+            int c = x.size()>=2 ? (int)Double.parseDouble((String)x.get(1)) : 2;
             Matrix m = new Matrix();
             if(x.size()==3)
                 return _main.createNew(m.newIdentity(r, c),(String)x.get(2));
@@ -127,8 +127,8 @@ public class MatrixEquation extends Equation{
         
         addFunction(new Function("set",5,x->{
             Matrix m = _main.matricies.get((String)x.get(0));
-                int r = Integer.valueOf((String)x.get(1));
-                int c = Integer.valueOf((String)x.get(2));
+                int r = (int)Double.parseDouble((String)x.get(1));
+                int c = (int)Double.parseDouble((String)x.get(2));
                 double val = Double.valueOf((String)x.get(3));
                 m.set(val, r, c);
             return (String)x.get(0);
@@ -137,8 +137,8 @@ public class MatrixEquation extends Equation{
         addFunction(new Function("resize",5,x->{
             String name = (String)x.get(0);
             Matrix m = _main.matricies.get(name);
-                int r = Integer.valueOf((String)x.get(1));
-                int c = Integer.valueOf((String)x.get(2));
+                int r = (int)Double.parseDouble((String)x.get(1));
+                int c = (int)Double.parseDouble((String)x.get(2));
                 m.resize(r, c);
                 _main.resize(name, r, c);
             return name;

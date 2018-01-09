@@ -372,7 +372,7 @@ public class Matrix {
     public String toHtml(int dec)
     {
         String[] colors = {"#C0C0C0","#FFFFFF"};
-        String f = "%-"+(getLongestValue()+dec+2)+"."+dec+"f";
+        String f = "% -"+(getLongestValue()+dec+2)+"."+dec+"f";
         String res = "";
         for(int r = 0;r<rows;r++)
         {
