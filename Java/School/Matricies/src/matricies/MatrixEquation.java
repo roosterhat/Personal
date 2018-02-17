@@ -28,6 +28,7 @@ public class MatrixEquation extends Equation{
         setFunctions();
         setPairs();
         setEquation(s);
+        setDecimalDepth(5);
     }
 
     

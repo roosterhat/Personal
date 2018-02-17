@@ -22,7 +22,7 @@ public class Equation extends MathInterpreter{
     
     public Equation(String s){
         super();
-        setDecimalDepth(5);
+        setDecimalDepth(15);
         setOperators();
         setFunctions();
         setPairs();

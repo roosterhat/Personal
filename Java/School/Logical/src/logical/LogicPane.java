@@ -5,18 +5,13 @@
  */
 package logical;
 
-import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import mathinterpreter.*;
 
 /**
@@ -33,12 +28,10 @@ public class LogicPane extends javax.swing.JPanel {
     LogicEquation equation;
     String format;
     String name;
-    int id;
-    public LogicPane(String name, int id, MainFrame m) {
+    public LogicPane(String name, MainFrame m) {
         equation = new LogicEquation();
         _main = m;
         this.name = name;
-        this.id = id;
         initComponents();
         jPanel1.setLayout(new GridLayout(0,1)); 
     }
@@ -73,6 +66,8 @@ public class LogicPane extends javax.swing.JPanel {
 
         jScrollPane1.setViewportView(jPanel1);
 
+        setFont(new java.awt.Font("Monospaced", 0, 13)); // NOI18N
+
         jTextField1.setToolTipText("Equation");
         jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
@@ -93,6 +88,8 @@ public class LogicPane extends javax.swing.JPanel {
                 jButton2ActionPerformed(evt);
             }
         });
+
+        jScrollPane2.setFont(new java.awt.Font("Monospaced", 0, 13)); // NOI18N
 
         jTextArea1.setEditable(false);
         jTextArea1.setColumns(20);
@@ -148,39 +145,33 @@ public class LogicPane extends javax.swing.JPanel {
     }//GEN-LAST:event_jTextField1KeyPressed
 
     private String getHeading(ArrayList<String> variables){
-        return equation.toString()+"<br>"+String.format(format, variables.toArray())+"Outcome<br>";
+        return equation.toString()+"\n"+String.format(format, variables.toArray())+"Outcome\n";
     }
     
-    private String getState(ArrayList<Boolean> states, boolean outcome){
-        return String.format(format, states.toArray())+String.valueOf(outcome)+"<br>";
+    private String formatRow(String states, String outcome){
+        ArrayList<String> formatTargets = new ArrayList();
+        for(char c: states.toCharArray())
+            formatTargets.add(String.valueOf(c=='0'));
+        return String.format(format, formatTargets.toArray())+outcome+"\n";
     }
     
     private void setFormat(ArrayList<String> variables){
-        format = "";
-        for(String var: variables)
-            format+="%-7s";
+        format = new String();
+        variables.forEach(x->{format+="%-7s";});
         format+=" : ";
     }
     
     private void preformOperations(){
-        String result = "";
         ArrayList<String> variables = getVariables();
-        ArrayList<ArrayList<Boolean>> states = convertToBoolean(getBinaryOutput(variables.size()));
         setFormat(variables);
-        result += getHeading(variables);
-        for(ArrayList<Boolean> state: states){
+        String result = getHeading(variables);
+        for(String states: getBinaryOutput(variables.size())){
             Map arguments = new HashMap();
-            variables.forEach(x->arguments.put(x, state.get(variables.indexOf(x))));
-            try{result += getState(state,Boolean.valueOf(equation.f(arguments)));}
+            variables.forEach(x->arguments.put(x, states.charAt(variables.indexOf(x))=='0'));
+            try{result += formatRow(states,equation.f(arguments));}
             catch(Exception e){System.out.println(e);return;}                
         }
-        /*JLabel l = new JLabel("<html>"+result.replaceAll(" ", ((char)160)+"")+"</html>");
-        l.setFont(new Font("Monospaced",1,18));
-        //jPanel2.removeAll();
-        jPanel1.add(l);
-        jPanel1.add(new JLabel("Test"));
-        System.out.println(result.replaceAll("<br>", "\n"));*/
-        jTextArea1.setText(result.replaceAll("<br>", "\n"));
+        jTextArea1.setText(result);
     }
     
     private ArrayList<String> getVariables(){
@@ -193,31 +184,13 @@ public class LogicPane extends javax.swing.JPanel {
     
     public ArrayList<String> getBinaryOutput(int val)
     {
-        String[] temp = new String[(int)Math.pow(2,val)];
-        String out = "";
-        for (int i=0; i<val; ++i) {
-            out+="0";   
-        }
-        for (int i = 0; i < Math.pow(2,val); i++) {
-            if (val-Integer.toBinaryString(i).length() > 0) { 
-                temp[i] = out.substring(1,val-Integer.toBinaryString(i).length()+1) +Integer.toBinaryString(i);
-            } else {
-                temp[i] = Integer.toBinaryString(i);
-            }
-        }
-        return  new ArrayList<String>(Arrays.asList(temp));
+        ArrayList<String> temp = new ArrayList();
+        int max = (int)Math.pow(2,val);  
+        for (int i = 0; i < max; i++)
+            temp.add(String.format("%"+val+"s", Integer.toBinaryString(i)).replaceAll(" ", "0"));
+        return  temp;
     }
     
-    public ArrayList<ArrayList<Boolean>> convertToBoolean(ArrayList<String> a){
-        ArrayList<ArrayList<Boolean>> res = new ArrayList();
-        for(String s: a){
-            ArrayList<Boolean> temp = new ArrayList();
-            for(char state: s.toCharArray())
-               temp.add(state=='0');
-            res.add(temp);
-        }
-        return res;
-    }
     
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

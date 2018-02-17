@@ -21,6 +21,7 @@ public class MainFrame extends javax.swing.JFrame {
     public MainFrame() {
         initComponents();
         tabs = new ArrayList();
+        createTab();
     }
 
     /**
@@ -67,12 +68,17 @@ public class MainFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        String name = getAvailableChar();
-        JPanel pane = new LogicPane(name,jTabbedPane1.getTabCount(),this);
-        tabs.add(new Entry(name,pane));
-        jTabbedPane1.addTab(name, pane);
+        createTab();
+        jTabbedPane1.setSelectedIndex(jTabbedPane1.getTabCount()-1);
     }//GEN-LAST:event_jButton1ActionPerformed
 
+    public void createTab(){
+        String name = getAvailableChar();
+        JPanel pane = new LogicPane(name,this);
+        tabs.add(new Entry(name,pane));
+        jTabbedPane1.addTab(name, pane);
+    }
+    
     public void deleteTab(String name){
         tabs.removeIf(x->x.key.equals(name));
         jTabbedPane1.remove(jTabbedPane1.indexOfTab(name));
@@ -84,36 +90,18 @@ public class MainFrame extends javax.swing.JFrame {
     
     private String getAvailableChar()
     {
-        for(int count = 0;count<5; count++)
-        {
-            String name = nameHelper("",count);
-            boolean contains = false;
-            for(Entry e: tabs)
-                if(e.key.equals(name))
-                    contains = true;
-            if(!contains&&!name.isEmpty())
-                return name;
-        }
-        return "...";
+        String result = "";
+        int cur = tabs.size();
+        ArrayList alphabet = new ArrayList();
+        for (char c = 'A'; c <= 'Z'; ++c)
+            alphabet.add(c);
+        do{
+            result = alphabet.get(cur%26)+result;
+            cur = Math.floorDiv(cur, 26)-1;
+        }while(cur>=0);
+        return result;
     }
     
-    private String nameHelper(String base,int depth)
-    {
-        if (depth>0)
-        {
-            for (char c = 'A'; c <= 'Z'; ++c)
-            {
-                String name = nameHelper(base+c,depth-1);
-                boolean contains = false;
-                for(Entry e: tabs)
-                    if(e.key.equals(name))
-                        contains = true;
-                if(!contains&&!name.isEmpty())
-                    return name;
-            }
-        }
-        return base;
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
