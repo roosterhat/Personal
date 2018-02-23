@@ -154,9 +154,11 @@ public class MatrixEquation extends Equation{
 
 class MatrixOperation extends Operation{
     Converter<Double> doubleConverter = x->Double.valueOf(x);
+    MatrixFunction function;
 
     public MatrixOperation(String o,int w,int side,MatrixFunction f,Converter c){
-        super(o,w,side,f,c);
+        super(o,w,side,c);
+        function = f;
     }
     
     public boolean isNumber(String s){return s.matches("\\-?\\d+(\\.\\d*)?");}
@@ -203,8 +205,7 @@ class Literal extends Pair
     }
 }
 
-interface MatrixFunction extends FunctionInterface
-{
+interface MatrixFunction{
     public String execute(Matrix x, String y)throws Exception;
 }
 

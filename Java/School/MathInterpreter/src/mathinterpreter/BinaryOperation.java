@@ -12,14 +12,15 @@ import java.util.ArrayList;
  * @author ostlinja
  */
 public class BinaryOperation<E> extends Operation{
+    BinaryFunction<E> function;
     public BinaryOperation(String o,int w,BinaryFunction<E> f){
         this(o,w,f,x->(E)Double.valueOf(x));
     }
     public BinaryOperation(String o,int w,BinaryFunction<E> f,Converter<E> c){
-        super(o,w,Operation.BOTH,f,c);
+        super(o,w,Operation.BOTH,c);
+        function = f;
     }
     
-    @Override
     public String execute(ArrayList<String> parts)throws Exception{
         return ((BinaryFunction)function).execute(converter.convert(parts.get(0)), converter.convert(parts.get(1)));
     }

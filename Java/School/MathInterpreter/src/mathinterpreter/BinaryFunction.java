@@ -9,7 +9,6 @@ package mathinterpreter;
  *
  * @author ostlinja
  */
-public interface BinaryFunction<E> extends FunctionInterface
-{      
+public interface BinaryFunction<E>{      
     String execute(E x,E y)throws Exception;
 }

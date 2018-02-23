@@ -11,6 +11,6 @@ import java.util.ArrayList;
  *
  * @author ostlinja
  */
-public interface PairFunctionInterface<K> extends FunctionInterface{
+public interface PairFunctionInterface<K>{
     public K execute(ArrayList a)throws Exception;
 }

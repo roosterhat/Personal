@@ -201,16 +201,22 @@ public class Equation extends MathInterpreter{
 
 class ConstantOperation extends Operation
 {
+    ConstantFunction function;
     public ConstantOperation(String o,ConstantFunction f)
     {
-        super(o,0,Operation.RIGHT,f);
+        super(o,0,Operation.RIGHT);
+        function = f;
+    }
+    
+    public String execute(ArrayList<String> array)throws Exception{
+        return function.execute();
     }
     
     public String execute()throws Exception{
-        return ((ConstantFunction)function).execute();
+        return execute(new ArrayList());
     }
 }
 
-interface ConstantFunction extends FunctionInterface{
+interface ConstantFunction{
     public String execute();
 }

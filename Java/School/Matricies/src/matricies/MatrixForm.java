@@ -209,6 +209,7 @@ public class MatrixForm extends javax.swing.JPanel {
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
         JTextField namefield = new JTextField(5);
+        namefield.setText(name);
         JPanel myPanel = new JPanel();
         myPanel.add(new JLabel("Name: "));
         myPanel.add(namefield);

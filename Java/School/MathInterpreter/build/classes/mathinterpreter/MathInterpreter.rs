@@ -1,2 +1,0 @@
-mathinterpreter.MathInterpreter
-mathinterpreter.Task

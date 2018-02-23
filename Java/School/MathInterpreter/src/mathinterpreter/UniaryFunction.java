@@ -9,7 +9,6 @@ package mathinterpreter;
  *
  * @author ostlinja
  */
-public interface UniaryFunction<E> extends FunctionInterface
-{      
+public interface UniaryFunction<E>{      
     String execute(E x)throws Exception;
 }

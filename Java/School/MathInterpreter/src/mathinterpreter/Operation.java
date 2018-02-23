@@ -20,20 +20,18 @@ public abstract class Operation {
     public static int LEFT = -1;
     public static int RIGHT = 1;
     public static int BOTH = 0;
-    public FunctionInterface function;
     public Converter converter;
 
-    public Operation(String operator,int weight,int inputSide,FunctionInterface function)
+    public Operation(String operator,int weight,int inputSide)
     {
-        this(operator,weight,inputSide,function,x->x);
+        this(operator,weight,inputSide,x->x);
     }
     
-    public Operation(String operator,int weight,int inputSide,FunctionInterface function, Converter converter)
+    public Operation(String operator,int weight,int inputSide, Converter converter)
     {
         this.operator = operator;
         this.weight = weight;
         this.inputSide = inputSide;
-        this.function = function;
         this.converter = converter;
         regex = genRegex(operator);
     }
@@ -44,9 +42,7 @@ public abstract class Operation {
         return "("+s+")";
     }
     
-    public String execute(ArrayList<String> parts)throws Exception{
-        return "";
-    }
+    public abstract String execute(ArrayList<String> parts)throws Exception;
     
     public String toString(){
         return operator;

@@ -12,6 +12,7 @@ import java.util.ArrayList;
  * @author ostlinja
  */
 public class UniaryOperation<E> extends Operation{
+    UniaryFunction<E> function;
     public UniaryOperation(String o,int w,UniaryFunction<E> f){
         this(o,w,Operation.RIGHT,f);
     }
@@ -22,7 +23,8 @@ public class UniaryOperation<E> extends Operation{
         this(o,w,s,f,x->(E)Double.valueOf(x));
     }
     public UniaryOperation(String o,int w,int s,UniaryFunction<E> f,Converter<E> c){
-        super(o,w,s,f,c);
+        super(o,w,s,c);
+        function = f;
     }
     
     @Override

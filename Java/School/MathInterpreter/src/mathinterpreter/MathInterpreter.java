@@ -222,7 +222,7 @@ public class MathInterpreter {
     }
     
     private ArrayList getAll(){
-        Set<String> hs = new HashSet<>();
+        Set<String> hs = new HashSet();
         for(Operation o:(ArrayList<Operation>)getOperations())
             hs.add(o.toString());
         for(Function f: (ArrayList<Function>)getFunctions()){
