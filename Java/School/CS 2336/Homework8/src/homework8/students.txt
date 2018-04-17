@@ -1,0 +1,3 @@
+1234 [ARTS 1301.002 credits: 3, CS 2305.005 credits: 4, CS 2336.002 credits: 4, HIST 1303.005 credits: 3]
+1337 [BUSI 2456.013 credits: 3, CS 1336.004 credits: 4, MATH 2556.002 credits: 4]
+4321 [LANG 2354.023 credits: 3, MATH 1234.003 credits: 4, PHYS 3001.005 credits: 4, SCI 1301.001 credits: 4]
