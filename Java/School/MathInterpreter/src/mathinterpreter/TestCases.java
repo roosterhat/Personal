@@ -18,13 +18,13 @@ public class TestCases {
     }
    
     public void run(){
-        Equation eq = new Equation("-4--(x!)");
+        Equation eq = new Equation("(x(-3-1))^2");
         Equation eq2 = new Equation("(1+(cosx)^2)/(cosx)^2");
         Equation eq3 = new Equation("sin(pi/x)");
         eq3.setDecimalDepth(10);
         Equation eq4 = new Equation("(csclnx*cotlnx)/(2x)");
         Equation eq5 = new Equation("238Ex");
-        Equation eq5v2 = new Equation("238*10^(-x-1)");
+        Equation eq5v2 = new Equation("238*10^((-2x)-1)");
         eq5.setDecimalDepth(10);
         eq5v2.setDecimalDepth(10);
         Equation eq6 = new Equation("abs((5-15)/2)");
@@ -39,8 +39,8 @@ public class TestCases {
             for(int i=1;i<=6;i++)
                 System.out.println(eq3+" = "+eq3.f(i));
             System.out.println(eq4+" = "+eq4.f(3));
-            System.out.println(eq5+"         = "+eq5.f(-8));
-            System.out.println(eq5v2+" = "+eq5v2.f(7));
+            System.out.println(eq5+"           = "+eq5.f(-8));
+            System.out.println(eq5v2+" = "+eq5v2.f(3.5));
             System.out.println(eq6+" = "+eq6.f(0));
             System.out.println(eq7+" = "+eq7.f(3));
             System.out.println(eq8+" = "+eq8.f(2,3));
@@ -51,8 +51,8 @@ public class TestCases {
             System.out.println(eq9+" = "+eq9.f(values));
             System.out.println(eq9+" = "+eq9.f(3,4,2));
             
-            Equation test = new Equation("max[2,2x,50+3,6,7,12,8]");       
-            System.out.println(test+" = "+test.f(26));
+            Equation test = new Equation("max[2,(x(-3-1))^2,50+3,6,7,12,8]");       
+            System.out.println(test+" = "+test.f(3));
             Equation test2 = new Equation("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");       
             System.out.println(test2+" = "+test2.f(10));
         }catch(Exception e){System.out.println(e);}

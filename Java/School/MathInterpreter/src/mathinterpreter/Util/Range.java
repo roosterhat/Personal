@@ -3,15 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package mathinterpreter;
+package mathinterpreter.Util;
 
 /**
  *
  * @author ostlinja
  */
 public class Range {
-    int start;
-    int end;
+    public int start;
+    public int end;
     public Range(){
         this(0,0);
     }

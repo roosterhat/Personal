@@ -3,17 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package mathinterpreter;
-
-import java.util.ArrayList;
+package mathinterpreter.Operation;
 
 /**
  *
  * @author ostlinja
  */
-public class BasicParenthesis extends Pair{
-    public BasicParenthesis(){
-        super("(",")",5);
-    }
+public interface BinaryFunction<I,O>{      
+    O execute(I x,I y)throws Exception;
 }
-

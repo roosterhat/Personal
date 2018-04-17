@@ -1,2 +1,0 @@
-mathinterpreter.DPoint
-mathinterpreter.GraphPane

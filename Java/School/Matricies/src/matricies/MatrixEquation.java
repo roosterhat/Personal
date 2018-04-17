@@ -9,9 +9,16 @@ package matricies;
  *
  * @author ostlinja
  */
+import mathinterpreter.Operation.Converter;
+import mathinterpreter.Operation.Function;
+import mathinterpreter.Operation.UniaryOperation;
+import mathinterpreter.Operation.Pair;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import mathinterpreter.*;
+import mathinterpreter.Operation.BinaryOperation;
+import mathinterpreter.Operation.PairFunction;
 
 public class MatrixEquation extends Equation{
     MainForm _main;
@@ -33,21 +40,21 @@ public class MatrixEquation extends Equation{
 
     
     private void setOperators(){       
-        addOperation(new MatrixOperation("dot",1,Operation.BOTH,(x,y)->{
+        addOperation(new MatrixOperation("dot",1,(x,y)->{
             Matrix temp = mc.convert(y);
             Matrix m = x.dot(temp);
             _main.createNew(m);
             return mc.revert(m);
         },mc));      
         
-        addOperation(new UniaryOperation<Matrix>("det",2,x->String.valueOf(x.determinate()),mc));
+        addOperation(new UniaryOperation<Matrix>("det",2,UniaryOperation.RIGHT,x->String.valueOf(x.determinate()),mc));
         
-        addOperation(new UniaryOperation<Matrix>("trans",2,x->{
+        addOperation(new UniaryOperation<Matrix>("trans",2,UniaryOperation.RIGHT,x->{
             x.transpose();
             return mc.revert(x);
         },mc));
         
-        addOperation(new UniaryOperation<Matrix>("gj",2,x->{
+        addOperation(new UniaryOperation<Matrix>("gj",2,UniaryOperation.RIGHT,x->{
             Matrix m = x.gaussJordan();
             _main.createNew(m);
             return mc.revert(m);
@@ -55,7 +62,7 @@ public class MatrixEquation extends Equation{
     }
     
     private void setFunctions(){
-        addFunction(new Function("add",0,x->{
+        addOperation(new Function("add",0,x->{
             Matrix m = mc.convert((String)x.get(0));
             String val = (String)x.get(1);
             if(isNumber(val))
@@ -67,7 +74,7 @@ public class MatrixEquation extends Equation{
             return mc.revert(m);
         },x->x));  
         
-        addFunction(new Function("sub",0,x->{
+        addOperation(new Function("sub",0,x->{
             Matrix m = mc.convert((String)x.get(0));
             String val = (String)x.get(1);
             if(isNumber(val))
@@ -81,7 +88,7 @@ public class MatrixEquation extends Equation{
             return mc.revert(m);
         },x->x));
         
-        addFunction(new Function("mult",0,x->{
+        addOperation(new Function("mult",0,x->{
             Matrix m = mc.convert((String)x.get(0));
             String val = (String)x.get(1);
             if(isNumber(val))
@@ -93,7 +100,7 @@ public class MatrixEquation extends Equation{
             return mc.revert(m);
         },x->x));
         
-        addFunction(new Function("div",0,x->{
+        addOperation(new Function("div",0,x->{
             Matrix m = mc.convert((String)x.get(0));
             String val = (String)x.get(1);
             if(isNumber(val))
@@ -106,7 +113,7 @@ public class MatrixEquation extends Equation{
         },x->x));
        
         
-        addFunction(new Function("new",5,x->{
+        addOperation(new Function("new",5,x->{
             int r = x.size()>=2 ? (int)Double.parseDouble((String)x.get(0)) : 2;
             int c = x.size()>=2 ? (int)Double.parseDouble((String)x.get(1)) : 2;
             Matrix m = new Matrix(r,c);
@@ -116,7 +123,7 @@ public class MatrixEquation extends Equation{
                 return _main.createNew(m);
         },x->x));
         
-        addFunction(new Function("id",5,x->{
+        addOperation(new Function("id",5,x->{
             int r = x.size()>=2 ? (int)Double.parseDouble((String)x.get(0)) : 2;
             int c = x.size()>=2 ? (int)Double.parseDouble((String)x.get(1)) : 2;
             Matrix m = new Matrix();
@@ -126,7 +133,7 @@ public class MatrixEquation extends Equation{
                 return _main.createNew(m.newIdentity(r, c));
         },x->x));
         
-        addFunction(new Function("set",5,x->{
+        addOperation(new Function("set",5,x->{
             Matrix m = _main.matricies.get((String)x.get(0));
                 int r = (int)Double.parseDouble((String)x.get(1));
                 int c = (int)Double.parseDouble((String)x.get(2));
@@ -135,7 +142,7 @@ public class MatrixEquation extends Equation{
             return (String)x.get(0);
         },x->x));
         
-        addFunction(new Function("resize",5,x->{
+        addOperation(new Function("resize",5,x->{
             String name = (String)x.get(0);
             Matrix m = _main.matricies.get(name);
                 int r = (int)Double.parseDouble((String)x.get(1));
@@ -148,16 +155,16 @@ public class MatrixEquation extends Equation{
     
     private void setPairs()
     {
-        addPair(new Literal());
+        addOperation(new Literal());
     }
 }
 
-class MatrixOperation extends Operation{
+class MatrixOperation extends BinaryOperation<Matrix>{
     Converter<Double> doubleConverter = x->Double.valueOf(x);
     MatrixFunction function;
 
-    public MatrixOperation(String o,int w,int side,MatrixFunction f,Converter c){
-        super(o,w,side,c);
+    public MatrixOperation(String operation, int weight, MatrixFunction f, Converter c){
+        super(operation, weight, (x,y)->"", c);
         function = f;
     }
     
@@ -179,7 +186,7 @@ class MatrixConverter implements Converter<Matrix>
     }
     
     public Matrix convert(String s){
-        return names.get(s);
+        return names.get(s.trim());
     }
     
     public String revert(Matrix m){
@@ -194,14 +201,12 @@ class Literal extends Pair
 {
     public Literal(){
         super("{","}",1);
-        internalFunction = (LiteralFunction)x->{
-            ArrayList res = new ArrayList();
-            String comp = "";
-            for(String s: (ArrayList<String>)x)
-               comp+=s;
-            res.add(comp);
-            return res;
-        };
+    }
+    
+    public ArrayList<String> execute(ArrayList<String> array){
+        String comp = "";
+        array.forEach(x->comp.concat(x));
+        return new ArrayList(Arrays.asList(new String[]{comp}));
     }
 }
 
@@ -209,6 +214,6 @@ interface MatrixFunction{
     public String execute(Matrix x, String y)throws Exception;
 }
 
-interface LiteralFunction extends PairFunctionInterface{
+interface LiteralFunction extends PairFunction{
     public ArrayList execute(ArrayList a);
 }

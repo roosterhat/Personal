@@ -1,14 +1,15 @@
 
-package mathinterpreter;
+package mathinterpreter.Parser;
 
 import java.util.ArrayList;
+import mathinterpreter.Util.Range;
 
 /**
  *
  * @author ostlinja
  */
 public class StringParser {
-    ArrayList<String> tokens;
+    public ArrayList<String> tokens;
     
     public StringParser(){
         tokens = new ArrayList();

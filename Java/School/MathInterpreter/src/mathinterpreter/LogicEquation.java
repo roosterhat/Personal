@@ -5,6 +5,10 @@
  */
 package mathinterpreter;
 
+import mathinterpreter.Operation.BasicParenthesis;
+import mathinterpreter.Operation.UniaryOperation;
+import mathinterpreter.Operation.BinaryOperation;
+
 /**
  *
  * @author ostlinja
@@ -26,7 +30,7 @@ public class LogicEquation extends MathInterpreter{
             variables.add(String.valueOf(c));
         for(char c='A';c<='Z';c++)
             variables.add(String.valueOf(c));
-        addPair(new BasicParenthesis());
+        addOperation(new BasicParenthesis());
         setOperations();   
         setEquation(eq);
     }
@@ -47,7 +51,7 @@ public class LogicEquation extends MathInterpreter{
         addOperation(new BinaryOperation<Boolean>("->",0,(x,y)->{
             return String.valueOf(!(x&&!y));
         },x->Boolean.valueOf(x)));
-        addOperation(new UniaryOperation<Boolean>("~",0,x->{
+        addOperation(new UniaryOperation<Boolean>("~",0,UniaryOperation.RIGHT,x->{
             return String.valueOf(!x);
         },x->Boolean.valueOf(x)));
     }

@@ -5,6 +5,8 @@
  */
 package matricies;
 
+import java.awt.BorderLayout;
+import mathinterpreter.Operation.Operation;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridLayout;
@@ -13,6 +15,7 @@ import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -27,6 +30,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -302,48 +306,37 @@ public class MainForm extends javax.swing.JFrame {
                                         + "(Case Sensitive)");
         matrixCommands.setEditable(false);
         matrixCommands.setFont(new Font("Monospaced", Font.BOLD, 18));
-        
-        JTabbedPane mathCommands = new JTabbedPane();
-        
-        String s = "";
-        for(Operation o: (ArrayList<Operation>)equation.getOperations())
-            s += o.operator+"\n";
-        JTextArea t = new JTextArea(s);
-        t.setEditable(false);
-        t.setFont(new Font("Monospaced", Font.BOLD, 18));
-        mathCommands.add(t);
-        
-        s="";
-        for(Function f: (ArrayList<Function>)equation.getFunctions())
-            s += f.name+"\n";
-        t = new JTextArea(s);
-        t.setEditable(false);
-        t.setFont(new Font("Monospaced", Font.BOLD, 18));
-        mathCommands.add(t);
-        
-        s="";
-        for(Pair p: (ArrayList<Pair>)equation.getPairs())
-            s += p+"\n";
-        t = new JTextArea(s);
-        t.setEditable(false);
-        t.setFont(new Font("Monospaced", Font.BOLD, 18));
-        mathCommands.add(t);
-        
-        mathCommands.setTitleAt(0, "Operations");
-        mathCommands.setTitleAt(1, "Functions");
-        mathCommands.setTitleAt(2, "Pairs");
-        
-        
         tPane.add(matrixCommands);
+        ArrayList<Operation> op = equation.getOperations();
+        op.sort((x,y)->x.operator.compareToIgnoreCase(y.operator));
+        String s = "";
+        for(Operation o: op)
+            if(!s.contains(o.getUsage()))
+                s += o.getUsage()+"\n";
+        JTextArea t = new JTextArea(s); 
+        t.setEditable(false);
+        t.setFont(new Font("Monospaced", Font.BOLD, 18));
+        
+        JScrollPane sp = new JScrollPane();
+        sp.setPreferredSize(matrixCommands.getSize());
+        JPanel p = new JPanel();
+        p.setLayout(new BorderLayout());
+        p.add(t, BorderLayout.CENTER);
+        
+        sp.setViewportView(p);
+        sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        
+        //p.add(sp);
+        
         tPane.setTitleAt(0, "Matrix");
-        tPane.add(mathCommands);
+        tPane.add(sp);
         tPane.setTitleAt(1, "Math");
         
         
         JOptionPane pane = new JOptionPane(tPane,JOptionPane.INFORMATION_MESSAGE);
         JDialog dialog = pane.createDialog(null, "Commands");
         dialog.setModal(false);
-        dialog.show();
+        dialog.setVisible(true);
     }//GEN-LAST:event_jButton1ActionPerformed
 
     public String addResult(String[] text,int index,String res){

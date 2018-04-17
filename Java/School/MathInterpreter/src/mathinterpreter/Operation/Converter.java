@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package mathinterpreter;
+package mathinterpreter.Operation;
 
 /**
  *
@@ -12,4 +12,5 @@ package mathinterpreter;
 public interface Converter<E>
 {
     public E convert(String x)throws Exception;
+    
 }

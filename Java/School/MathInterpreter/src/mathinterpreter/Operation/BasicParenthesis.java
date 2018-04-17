@@ -3,12 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package mathinterpreter;
+package mathinterpreter.Operation;
 
 /**
  *
- * @author ostlinja
+ * @author eriko
  */
-public interface BinaryFunction<E>{      
-    String execute(E x,E y)throws Exception;
+public class BasicParenthesis extends Pair{
+    public BasicParenthesis() {
+        super("(",")",5);
+    }
 }

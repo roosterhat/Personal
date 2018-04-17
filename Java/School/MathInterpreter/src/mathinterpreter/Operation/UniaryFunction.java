@@ -3,12 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package mathinterpreter;
+package mathinterpreter.Operation;
 
 /**
  *
  * @author ostlinja
  */
-public interface UniaryFunction<E>{      
-    String execute(E x)throws Exception;
+public interface UniaryFunction<I,O>{      
+    O execute(I x)throws Exception;
 }
