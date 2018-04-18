@@ -19,6 +19,7 @@ import java.util.Map;
 import mathinterpreter.*;
 import mathinterpreter.Operation.BinaryOperation;
 import mathinterpreter.Operation.PairFunction;
+import mathinterpreter.Operation.UniaryFunction;
 
 public class MatrixEquation extends Equation{
     MainForm _main;
@@ -40,21 +41,21 @@ public class MatrixEquation extends Equation{
 
     
     private void setOperators(){       
-        addOperation(new MatrixOperation("dot",1,(x,y)->{
+        addOperation(new MatrixBinaryOperation("dot",1,(x,y)->{
             Matrix temp = mc.convert(y);
             Matrix m = x.dot(temp);
             _main.createNew(m);
             return mc.revert(m);
         },mc));      
         
-        addOperation(new UniaryOperation<Matrix>("det",2,UniaryOperation.RIGHT,x->String.valueOf(x.determinate()),mc));
+        addOperation(new MatrixUniaryOperation("det",2,UniaryOperation.RIGHT,x->String.valueOf(x.determinate()),mc));
         
-        addOperation(new UniaryOperation<Matrix>("trans",2,UniaryOperation.RIGHT,x->{
+        addOperation(new MatrixUniaryOperation("trans",2,UniaryOperation.RIGHT,x->{
             x.transpose();
             return mc.revert(x);
         },mc));
         
-        addOperation(new UniaryOperation<Matrix>("gj",2,UniaryOperation.RIGHT,x->{
+        addOperation(new MatrixUniaryOperation("gj",2,UniaryOperation.RIGHT,x->{
             Matrix m = x.gaussJordan();
             _main.createNew(m);
             return mc.revert(m);
@@ -159,11 +160,11 @@ public class MatrixEquation extends Equation{
     }
 }
 
-class MatrixOperation extends BinaryOperation<Matrix>{
+class MatrixBinaryOperation extends BinaryOperation<Matrix>{
     Converter<Double> doubleConverter = x->Double.valueOf(x);
     MatrixFunction function;
 
-    public MatrixOperation(String operation, int weight, MatrixFunction f, Converter c){
+    public MatrixBinaryOperation(String operation, int weight, MatrixFunction f, Converter c){
         super(operation, weight, (x,y)->"", c);
         function = f;
     }
@@ -175,6 +176,12 @@ class MatrixOperation extends BinaryOperation<Matrix>{
             return "";
         else 
             return ((MatrixFunction)function).execute((Matrix)converter.convert(parts.get(0)),parts.get(1));
+    }
+}
+
+class MatrixUniaryOperation extends UniaryOperation<Matrix>{
+    public MatrixUniaryOperation(String operation, int weight, int side, UniaryFunction<Matrix,String> function, MatrixConverter converter){
+        super(operation,weight,side,function,converter);
     }
 }
 

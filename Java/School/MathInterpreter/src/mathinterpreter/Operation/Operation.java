@@ -5,8 +5,7 @@
  */
 package mathinterpreter.Operation;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
+import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,7 +21,8 @@ public abstract class Operation<T1,T2> {
     public int weight;
     public Converter<T2> converter;
     protected MathInterpreter _main;
-    public ArrayList<T2> type;
+    private final TypeToken<T2> typeToken = new TypeToken<T2>(getClass()) { };
+    private final Type type = typeToken.getType(); 
 
     public Operation(String operator,int weight)
     {
@@ -91,22 +91,8 @@ public abstract class Operation<T1,T2> {
     }
     
     public String getTypeName(){
-        try{
-            Field field = Operation.class.getField("type");
-            Type genericFieldType = field.getGenericType();
-
-            if(genericFieldType instanceof ParameterizedType){
-                ParameterizedType aType = (ParameterizedType) genericFieldType;
-                Type[] fieldArgTypes = aType.getActualTypeArguments();
-                for(Type fieldArgType : fieldArgTypes){
-                    Class fieldArgClass = (Class) fieldArgType;
-                    System.out.println("fieldArgClass = " + fieldArgClass);
-                }
-            }
-        }
-        catch(Exception e){System.out.println(e);}
-
-        return "";
+        String[] t = type.getTypeName().split("\\.");
+        return t[t.length-1];
     }
     
     public String getUsage(){

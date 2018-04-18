@@ -13,7 +13,10 @@ import mathinterpreter.Operation.Operation;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import mathinterpreter.Operation.BinaryFunction;
+import mathinterpreter.Operation.Converter;
 import mathinterpreter.Operation.Pair;
+import mathinterpreter.Operation.UniaryFunction;
 import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
 
@@ -44,18 +47,17 @@ public class Equation extends MathInterpreter{
     }
     
     private void setOperators(){
+        addOperation(new DoubleBinaryOp("*",1,(x,y)->df.format(x*y)));
         addOperation(new Plus(df,this));
         addOperation(new Minus(df,this));
-        addOperation(new BinaryOperation<Double>("*",1,(x,y)->df.format(x*y)
-        ));
-        addOperation(new BinaryOperation<Double>("/",1,(x,y)->{
+        addOperation(new DoubleBinaryOp("/",1,(x,y)->{
                         if(y==0)
                             throw new Exception("Divide by zero Error");
                         return df.format(x/y);
                     }));
-        addOperation(new BinaryOperation<Double>("%",1,(x,y)->df.format(x%y)));
-        addOperation(new BinaryOperation<Double>("^",2,(x,y)->df.format(Math.pow(x,y))));
-        addOperation(new BinaryOperation<Double>("E",2,(x,y)->df.format(x*Math.pow(10, y)),
+        addOperation(new DoubleBinaryOp("%",1,(x,y)->df.format(x%y)));
+        addOperation(new DoubleBinaryOp("^",2,(x,y)->df.format(Math.pow(x,y))));
+        addOperation(new DoubleBinaryOp("E",2,(x,y)->df.format(x*Math.pow(10, y)),
                 x->{
                     if(x.equals(""))
                         return 1.0;
@@ -63,35 +65,35 @@ public class Equation extends MathInterpreter{
                         return Double.valueOf(x);
                 }));
         
-        addOperation(new UniaryOperation<Double>("sin",3,x->df.format(Math.sin(x))));
-        addOperation(new UniaryOperation<Double>("cos",3,x->df.format(Math.cos(x))));
-        addOperation(new UniaryOperation<Double>("tan",3,x->df.format(Math.tan(x))));
-        addOperation(new UniaryOperation<Double>("csc",3,x->df.format(1/Math.sin(x))));
-        addOperation(new UniaryOperation<Double>("sec",3,x->df.format(1/Math.cos(x))));
-        addOperation(new UniaryOperation<Double>("cot",3,x->df.format(1/Math.tan(x))));
-        addOperation(new UniaryOperation<Double>("asin",3,x->df.format(Math.asin(x))));
-        addOperation(new UniaryOperation<Double>("acos",3,x->df.format(Math.acos(x))));
-        addOperation(new UniaryOperation<Double>("atan",3,x->df.format(Math.atan(x))));
-        addOperation(new UniaryOperation<Double>("acsc",3,x->df.format(1/Math.asin(x))));
-        addOperation(new UniaryOperation<Double>("asec",3,x->df.format(1/Math.acos(x))));
-        addOperation(new UniaryOperation<Double>("acot",3,x->df.format(1/Math.atan(x))));
-        addOperation(new UniaryOperation<Double>("log",3,x->{
+        addOperation(new DoubleUniaryOp("sin",3,x->df.format(Math.sin(x))));
+        addOperation(new DoubleUniaryOp("cos",3,x->df.format(Math.cos(x))));
+        addOperation(new DoubleUniaryOp("tan",3,x->df.format(Math.tan(x))));
+        addOperation(new DoubleUniaryOp("csc",3,x->df.format(1/Math.sin(x))));
+        addOperation(new DoubleUniaryOp("sec",3,x->df.format(1/Math.cos(x))));
+        addOperation(new DoubleUniaryOp("cot",3,x->df.format(1/Math.tan(x))));
+        addOperation(new DoubleUniaryOp("asin",3,x->df.format(Math.asin(x))));
+        addOperation(new DoubleUniaryOp("acos",3,x->df.format(Math.acos(x))));
+        addOperation(new DoubleUniaryOp("atan",3,x->df.format(Math.atan(x))));
+        addOperation(new DoubleUniaryOp("acsc",3,x->df.format(1/Math.asin(x))));
+        addOperation(new DoubleUniaryOp("asec",3,x->df.format(1/Math.acos(x))));
+        addOperation(new DoubleUniaryOp("acot",3,x->df.format(1/Math.atan(x))));
+        addOperation(new DoubleUniaryOp("log",3,x->{
                         if(x<0)
                             throw new Exception("Cannot preform 'log' on negative number: '"+x+"'");
                         return df.format(Math.log(x));
                     }));
-        addOperation(new UniaryOperation<Double>("ln",3,x->{
+        addOperation(new DoubleUniaryOp("ln",3,x->{
                         if(x<0)
                             throw new Exception("Cannot preform 'ln' on negative number: '"+x+"'");
                         return df.format(Math.log(x));
                     }));
-        addOperation(new UniaryOperation<Double>("abs",3,x->df.format(Math.abs(x))));
-        addOperation(new UniaryOperation<Double>("sqrt",3,x->{
+        addOperation(new DoubleUniaryOp("abs",3,x->df.format(Math.abs(x))));
+        addOperation(new DoubleUniaryOp("sqrt",3,x->{
                         if(x<0)
                             throw new Exception("Cannot preform 'sqrt' on negative number: '"+x+"'");
                         return df.format(Math.sqrt(x));
                     }));
-        addOperation(new UniaryOperation<Double>("!",2,UniaryOperation.LEFT,
+        addOperation(new DoubleUniaryOp("!",2,UniaryOperation.LEFT,
                 x->{
                     double res = 1;
                     for(int i=((Double)x).intValue();i>0;i--)
@@ -230,6 +232,26 @@ class Constant extends Operation<String,String>
 
 interface ConstantFunction{
     public String execute();
+}
+
+class DoubleBinaryOp extends BinaryOperation<Double>{
+    public DoubleBinaryOp(String operation, int weight, BinaryFunction<Double,String> function){
+        super(operation,weight,function,x->Double.valueOf(x));
+    }
+    
+    public DoubleBinaryOp(String operation, int weight, BinaryFunction<Double,String> function, Converter<Double> converter){
+        super(operation,weight,function,converter);
+    }
+}
+
+class DoubleUniaryOp extends UniaryOperation<Double>{
+    public DoubleUniaryOp(String operation, int weight, UniaryFunction<Double, String> function){
+        super(operation, weight, function);
+    }
+    
+    public DoubleUniaryOp(String operation, int weight, int side, UniaryFunction<Double,String> function){
+        super(operation,weight,side,function);
+    }
 }
 
 

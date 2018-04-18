@@ -77,6 +77,6 @@ public abstract class Pair  extends Operation<ArrayList<String>,String>{
     
     public String getUsage(){
         String type = getTypeName();
-        return open+" <"+type+"> ... "+close;
+        return open+"<"+type+"> ... "+close;
     }
 }
