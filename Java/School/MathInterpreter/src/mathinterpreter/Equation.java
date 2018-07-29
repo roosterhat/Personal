@@ -47,24 +47,18 @@ public class Equation extends MathInterpreter{
     }
     
     private void setOperators(){
-        addOperation(new DoubleBinaryOp("*",1,(x,y)->df.format(x*y)));
         addOperation(new Plus(df,this));
         addOperation(new Minus(df,this));
+        addOperation(new DoubleBinaryOp("*",1,(x,y)->df.format(x*y)));
         addOperation(new DoubleBinaryOp("/",1,(x,y)->{
-                        if(y==0)
-                            throw new Exception("Divide by zero Error");
-                        return df.format(x/y);
-                    }));
+                if(y==0)
+                    throw new Exception("Divide by zero Error");
+                return df.format(x/y);
+            }
+        ));
         addOperation(new DoubleBinaryOp("%",1,(x,y)->df.format(x%y)));
         addOperation(new DoubleBinaryOp("^",2,(x,y)->df.format(Math.pow(x,y))));
-        addOperation(new DoubleBinaryOp("E",2,(x,y)->df.format(x*Math.pow(10, y)),
-                x->{
-                    if(x.equals(""))
-                        return 1.0;
-                    else
-                        return Double.valueOf(x);
-                }));
-        
+        addOperation(new E(this));
         addOperation(new DoubleUniaryOp("sin",3,x->df.format(Math.sin(x))));
         addOperation(new DoubleUniaryOp("cos",3,x->df.format(Math.cos(x))));
         addOperation(new DoubleUniaryOp("tan",3,x->df.format(Math.tan(x))));
@@ -78,44 +72,89 @@ public class Equation extends MathInterpreter{
         addOperation(new DoubleUniaryOp("asec",3,x->df.format(1/Math.acos(x))));
         addOperation(new DoubleUniaryOp("acot",3,x->df.format(1/Math.atan(x))));
         addOperation(new DoubleUniaryOp("log",3,x->{
-                        if(x<0)
-                            throw new Exception("Cannot preform 'log' on negative number: '"+x+"'");
-                        return df.format(Math.log(x));
-                    }));
+                if(x<0)
+                    throw new Exception("Cannot preform 'log' on negative number: '"+x+"'");
+                return df.format(Math.log(x));
+            }
+        ));
         addOperation(new DoubleUniaryOp("ln",3,x->{
-                        if(x<0)
-                            throw new Exception("Cannot preform 'ln' on negative number: '"+x+"'");
-                        return df.format(Math.log(x));
-                    }));
+                if(x<0)
+                    throw new Exception("Cannot preform 'ln' on negative number: '"+x+"'");
+                return df.format(Math.log(x));
+            }
+        ));
         addOperation(new DoubleUniaryOp("abs",3,x->df.format(Math.abs(x))));
         addOperation(new DoubleUniaryOp("sqrt",3,x->{
-                        if(x<0)
-                            throw new Exception("Cannot preform 'sqrt' on negative number: '"+x+"'");
-                        return df.format(Math.sqrt(x));
-                    }));
+                if(x<0)
+                    throw new Exception("Cannot preform 'sqrt' on negative number: '"+x+"'");
+                return df.format(Math.sqrt(x));
+            }
+        ));
         addOperation(new DoubleUniaryOp("!",2,UniaryOperation.LEFT,
-                x->{
-                    double res = 1;
-                    for(int i=((Double)x).intValue();i>0;i--)
-                        res*=i;
-                    return String.valueOf(res);
-                }));
-        
+            x->{
+                double res = 1;
+                for(int i=x.intValue();i>0;i--)
+                    res*=i;
+                return String.valueOf(res);
+            }
+        ));
+        addOperation(new DoubleUniaryOp("round",0,UniaryOperation.RIGHT,
+            x->{return String.valueOf(Math.round(x));}
+        ));
+        addOperation(new DoubleUniaryOp("deg",4,UniaryOperation.RIGHT,
+            x->{return df.format(Math.toDegrees(x));}
+        ));
+        addOperation(new DoubleUniaryOp("rad",4,UniaryOperation.RIGHT,
+            x->{return df.format(Math.toRadians(x));}
+        ));
     }
        
     private void setFunctions(){
-        addOperation(new Function("max",3,x->{
-            double max = (double)x.get(0);
-            for(double n: (ArrayList<Double>)x)
-                max = Math.max(n, max);
-            return String.valueOf(max);
-        }));
-        addOperation(new Function("min",3,x->{
-            double min = (double)x.get(0);
-            for(double n: (ArrayList<Double>)x)
-                min = Math.min(n, min);
-            return String.valueOf(min);
-        }));
+        addOperation(new Function("max",3,
+            x->{
+                if(x.isEmpty())
+                    return "";
+                double max = (double)x.get(0);
+                for(double n: (ArrayList<Double>)x)
+                    max = Math.max(n, max);
+                return String.valueOf(max);
+            }
+        ));
+        
+        addOperation(new Function("min",3,
+            x->{
+                if(x.isEmpty())
+                    return "";
+                double min = (double)x.get(0);
+                for(double n: (ArrayList<Double>)x)
+                    min = Math.min(n, min);
+                return String.valueOf(min);
+            }
+        ));
+        
+        addOperation(new Function("sum",3,
+            x->{
+                double sum = 0;
+                for(double n: (ArrayList<Double>)x)
+                    sum += n;
+                return String.valueOf(sum);
+            }
+        ));
+        
+        addOperation(new Function("rand",3,
+            x->{
+                if(x.size()==1)
+                    return String.valueOf(Math.random()*(Double)x.get(0));
+                else if(x.size()==2){
+                    double start = Math.min((Double)x.get(0),(Double)x.get(1));
+                    double end = Math.max((Double)x.get(0),(Double)x.get(1));
+                    return String.valueOf(start+(Math.random()*(end-start)));
+                }
+                else
+                    return String.valueOf(Math.random());
+            }
+        ));
+        
     }
     
     private void setPairs(){
@@ -284,3 +323,19 @@ class Plus extends BinaryOperation<Double>{
         return super.processOperation(array, index);
     } 
 }
+
+class E extends BinaryOperation<Double>{
+    Equation _main;
+    public E(Equation m){
+        super("E",2,(x,y)->m.df.format(x*Math.pow(10, y)));
+        this._main = m;
+    }
+    
+    public Output<String> processOperation(ArrayList<String> array, int index)throws Exception{
+        if(_main.isValidOperation(array.get(Math.max(0, index-1))))
+            array.add(index++, "1");
+        return super.processOperation(array, index);
+    }
+}
+
+

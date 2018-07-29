@@ -44,7 +44,7 @@ public class UniaryOperation<T> extends Operation<String,T>{
         if((index==0&&inputSide==LEFT)||(index==array.size()-1&&inputSide==RIGHT))
             throw new Exception("Missing "+(inputSide==LEFT?"left":"right")+" input for UniaryOperation '"+operator+"'");
         parts.add(array.get(index+inputSide));
-        return new Output(execute(parts),new Range(index,index+1));
+        return new Output(execute(parts),new Range(Math.min(index+inputSide, index),Math.max(index+inputSide, index)));
     }
     
     public String getUsage(){

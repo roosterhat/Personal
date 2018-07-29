@@ -5,6 +5,11 @@
  */
 package mathinterpreter;
 
+import batchtester.BatchTester;
+import batchtester.CustomComparator;
+import batchtester.ErrorCase;
+import batchtester.ScoredCase;
+import batchtester.TimedCase;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,79 +19,150 @@ import java.util.Map;
  */
 public class TestCases {
     public static void main(String[] args) {
-        new TestCases().run();        
+        BatchTester bt = new BatchTester();
+        createTestCases(bt);    
+        bt.runTestCases();
+        bt.displayReports();
     }
    
-    public void run(){
-        Equation eq = new Equation("(x(-3-1))^2");
-        Equation eq2 = new Equation("(1+(cosx)^2)/(cosx)^2");
-        Equation eq3 = new Equation("sin(pi/x)");
-        eq3.setDecimalDepth(10);
-        Equation eq4 = new Equation("(csclnx*cotlnx)/(2x)");
-        Equation eq5 = new Equation("238Ex");
-        Equation eq5v2 = new Equation("238*10^((-2x)-1)");
-        eq5.setDecimalDepth(10);
-        eq5v2.setDecimalDepth(10);
-        Equation eq6 = new Equation("abs((5-15)/2)");
-        Equation eq7 = new Equation("2^x^x");
-        Equation eq8 = new Equation("x+2y");
-        Equation eq9 = new Equation();
-        eq9.variables.add("<x>");
-        eq9.setEquation("3<x>+xy");
-        try{
-            System.out.println(eq+" = "+eq.f(3));        
-            System.out.println(eq2+" = "+eq2.f(2));
-            for(int i=1;i<=6;i++)
-                System.out.println(eq3+" = "+eq3.f(i));
-            System.out.println(eq4+" = "+eq4.f(3));
-            System.out.println(eq5+"           = "+eq5.f(-8));
-            System.out.println(eq5v2+" = "+eq5v2.f(3.5));
-            System.out.println(eq6+" = "+eq6.f(0));
-            System.out.println(eq7+" = "+eq7.f(3));
-            System.out.println(eq8+" = "+eq8.f(2,3));
-            Map values = new HashMap();
-            values.put("<x>", 2);
-            values.put("x", 3);
-            values.put("y", 4);
-            System.out.println(eq9+" = "+eq9.f(values));
-            System.out.println(eq9+" = "+eq9.f(3,4,2));
-            
-            Equation test = new Equation("max[2,(x(-3-1))^2,50+3,6,7,12,8]");       
-            System.out.println(test+" = "+test.f(3));
-            Equation test2 = new Equation("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");       
-            System.out.println(test2+" = "+test2.f(10));
-        }catch(Exception e){System.out.println(e);}
+    public static void createTestCases(BatchTester bt){
+        DoubleComparator c = new DoubleComparator();
+        ScoredCase<Integer,Double> case1 = new ScoredCase(x->{
+            Equation eq = new Equation("(x(-3-1))^2");
+            return eq.fD((Integer)x);
+        },new Integer[]{3,-4,5},new Double[]{144d,256d,400d});
+        case1.customComparator = c;
+        case1.title = "(x(-3-1))^2";
+        case1.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case1);
         
+        ScoredCase<Integer,Double> case2 = new ScoredCase(x->{
+            Equation eq = new Equation("(1+(cosx)^2)/(cosx)^2");
+            return eq.fD((Integer)x);
+        },new Integer[]{10,-4,5},new Double[]{2.420371762,3.340550,13.42788170});
+        case2.customComparator = c;
+        case2.title = "(1+(cosx)^2)/(cosx)^2";
+        case2.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case2);
         
-        Equation test = new Equation();
-        int tests = 10000;
-        long startTime = System.nanoTime();
-        for(int i=0;i<tests;i++)
-            test.setEquation("(csclnx*cotlnx)/(2x)");
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime)/1000000;
-        System.out.println("\nParsing Test");
-        System.out.println(test+" => "+test.getParsedEquation());
-        System.out.println(tests+" times in "+duration+" ms");
+        ScoredCase<Integer,Double> case3 = new ScoredCase(x->{
+            Equation eq = new Equation("sin(pi/x)");
+            return eq.fD((Integer)x);
+        },new Integer[]{1,2,3,4,5,6},new Double[]{0d,1d,0.8660254,0.707106,0.587785,0.5});
+        case3.customComparator = c;
+        case3.title = "sin(pi/x)";
+        case3.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case3);
         
+        ErrorCase<Integer> case3_E = new ErrorCase(x->{
+            Equation eq = new Equation("sin(pi/x)");
+            return eq.fD((Integer)x);
+        },new Integer[]{0},new Exception[]{new Exception("Divide by zero Error")});
+        case3_E.title = "sin(pi/x)";
+        bt.addTestCase(case3_E);
         
-        try{
+        ScoredCase<Integer,Double> case4 = new ScoredCase(x->{
+            Equation eq = new Equation("(csclnx*cotlnx)/(2x)");
+            return eq.fD((Integer)x);
+        },new Integer[]{3,4,100},new Double[]{0.095577831,0.023730817,-0.00054126});
+        case4.customComparator = c;
+        case4.title = "(csclnx*cotlnx)/(2x)";
+        case4.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case4);
+        
+        ScoredCase<Integer,Double> case5 = new ScoredCase(x->{
+            Equation eq = new Equation("238Ex");
+            eq.setDecimalDepth(10);
+            return eq.fD((Integer)x);
+        },new Integer[]{-8},new Double[]{0.00000238});
+        case5.customComparator = c;
+        case5.title = "238Ex";
+        case5.errorMargin = 0.00000001;
+        bt.addTestCase(case5);
+        
+        ScoredCase<Double,Double> case6 = new ScoredCase(x->{
+            Equation eq = new Equation("238*10^((-2x)-1)");
+            eq.setDecimalDepth(10);
+            return eq.fD((Double)x);
+        },new Double[]{3.5},new Double[]{0.00000238});
+        case6.customComparator = c;
+        case6.title = "238*10^((-2x)-1)";
+        case6.errorMargin = 0.00000001;
+        bt.addTestCase(case6);
+        
+        ScoredCase<Integer,Double> case7 = new ScoredCase(x->{
+            Equation eq = new Equation("abs((5-15)/2)");
+            return eq.fD((Integer)x);
+        },new Integer[]{0},new Double[]{5d});
+        case7.customComparator = c;
+        case7.title = "abs((5-15)/2)";
+        case7.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case7);
+        
+        Map values = new HashMap();
+        values.put("<x>", 2);
+        values.put("x", 3);
+        values.put("y", 4);
+        ScoredCase<Map,Double> case8 = new ScoredCase(x->{
+            Equation eq = new Equation("3<x>+xy");
+            eq.variables.add("<x>");
+            eq.parseEquation();
+            return Double.valueOf(eq.f((Map)x));
+        },new Map[]{values},new Double[]{18d});
+        case8.customComparator = c;
+        case8.title = "3<x>+xy";
+        case8.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case8);
+        
+        ScoredCase<Integer,Double> case9 = new ScoredCase(x->{
+            Equation eq = new Equation("max[2,(x(-3-1))^2,50+3,6,7,12,8]");
+            return eq.fD((Integer)x);
+        },new Integer[]{3,0,1},new Double[]{144d,53d,53d});
+        case9.customComparator = c;
+        case9.title = "max[2,(x(-3-1))^2,50+3,6,7,12,8]";
+        case9.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case9);
+        
+        ScoredCase<Integer,Double> case10 = new ScoredCase(x->{
+            Equation eq = new Equation("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");
+            return eq.fD((Integer)x);
+        },new Integer[]{10,0,22},new Double[]{-20d,-12d,-44d});
+        case10.customComparator = c;
+        case10.title = "min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]";
+        case10.errorMargin = ScoredCase.LOW_ERROR;
+        bt.addTestCase(case10);
+        
+        TimedCase<Integer> case11 = new TimedCase(x->{
+            Equation eq = new Equation();
+            for(int i=0;i<10000;i++)
+                eq.setEquation("(csclnx*cotlnx)/(2x)");
+            return "";
+        },new Integer[]{10});
+        case11.title = "Parsing Test: '(csclnx*cotlnx)/(2x)'";
+        bt.addTestCase(case11);
+        
+        ScoredCase<Double,Double> case12 = new ScoredCase(x->{
             double area = 0;
-            double start = 0;
+            double start = (Double)x;
             double end = 10;
             double step = 0.001;
-            Equation integral = new Equation("e^x");
-            startTime = System.nanoTime();
-            for(double i=start;i<=end;i+=step)
-                area+=integral.fD(i);
-            endTime = System.nanoTime();
+            Equation eq = new Equation("sin(pi/x)");
+            for(double i=start;i<end;i+=step)
+                area+=(eq.fD(i)*step);
+            return area;
+        },new Double[]{0.001},new Double[]{4.9915});
+        case12.customComparator = c;
+        case12.title = "Integral Test: 'sin(pi/x)'";
+        case12.errorMargin = ScoredCase.MEDIUM_ERROR;
+        bt.addTestCase(case12);
+    }
+    
+}
 
-            duration = (endTime - startTime)/1000000;
-            System.out.println(String.format("\nArea of '%s' from %.1f to %.1f",integral,start,end));
-            System.out.println("Area: "+area*step);
-            System.out.println("Steps: "+(end-start)/step);
-            System.out.println("Time: "+duration+" ms");
-        }catch(Exception e){System.out.println(e);}
+class DoubleComparator extends CustomComparator<Double>{
+    @Override
+    public double compare(Double d1, Double d2) {
+        return 1-d1/d2;
     }
     
 }

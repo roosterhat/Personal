@@ -32,6 +32,7 @@ public abstract class MathInterpreter {
     public ArrayList<String> variables;
     public ArrayList extra;
     public ArrayList<String> illegalCharacters;
+    private BinaryTree<Entry<Operation>> operationTree;
     
     public MathInterpreter(){
         variables = new ArrayList(defaultVariable);
@@ -43,6 +44,8 @@ public abstract class MathInterpreter {
         illegalCharacters.add("�");
         illegalCharacters.add("∞");
         illegalCharacters.add("NaN");
+        operationTree = new BinaryTree();
+        operationTree.setComparator((x,y)->(((Entry<Operation>)y).value.weight-((Entry<Operation>)x).value.weight));
         
     }
     
@@ -105,9 +108,7 @@ public abstract class MathInterpreter {
     public boolean isValidPair(String p){
         return getOperation(p) instanceof Pair;
     }
-    
-    
-    
+        
     private ArrayList<String> getRelaventVariables(ArrayList eq){
         Set<String> temp = new HashSet();
         for(String part: (ArrayList<String>)eq)
@@ -138,7 +139,7 @@ public abstract class MathInterpreter {
         return new ArrayList(hs);
     }
     
-    private void parseEquation(){
+    public void parseEquation(){
         sp.tokens = getTokens();
         parsedEquation = sp.parseString(equation);
         parsedEquation.removeIf(x->((String)x).replace(" ","").isEmpty());
@@ -148,31 +149,28 @@ public abstract class MathInterpreter {
         return array;
     }
     
-    public ArrayList<String> processEquation(ArrayList<String> array){
-        try{return evaluate(array);}
-        catch(Exception e){System.out.println(e);}
-        return array;
+    public ArrayList<String> processEquation(ArrayList<String> array)throws Exception{
+        return evaluate(array);
     }
     
     protected ArrayList<String> postProcessEquation(ArrayList<String> array){
         return array;
     }
     
-    protected BinaryTree<Entry<Operation>> createOperationTree(ArrayList<String> array){
-        BinaryTree<Entry<Operation>> tree = new BinaryTree();
-        tree.setComparator((x,y)->(((Entry<Operation>)y).value.weight-((Entry<Operation>)x).value.weight));
+    protected BinaryTree<Entry<Operation>> createOperationStack(ArrayList<String> array){
+        operationTree.clear();
         int pairCount = 0;
         for(int i = 0;i<array.size();i++){
             String s = array.get(i);
             if(isValidOperation(s)){
                 Operation o = getOperation(s);
                 if(pairCount<=0)
-                    tree.add(new Entry(o,i));
+                    operationTree.add(new Entry(o,i));
                 if(o instanceof Pair)
                     pairCount += s.equals(((Pair)o).open)?1:-1;
             }
         }
-        return tree;
+        return operationTree;
     }
 
     public ArrayList<String> condense(ArrayList<String> array, Output output){
@@ -187,16 +185,16 @@ public abstract class MathInterpreter {
     
     //attemps to evalute the given equation <eq> to completion, by evalutating all Pairs, Functions and Operations
     protected ArrayList<String> evaluate(ArrayList<String> array)throws Exception{
-        ArrayList<Entry<Operation>> operationList = createOperationTree(array).inorder();
+        ArrayList<Entry<Operation>> operationStack;
         ArrayList<String> eq = (ArrayList<String>)array.clone();
-        while(!operationList.isEmpty()){
-            Entry<Operation> e = operationList.get(0);
+        while(!(operationStack = createOperationStack(eq).inorder()).isEmpty()){
+            Entry<Operation> e = operationStack.get(0);
             Output result = e.value.processOperation(eq, e.index);
             eq = condense(eq,result);
-            operationList = createOperationTree(eq).inorder();
         }
         return eq;
     }
+    
     
     //Used to evaluate the equation with the given arguments
     public String f(String... arguments)throws Exception{
@@ -221,22 +219,13 @@ public abstract class MathInterpreter {
         return compileArray(eq);
     }
     
-    private String compileArray(ArrayList<String> array){
+    public static String compileArray(ArrayList<String> array){
         String result = "";
         for(String s: array)
             result += s;
         return result;
     }
     
-    //returns a string representation of the given equation
-    public String unparseEquation(ArrayList eq){
-        String res = "";
-        for(String s: (ArrayList<String>)eq)
-            res+=s;
-        return res;
-    }
-    
-    //returns the equation 
     public String toString(){
         return equation;
     }

@@ -23,32 +23,32 @@ public class FunctionPair extends Pair{
         return evaluateContents(getFunctionContents(array));
     } 
     
-    private ArrayList<String> evaluateContents(ArrayList<ArrayList<String>> contents){
+    private ArrayList<String> evaluateContents(ArrayList<ArrayList<String>> contents)throws Exception{
         ArrayList<String> results = new ArrayList();
-        contents.forEach(x->results.addAll(_main.processEquation(x)));
+        for(ArrayList<String> x : contents)
+            results.addAll(_main.processEquation(x));
         return results;
     }
     
     private ArrayList<ArrayList<String>> getFunctionContents(ArrayList<String> array){
         ArrayList<ArrayList<String>> results = new ArrayList();
-        boolean inFunction = false;
+        int depth = 0;
         Range r = new Range(0,0);
         for(String s: array){
             r.end++;
             if(_main.isValidFunction(s) && !s.equals(seperator))
-                inFunction = true;
+                depth++;
             if(_main.isValidPair(s)){
                 Pair p = (Pair)_main.getOperation(s);
                 if(p instanceof FunctionPair && ((FunctionPair)p).close.equals(s))
-                    inFunction = false;
+                    depth--;
             }
-            if(s.equals(seperator) && !inFunction){
+            if(s.equals(seperator) && depth==0){
                 results.add(new ArrayList(array.subList(r.start, r.end-1)));
                 r.start = r.end;
             }
         }
-        if(!results.isEmpty())
-            results.add(new ArrayList(array.subList(r.start, r.end)));
+        results.add(new ArrayList(array.subList(r.start, r.end)));
         return results;
     }
     

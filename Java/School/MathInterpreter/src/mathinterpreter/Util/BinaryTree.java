@@ -6,27 +6,39 @@
 package mathinterpreter.Util;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.function.Consumer;
 
 /**
  *
  * @author eriko
  */
-public class BinaryTree<V> {
-    public BinaryTree left, right, parent;
-    V value;
-    Comparator<V> comparator;
+public class BinaryTree<E> implements Collection<E>{
+    public static Comparator DEFAULT_COMPARATOR = (x,y)->x.toString().compareTo(y.toString());
+    private BinaryTree left, right, parent;
+    private E value;
+    private Comparator<E> comparator;
+    private int size;
+    
     public BinaryTree(){
-        this(null);
+        this.value = null;
+        this.comparator = DEFAULT_COMPARATOR;
     }
     
-    public BinaryTree(V value){
-        this.value = value;
-        this.comparator = (x,y)->x.toString().compareTo(y.toString());
+    public BinaryTree(E value){
+        setValue(value);
+        this.comparator = DEFAULT_COMPARATOR;
     }
     
-    public BinaryTree(V value, Comparator c){
-        this.value = value;
+    public BinaryTree(Comparator c){
+        this.value = null;
+        this.comparator = c;
+    }
+    
+    public BinaryTree(E value, Comparator c){
+        setValue(value);
         this.comparator = c;
     }
     
@@ -38,97 +50,100 @@ public class BinaryTree<V> {
     public BinaryTree getLeft(){return left;}
     public BinaryTree getRight(){return right;}
     public BinaryTree getParent(){return parent;}
-    public V getValue(){return value;}
+    public E getValue(){return value;}
     public Comparator getComparator(){return comparator;}
     
-    public void setLeft(BinaryTree b){
+    public boolean setLeft(BinaryTree b){
         if(b!=null)
             b.setParent(this);
         left = b;
+        size++;
+        return true;
     }
-    public void setRight(BinaryTree b){
+    public boolean setRight(BinaryTree b){
         if(b!=null)
             b.setParent(this);
         right = b;
+        size++;
+        return true;
     }
     public void setParent(BinaryTree b){parent = b;}
-    public void setValue(V v){value = v;}
+    public void setValue(E v){value = v;size++;}
     public void setComparator(Comparator c){comparator = c;}
     
-    public void add(BinaryTree<V> b){
+    public boolean add(BinaryTree<E> b){
         if(hasValue()){
             if(comparator.compare(value, b.value)>=0){
                 if(hasLeft())
-                    left.add(b);
+                    return left.add(b);
                 else
-                    setLeft(b);
+                    return setLeft(b);
             }
             else{
                 if(hasRight())
-                    right.add(b);
+                    return right.add(b);
                 else
-                    setRight(b);
+                    return setRight(b);
             }
         }
-        else
+        else{
             this.value = b.value;
+            size++;
+            return true;
+        }
         
     }
     
-    public void add(V value){
-        add(new BinaryTree(value,comparator));
+    public boolean add(E value){
+        return add(new BinaryTree(value,comparator));
     }
     
-    public boolean remove(V value){
-        if(getValue().equals(value)){
-            BinaryTree<V> b;
-            if(hasRight()){
-                b=right;
-                for(;b.hasLeft();b=b.left);
-                if(b.equals(right))
-                    b.parent.setRight(null);
-                else
-                    b.parent.setLeft(null);
-            }
-            else{
-                b=left;
-                for(;b.hasRight();b=b.right);
-                if(b.equals(left))
-                    b.parent.setLeft(null);
-                else
-                    b.parent.setRight(null);
-            }
-            if(b!=null)
+    public boolean remove(Object value){
+        if(hasValue() && getValue().equals(value)){
+            BinaryTree<E> b = null;
+            if(hasLeft())
+                for(b=left;b.hasRight();b=b.right);
+            else if(hasRight())
+                for(b=right;b.hasLeft();b=b.left);
+            if(b!=null){
                 setValue(b.value);
+                b.remove(b.value);
+            }
             else
                 setValue(null);
+            size--;
+            
             return true;
         }
         else{
-            if(comparator.compare(this.value, value)>0){
-                if(hasLeft()){
-                    return left.remove(value);
+            if(hasValue()){
+                if(comparator.compare(this.value, (E)value)>0){
+                    if(hasLeft())
+                        return left.remove(value);
+                }
+                else{
+                    if(hasRight())
+                        return right.remove(value);
                 }
             }
-            else{
-                if(hasRight()){
-                    return right.remove(value);
-                }
-            }
+            else
+                return false;
         }
         return false;
     }
     
-    public boolean contains(V value){
-        if(getValue().equals(value))
-            return true;
-        else{
-            if(comparator.compare(this.value, value)>0)
-                if(hasLeft())
-                    return left.contains(value);
-            else
-                if(hasRight())
-                    return right.contains(value);
+    public boolean contains(Object value){
+        if(hasValue()){
+            if(getValue().equals(value))
+                return true;
+            else{
+                if(comparator.compare(this.value, (E)value)>0)
+                    if(hasLeft())
+                        return left.contains(value);
+                else
+                    if(hasRight())
+                        return right.contains(value);
+            }
         }
         return false;
     }
@@ -138,10 +153,11 @@ public class BinaryTree<V> {
         setRight(null);
         setLeft(null);
         setParent(null);
+        size = 0;
     }
     
-    public ArrayList<V> preorder(){
-        ArrayList<V> result = new ArrayList();
+    public ArrayList<E> preorder(){
+        ArrayList<E> result = new ArrayList(size);
         if(hasValue())
             result.add(value);
         if(hasLeft())
@@ -151,8 +167,8 @@ public class BinaryTree<V> {
         return result;
     }
     
-    public ArrayList<V> inorder(){
-        ArrayList<V> result = new ArrayList();
+    public ArrayList<E> inorder(){
+        ArrayList<E> result = new ArrayList(size);
         if(hasLeft())
             result.addAll(left.inorder());
         if(hasValue())
@@ -162,8 +178,8 @@ public class BinaryTree<V> {
         return result;
     }
     
-    public ArrayList<V> postorder(){
-        ArrayList<V> result = new ArrayList();
+    public ArrayList<E> postorder(){
+        ArrayList<E> result = new ArrayList(size);
         if(hasLeft())
             result.addAll(left.postorder());
         if(hasRight())
@@ -171,5 +187,73 @@ public class BinaryTree<V> {
         if(hasValue())
             result.add(value);
         return result;
+    }
+
+    @Override
+    public int size() {
+        return size;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return size==0;
+    }
+
+    @Override
+    public Iterator iterator() {
+        return inorder().iterator();
+    }
+
+    @Override
+    public boolean addAll(Collection c) {
+        for(Object o: c)
+            if(!add((E)o))
+                return false;
+        return true;       
+    }
+
+    @Override
+    public void forEach(Consumer action) {
+        for(E e: preorder())
+            action.accept(e);
+    }
+
+    @Override
+    public boolean containsAll(Collection c) {
+        for(Object o: c)
+            if(!contains((E)c))
+                return false;
+        return true;
+    }
+
+    @Override
+    public boolean removeAll(Collection c) {
+        boolean state = true;
+        for(Object o: c)
+            if(!remove((E)o))
+                state = false;
+        return state;
+        
+    }
+
+    @Override
+    public boolean retainAll(Collection c) {
+        ArrayList rem = inorder();
+        rem.removeAll(c);
+        return removeAll(rem);
+    }
+
+    @Override
+    public Object[] toArray() {
+        return inorder().toArray();
+    }
+
+    @Override
+    public <T> T[] toArray(T[] a) {
+        return inorder().toArray(a);
+    }
+    
+    public String toString(){
+        return inorder().toString();
     }
 }

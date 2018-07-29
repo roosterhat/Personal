@@ -34,7 +34,16 @@ public abstract class Pair  extends Operation<ArrayList<String>,String>{
     
     public Output processOperation(ArrayList<String> array, int index)throws Exception{
         Range range = getRange(array,index);
+        if(range.length()<=0)
+            throw new Exception("Unable to find closing pair '"+close+"' in '"+arrayToString(array)+"'");
         return new Output(execute(new ArrayList(array.subList(range.start+1,range.end))),range);
+    }
+    
+    protected String arrayToString(ArrayList<String> array){
+        String result = "";
+        for(String s: array)
+            result += s;
+        return result;
     }
     
     protected Range getRange(ArrayList<String> array, int index){
@@ -47,10 +56,10 @@ public abstract class Pair  extends Operation<ArrayList<String>,String>{
         int count = 1;
         for(int i = 1;i<array.size();i++){
             String s = array.get(i);
-            if(s.equals(open))
-                count++;
             if(s.equals(close))
                 count--;
+            if(s.equals(open))
+                count++;
             if(count==0)
                 return i;
         }

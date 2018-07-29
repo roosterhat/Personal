@@ -15,8 +15,8 @@ import mathinterpreter.Operation.BinaryOperation;
  */
 public class LogicEquation extends MathInterpreter{
     public static void main(String[] args) {
-        LogicEquation eq = new LogicEquation("~((x&y)|A)");
-        try{System.out.println(eq.f(true,true,false));}catch(Exception e){System.out.println(e.getMessage());}
+//        LogicEquation eq = new LogicEquation("~((x&y)|A)");
+//        try{System.out.println(eq.f(true,true,false));}catch(Exception e){System.out.println(e.getMessage());}
     }
     public LogicEquation()
     {
@@ -26,13 +26,20 @@ public class LogicEquation extends MathInterpreter{
     {
         super();
         variables.clear();
-        for(char c='a';c<='z';c++)
-            variables.add(String.valueOf(c));
-        for(char c='A';c<='Z';c++)
-            variables.add(String.valueOf(c));
+//        for(char c='a';c<='z';c++)
+//            variables.add(String.valueOf(c));
+//        for(char c='A';c<='Z';c++)
+//            variables.add(String.valueOf(c));
         addOperation(new BasicParenthesis());
         setOperations();   
         setEquation(eq);
+    }
+    
+    public void setEquation(String eq){
+        super.setEquation(eq);
+        for(String s: parsedEquation)
+            if(!isValidOperation(s))
+                variables.add(s);
     }
     
     public void setOperations(){

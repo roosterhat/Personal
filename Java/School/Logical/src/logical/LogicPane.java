@@ -5,13 +5,16 @@
  */
 package logical;
 
-import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.swing.RowSorter;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import mathinterpreter.*;
 
 /**
@@ -28,12 +31,15 @@ public class LogicPane extends javax.swing.JPanel {
     LogicEquation equation;
     String format;
     String name;
+    ArrayList<LogicOutput> results;
     public LogicPane(String name, MainFrame m) {
         equation = new LogicEquation();
+        results = new ArrayList();
         _main = m;
         this.name = name;
         initComponents();
-        jPanel1.setLayout(new GridLayout(0,1)); 
+        jTable1.setEnabled(false);
+        jTable1.setAutoCreateRowSorter(true);
     }
 
     /**
@@ -45,30 +51,27 @@ public class LogicPane extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jPanel1 = new javax.swing.JPanel();
         jTextField1 = new javax.swing.JTextField();
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
-
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 526, Short.MAX_VALUE)
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 296, Short.MAX_VALUE)
-        );
-
-        jScrollPane1.setViewportView(jPanel1);
+        jScrollPane3 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
 
         setFont(new java.awt.Font("Monospaced", 0, 13)); // NOI18N
 
+        jTextField1.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        jTextField1.setText("Enter Logic Equation...");
         jTextField1.setToolTipText("Equation");
+        jTextField1.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                jTextField1FocusLost(evt);
+            }
+        });
+        jTextField1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                jTextField1MousePressed(evt);
+            }
+        });
         jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 jTextField1KeyPressed(evt);
@@ -89,12 +92,17 @@ public class LogicPane extends javax.swing.JPanel {
             }
         });
 
-        jScrollPane2.setFont(new java.awt.Font("Monospaced", 0, 13)); // NOI18N
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
 
-        jTextArea1.setEditable(false);
-        jTextArea1.setColumns(20);
-        jTextArea1.setRows(5);
-        jScrollPane2.setViewportView(jTextArea1);
+            },
+            new String [] {
+
+            }
+        ));
+        jTable1.getTableHeader().setReorderingAllowed(false);
+        jTable1.enableInputMethods(false);
+        jScrollPane3.setViewportView(jTable1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -102,29 +110,27 @@ public class LogicPane extends javax.swing.JPanel {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
+                .addComponent(jTextField1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 528, Short.MAX_VALUE)
-                        .addContainerGap())
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(jButton2))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(jTextField1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton1))))
+                    .addComponent(jButton2, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jButton1, javax.swing.GroupLayout.Alignment.TRAILING)))
+            .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 552, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jButton2)
-                .addGap(6, 6, 6)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton1))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 298, Short.MAX_VALUE)
-                .addContainerGap())
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jButton2)
+                        .addGap(6, 6, 6)
+                        .addComponent(jButton1))
+                    .addGroup(layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jTextField1)
+                        .addGap(2, 2, 2)))
+                .addGap(0, 0, 0)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 361, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -144,15 +150,21 @@ public class LogicPane extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_jTextField1KeyPressed
 
-    private String getHeading(ArrayList<String> variables){
-        return equation.toString()+"\n"+String.format(format, variables.toArray())+"Outcome\n";
-    }
-    
-    private String formatRow(String states, String outcome){
-        ArrayList<String> formatTargets = new ArrayList();
+    private void jTextField1FocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextField1FocusLost
+        if(jTextField1.getText().isEmpty())
+            jTextField1.setText("Enter Logic Equation...");
+    }//GEN-LAST:event_jTextField1FocusLost
+
+    private void jTextField1MousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTextField1MousePressed
+        if(jTextField1.getText().equals("Enter Logic Equation..."))
+            jTextField1.setText("");
+    }//GEN-LAST:event_jTextField1MousePressed
+
+    private LogicOutput createOutput(String states, String outcome){
+        ArrayList<Boolean> formatTargets = new ArrayList();
         for(char c: states.toCharArray())
-            formatTargets.add(String.valueOf(c=='0'));
-        return String.format(format, formatTargets.toArray())+outcome+"\n";
+            formatTargets.add(c=='0');
+        return new LogicOutput(equation.getEquation(), formatTargets, Boolean.valueOf(outcome));
     }
     
     private void setFormat(ArrayList<String> variables){
@@ -164,14 +176,14 @@ public class LogicPane extends javax.swing.JPanel {
     private void preformOperations(){
         ArrayList<String> variables = getVariables();
         setFormat(variables);
-        String result = getHeading(variables);
+        results = new ArrayList();
         for(String states: getBinaryOutput(variables.size())){
             Map arguments = new HashMap();
             variables.forEach(x->arguments.put(x, states.charAt(variables.indexOf(x))=='0'));
-            try{result += formatRow(states,equation.f(arguments));}
+            try{results.add(createOutput(states,equation.f(arguments)));}
             catch(Exception e){System.out.println(e);return;}                
         }
-        jTextArea1.setText(result);
+        displayResults();
     }
     
     private ArrayList<String> getVariables(){
@@ -182,8 +194,7 @@ public class LogicPane extends javax.swing.JPanel {
         return new ArrayList(vars);
     }
     
-    public ArrayList<String> getBinaryOutput(int val)
-    {
+    public ArrayList<String> getBinaryOutput(int val){
         ArrayList<String> temp = new ArrayList();
         int max = (int)Math.pow(2,val);  
         for (int i = 0; i < max; i++)
@@ -191,15 +202,52 @@ public class LogicPane extends javax.swing.JPanel {
         return  temp;
     }
     
+    private void displayResults(){
+        ArrayList temp = (ArrayList<String>)getVariables().clone();
+        temp.add("Output");
+        Object[] headers = temp.toArray();
+        Object data[][] = new Object[results.size()][];
+        for(int i = 0;i < results.size(); i++){
+            LogicOutput output = results.get(i);
+            ArrayList<Boolean> states = (ArrayList<Boolean>)output.states.clone();
+            states.add(output.output);
+            data[i] = states.toArray();
+        }
+        DefaultTableModel m = new DefaultTableModel(data,headers);
+        jTable1.setModel(m);
+    }
+    
     
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTextArea jTextArea1;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JTable jTable1;
     private javax.swing.JTextField jTextField1;
     // End of variables declaration//GEN-END:variables
+}
+
+class LogicOutput{
+    String equation;
+    ArrayList<Boolean> states;
+    boolean output;
+    
+    public LogicOutput(String equation, ArrayList<Boolean> states, boolean output){
+        this.equation = equation;
+        this.states = (ArrayList<Boolean>)states.clone();
+        this.output = output;
+    }
+    
+    public String format(String format){
+        return String.format(format, states.toArray())+output;
+    }
+    
+    public String toString(){
+        String result = "";
+        for(Boolean state: states)
+            result += state + " ";
+        result += output;
+        return result;
+    }
 }
