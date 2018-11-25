@@ -5,32 +5,27 @@
  */
 package mathinterpreter;
 
-import mathinterpreter.Operation.BasicParenthesis;
 import mathinterpreter.Operation.UniaryOperation;
 import mathinterpreter.Operation.BinaryOperation;
+import mathinterpreter.Operation.Parenthesis;
 
 /**
  *
  * @author ostlinja
  */
 public class LogicEquation extends MathInterpreter{
-    public static void main(String[] args) {
+//    public static void main(String[] args) {
 //        LogicEquation eq = new LogicEquation("~((x&y)|A)");
 //        try{System.out.println(eq.f(true,true,false));}catch(Exception e){System.out.println(e.getMessage());}
-    }
-    public LogicEquation()
-    {
+//    }
+    public LogicEquation(){
         this("");
     }
-    public LogicEquation(String eq)
-    {
+    
+    public LogicEquation(String eq){
         super();
         variables.clear();
-//        for(char c='a';c<='z';c++)
-//            variables.add(String.valueOf(c));
-//        for(char c='A';c<='Z';c++)
-//            variables.add(String.valueOf(c));
-        addOperation(new BasicParenthesis());
+        addOperation(new Parenthesis());
         setOperations();   
         setEquation(eq);
     }
@@ -58,7 +53,7 @@ public class LogicEquation extends MathInterpreter{
         addOperation(new BinaryOperation<Boolean>("->",0,(x,y)->{
             return String.valueOf(!(x&&!y));
         },x->Boolean.valueOf(x)));
-        addOperation(new UniaryOperation<Boolean>("~",0,UniaryOperation.RIGHT,x->{
+        addOperation(new UniaryOperation<Boolean>("~",1,UniaryOperation.RIGHT,x->{
             return String.valueOf(!x);
         },x->Boolean.valueOf(x)));
     }
@@ -67,6 +62,6 @@ public class LogicEquation extends MathInterpreter{
         String[] res = new String[args.length];
         for(int i=0;i<args.length;i++)
             res[i] = String.valueOf(args[i]);
-        return f(res);
+        return interpret(res);
     }
 }

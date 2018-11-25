@@ -40,10 +40,7 @@ public abstract class MathInterpreter {
         operations = new ArrayList();
         parsedEquation = new ArrayList();
         extra = new ArrayList();
-        illegalCharacters = new ArrayList();
-        illegalCharacters.add("�");
-        illegalCharacters.add("∞");
-        illegalCharacters.add("NaN");
+        illegalCharacters = new ArrayList(Arrays.asList("�","∞","NaN"));
         operationTree = new BinaryTree();
         operationTree.setComparator((x,y)->(((Entry<Operation>)y).value.weight-((Entry<Operation>)x).value.weight));
         
@@ -157,23 +154,23 @@ public abstract class MathInterpreter {
         return array;
     }
     
-    protected BinaryTree<Entry<Operation>> createOperationStack(ArrayList<String> array){
+    protected BinaryTree<Entry<Operation>> createBinaryOperationTree(ArrayList<String> array){
         operationTree.clear();
         int pairCount = 0;
-        for(int i = 0;i<array.size();i++){
+        for(int i = 0; i<array.size(); i++){
             String s = array.get(i);
             if(isValidOperation(s)){
                 Operation o = getOperation(s);
                 if(pairCount<=0)
                     operationTree.add(new Entry(o,i));
                 if(o instanceof Pair)
-                    pairCount += s.equals(((Pair)o).open)?1:-1;
+                    pairCount += s.equals(((Pair)o).open)? 1 : -1;
             }
         }
         return operationTree;
     }
 
-    public ArrayList<String> condense(ArrayList<String> array, Output output){
+    protected ArrayList<String> condense(ArrayList<String> array, Output output){
         ArrayList<String> temp = new ArrayList(array.subList(0, output.range.start));
         if(output.value instanceof ArrayList)
             temp.addAll((ArrayList<String>)output.value);
@@ -187,7 +184,7 @@ public abstract class MathInterpreter {
     protected ArrayList<String> evaluate(ArrayList<String> array)throws Exception{
         ArrayList<Entry<Operation>> operationStack;
         ArrayList<String> eq = (ArrayList<String>)array.clone();
-        while(!(operationStack = createOperationStack(eq).inorder()).isEmpty()){
+        while(!(operationStack = createBinaryOperationTree(eq).inorder()).isEmpty()){
             Entry<Operation> e = operationStack.get(0);
             Output result = e.value.processOperation(eq, e.index);
             eq = condense(eq,result);
@@ -197,33 +194,25 @@ public abstract class MathInterpreter {
     
     
     //Used to evaluate the equation with the given arguments
-    public String f(String... arguments)throws Exception{
-        return f(convertArguments(arguments));
+    public String interpret(String... arguments)throws Exception{
+        return MathInterpreter.this.interpret(convertArguments(arguments));
     }
     
     private Map<String, String> convertArguments(String[] args){
         Map<String, String> vars = new HashMap();
         ArrayList<String> relaventVars = getRelaventVariables(sp.parseString(equation));
-        for(int i=0;i<relaventVars.size();i++)
-            if(i<args.length)
-                vars.put(relaventVars.get(i), args[i]);
+        for(int i=0;i<Math.min(args.length,relaventVars.size());i++)
+            vars.put(relaventVars.get(i), args[i]);
         return vars;
     }
     
-    public String f(Map<String,String> arguments)throws Exception{
+    public String interpret(Map<String,String> arguments)throws Exception{
         ArrayList eq = (ArrayList<String>)getParsedEquation().clone();
         eq = preProcessEquation(eq);
         eq = subsituteVariables(eq,arguments);
         eq = processEquation(eq);
         eq = postProcessEquation(eq);
-        return compileArray(eq);
-    }
-    
-    public static String compileArray(ArrayList<String> array){
-        String result = "";
-        for(String s: array)
-            result += s;
-        return result;
+        return String.join("",eq);
     }
     
     public String toString(){

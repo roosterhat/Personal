@@ -12,13 +12,12 @@ package matricies;
 import mathinterpreter.Operation.Converter;
 import mathinterpreter.Operation.Function;
 import mathinterpreter.Operation.UniaryOperation;
-import mathinterpreter.Operation.Pair;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 import mathinterpreter.*;
 import mathinterpreter.Operation.BinaryOperation;
 import mathinterpreter.Operation.PairFunction;
+import mathinterpreter.Operation.Summation;
 import mathinterpreter.Operation.UniaryFunction;
 
 public class MatrixEquation extends Equation{
@@ -34,9 +33,8 @@ public class MatrixEquation extends Equation{
         mc = new MatrixConverter(_main.matricies);
         setOperators();
         setFunctions();
-        setPairs();
         setEquation(s);
-        setDecimalDepth(5);
+        setDecimalDepth(10);
     }
 
     
@@ -152,11 +150,7 @@ public class MatrixEquation extends Equation{
                 _main.resize(name, r, c);
             return name;
         },x->x));
-    }
-    
-    private void setPairs()
-    {
-        addOperation(new Literal());
+        ((Summation)this.getOperation("summation")).setEquation(this.getClass(),new Object[]{_main});
     }
 }
 
@@ -204,18 +198,6 @@ class MatrixConverter implements Converter<Matrix>
     }
 }
 
-class Literal extends Pair
-{
-    public Literal(){
-        super("{","}",1);
-    }
-    
-    public ArrayList<String> execute(ArrayList<String> array){
-        String comp = "";
-        array.forEach(x->comp.concat(x));
-        return new ArrayList(Arrays.asList(new String[]{comp}));
-    }
-}
 
 interface MatrixFunction{
     public String execute(Matrix x, String y)throws Exception;

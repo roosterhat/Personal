@@ -360,7 +360,7 @@ public class MainForm extends javax.swing.JFrame {
         if(!e.equals("")){
             equation.setEquation(e);
             String res = "";
-            try{res = equation.f(0);}
+            try{res = equation.interpret();}
             catch(Exception ex){res = ex.getMessage();}
             updateAllTabs();
             return res;
@@ -377,7 +377,9 @@ public class MainForm extends javax.swing.JFrame {
     private void newIdentity()
     {
         JTextField row = new JTextField(5);
+        row.setText("2");
         JTextField col = new JTextField(5);
+        col.setText("2");
         JPanel myPanel = new JPanel();
         myPanel.add(new JLabel("Rows:"));
         myPanel.add(row);

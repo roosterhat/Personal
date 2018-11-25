@@ -16,6 +16,7 @@ import java.util.Arrays;
 import mathinterpreter.Operation.BinaryFunction;
 import mathinterpreter.Operation.Converter;
 import mathinterpreter.Operation.Pair;
+import mathinterpreter.Operation.Summation;
 import mathinterpreter.Operation.UniaryFunction;
 import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
@@ -107,6 +108,27 @@ public class Equation extends MathInterpreter{
         addOperation(new DoubleUniaryOp("rad",4,UniaryOperation.RIGHT,
             x->{return df.format(Math.toRadians(x));}
         ));
+        addOperation(new DoubleUniaryOp("frac",0,UniaryOperation.RIGHT,
+            x->{
+                String sign = "";
+                if (x < 0){
+                    sign = "-"; 
+                    x*=-1;
+                }
+                double tolerance = 1.0E-6;
+                double h1=1; double h2=0;
+                double k1=0; double k2=1;
+                double b = x;
+                do {
+                    double a = Math.floor(b);
+                    double aux = h1; h1 = a*h1+h2; h2 = aux;
+                    aux = k1; k1 = a*k1+k2; k2 = aux;
+                    b = 1/(b-a);
+                } while (Math.abs(x-h1/k1) > x*tolerance);
+
+                return sign+(int)h1+(k1==1 ? "" : "/"+(int)k1);
+            }
+        ));
     }
        
     private void setFunctions(){
@@ -155,10 +177,13 @@ public class Equation extends MathInterpreter{
             }
         ));
         
+        addOperation(new Summation(Equation.class, new Object[]{}));
+        
     }
     
     private void setPairs(){
         addOperation(new Parenthesis());
+        addOperation(new Literal());
     }
     
     private void setConstants(){
@@ -200,7 +225,7 @@ public class Equation extends MathInterpreter{
         String[] args = new String[arguments.length];
         for(int i = 0;i<arguments.length;i++)
             args[i] = String.valueOf(arguments[i]);
-        return f(args);
+        return interpret(args);
     }
     
     public double fD(double... args)throws Exception{
@@ -338,4 +363,14 @@ class E extends BinaryOperation<Double>{
     }
 }
 
+class Literal extends Pair
+{
+    public Literal(){
+        super("\"'","'\"",10);
+    }
+    
+    public ArrayList<String> execute(ArrayList<String> array){
+        return new ArrayList(Arrays.asList(new String[]{String.join("", array)}));
+    }
+}
 

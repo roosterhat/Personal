@@ -7,6 +7,8 @@ package mathinterpreter.Parser;
 
 import batchtester.BatchTester;
 import batchtester.TimedCase;
+import java.util.ArrayList;
+import java.util.Arrays;
 import mathinterpreter.Equation;
 
 /**
@@ -15,6 +17,9 @@ import mathinterpreter.Equation;
  */
 public class ParsingTests {
     public static void main(String[] args) {
+        StringParser p = new StringParser();
+        p.tokens = new ArrayList(Arrays.asList(new String[]{"summation","i"}));
+        p.parseString("summation[0,0,i]");
         BatchTester bt = new BatchTester();
         createTestCases(bt);    
         for(int i = 0; i < 5; i++){
@@ -76,6 +81,6 @@ public class ParsingTests {
             return "";
         },new Integer[]{10000});
         case6.title = "Parsing Test: '(csclnx*cotlnx)/(2x)'";
-        bt.addTestCase(case6);        
+        bt.addTestCase(case6);      
     }
 }

@@ -23,14 +23,14 @@ public class FunctionPair extends Pair{
         return evaluateContents(getFunctionContents(array));
     } 
     
-    private ArrayList<String> evaluateContents(ArrayList<ArrayList<String>> contents)throws Exception{
+    protected ArrayList<String> evaluateContents(ArrayList<ArrayList<String>> contents)throws Exception{
         ArrayList<String> results = new ArrayList();
         for(ArrayList<String> x : contents)
-            results.addAll(_main.processEquation(x));
+            results.add(String.join("",_main.processEquation(x)));
         return results;
     }
     
-    private ArrayList<ArrayList<String>> getFunctionContents(ArrayList<String> array){
+    protected ArrayList<ArrayList<String>> getFunctionContents(ArrayList<String> array){
         ArrayList<ArrayList<String>> results = new ArrayList();
         int depth = 0;
         Range r = new Range(0,0);

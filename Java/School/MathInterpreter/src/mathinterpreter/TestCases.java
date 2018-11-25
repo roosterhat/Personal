@@ -107,7 +107,7 @@ public class TestCases {
             Equation eq = new Equation("3<x>+xy");
             eq.variables.add("<x>");
             eq.parseEquation();
-            return Double.valueOf(eq.f((Map)x));
+            return Double.valueOf(eq.interpret((Map)x));
         },new Map[]{values},new Double[]{18d});
         case8.customComparator = c;
         case8.title = "3<x>+xy";

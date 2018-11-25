@@ -17,7 +17,7 @@ import mathinterpreter.Util.Output;
  * @author ostlinja
  */
 public abstract class Operation<T1,T2> {
-    public String operator;
+    public String operator, usage;
     public int weight;
     public Converter<T2> converter;
     protected MathInterpreter _main;
@@ -96,7 +96,14 @@ public abstract class Operation<T1,T2> {
     }
     
     public String getUsage(){
-        return operator;
+        return usage==null ? operator : usage;
+    }
+    
+    protected String arrayToString(ArrayList<String> array){
+        String result = "";
+        for(String s: array)
+            result += s;
+        return result;
     }
 }
 

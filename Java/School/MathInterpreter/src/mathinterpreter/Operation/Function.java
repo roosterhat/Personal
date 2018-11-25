@@ -48,22 +48,16 @@ public class Function<T> extends Operation<String,String>{
     public Output processOperation(ArrayList<String> array, int index) throws Exception {
         int start,end;
         String next = array.get(Math.min(index+1, array.size()-1));
-        if(!_main.isValidPair(next) && 
-            ((FunctionPair)_main.getOperation(next)).open.equals(next))
-            throw new Exception("No vaild opening Pair for "+operator);
+        if(!_main.getOperation(next).equals(bounds))
+            throw new Exception("No vaild opening Pair '"+bounds.open+"' for "+operator+" in '"+arrayToString(array)+"'");
         start = index+1;
         
         end = findClosingBound(array,start);
         
-        String closing = array.get(Math.min(end, array.size()-1));
-        if(!_main.isValidPair(closing) && 
-            ((FunctionPair)_main.getOperation(closing)).close.equals(closing))
-            throw new Exception("No vaild closing Pair for "+operator);
-        
-        return new Output(execute((ArrayList<String>)bounds.processOperation(array,start).value),new Range(index,end));
+            return new Output(execute((ArrayList<String>)bounds.processOperation(array,start).value),new Range(index,end));
     }
         
-    private int findClosingBound(ArrayList<String> array, int open){
+    private int findClosingBound(ArrayList<String> array, int open)throws Exception{
         int count = 0;
         for(int i = open;i<array.size();i++){
             if(array.get(i).equals(bounds.open))
@@ -73,7 +67,7 @@ public class Function<T> extends Operation<String,String>{
             if(count==0)
                 return i;
         }
-        return array.size()-1;
+        throw new Exception("No vaild closing Pair '"+bounds.close+"' for "+operator+" in '"+arrayToString(array)+"'");
     }
     
     public String execute(ArrayList<String> parts)throws Exception{
@@ -96,7 +90,7 @@ public class Function<T> extends Operation<String,String>{
     }
     
     public String getUsage(){
-        return operator+bounds.open+"<"+bounds.getTypeName()+">"+seperator+" ..."+bounds.close;
+        return usage==null ? operator+bounds.open+"<"+bounds.getTypeName()+">"+seperator+" ..."+bounds.close : usage;
     }
 
     

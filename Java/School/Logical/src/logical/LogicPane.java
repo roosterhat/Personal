@@ -9,12 +9,9 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.swing.RowSorter;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 import mathinterpreter.*;
 
 /**
@@ -27,18 +24,18 @@ public class LogicPane extends javax.swing.JPanel {
     /**
      * Creates new form LogicPane
      */
-    MainFrame _main;
-    LogicEquation equation;
-    String format;
-    String name;
-    ArrayList<LogicOutput> results;
+    private MainFrame _main;
+    private LogicEquation equation;
+    private String format;
+    private String name;
+    private ArrayList<LogicOutput> results;
     public LogicPane(String name, MainFrame m) {
         equation = new LogicEquation();
         results = new ArrayList();
         _main = m;
         this.name = name;
         initComponents();
-        jTable1.setEnabled(false);
+        jTable1.setDefaultEditor(Object.class, null);
         jTable1.setAutoCreateRowSorter(true);
     }
 
@@ -180,7 +177,7 @@ public class LogicPane extends javax.swing.JPanel {
         for(String states: getBinaryOutput(variables.size())){
             Map arguments = new HashMap();
             variables.forEach(x->arguments.put(x, states.charAt(variables.indexOf(x))=='0'));
-            try{results.add(createOutput(states,equation.f(arguments)));}
+            try{results.add(createOutput(states,equation.interpret(arguments)));}
             catch(Exception e){System.out.println(e);return;}                
         }
         displayResults();

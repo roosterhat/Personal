@@ -30,19 +30,14 @@ public class StringParser {
     }
     
     private double probabilityOfMatch(String subject, String target){
-        return Math.abs((subject.length()-target.length())/target.length()*100);
+        return Math.abs(target.compareToIgnoreCase(subject));
     }
        
     private ArrayList<Entry<String,Range>> getMostLikely(ArrayList<Entry<String,Range>> possible, String target, double margin){
         ArrayList<Double> res = new ArrayList();
-        double max = 0;
-        for(Entry<String,Range> entry: possible){
-            double val = probabilityOfMatch(entry.key,target);
-            max = Math.max(max, val);
-            res.add(val);
-        }
-        final double most = max;
-        possible.removeIf(x-> res.get(possible.indexOf(x)) < most-margin);
+        for(Entry<String,Range> entry: possible)
+            res.add(probabilityOfMatch(entry.key,target));
+        possible.removeIf(x-> res.get(possible.indexOf(x)) > margin);
         return possible;
     }
     
@@ -65,11 +60,11 @@ public class StringParser {
         ArrayList<Entry<String,Range>> output = new ArrayList();
         int index = entries.indexOf(token);
         Range range = token.value;
-        while(range.end > token.value.start){
+        for(;range.end > token.value.start; token = entries.get(++index)){
             output.add(new Entry(token.key,token.value));
-            if(entries.size()-1>index)
-                token = entries.get(++index);
-            else
+            if(token.value.end > range.end)
+                range = token.value;
+            if(entries.size()-1<=index)
                 break;
         }
         return output;  
@@ -116,7 +111,7 @@ public class StringParser {
         for(ArrayList<Entry<String, Range>> group: getGroups(matches)){
             Range totalArea = getTotalArea(group);
             ArrayList<Entry<String,Range>> mostLikely = getMostLikely(group,input.substring(totalArea.start, totalArea.end),0);
-            if(mostLikely.size()>0)
+            if(!mostLikely.isEmpty())
                 output.add(mostLikely.get(0));
         }
         return output;
