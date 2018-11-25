@@ -1,0 +1,20 @@
+true
+true
+true
+true
+[98, 67, 55, 45]
+false
+true
+false
+55
+98
+[98, 67, 55, *45]
+3
+4
+true
+true
+Error in insert: IllegalArgumentException raised, Error: Value must be in the range [1-99]
+[98, 67, 55, *45, 32, 84]
+Error in insert: IllegalArgumentException raised, Error: Value must be in the range [1-99]
+Invalid Syntax: expected [1] argument, found 0 for command 'insert'
+Invalid Syntax: unknown command 'hih' try 'help'

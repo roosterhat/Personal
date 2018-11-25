@@ -1,0 +1,13 @@
+true
+true
+true
+true
+55 -68 *45 98
+true
+true
+true
+true
+false
+55 32 *-68 *45 98 *84 *132
+Invalid Syntax: expected [1] argument, found 0 for command 'insert'
+Invalid Syntax: unknown command 'hih' try 'help'
