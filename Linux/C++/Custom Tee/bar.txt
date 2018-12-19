@@ -1,0 +1,143 @@
+     1	llas CS 3377 Dr. Simmons Final Page 1 of 9
+     2	Final Name: _____________________________
+     3	CS3377
+     4	C/C++ Programming in a UNIX Environment
+     5	Date: 12/03/2018
+     6	Scoring: 100 points
+     7	Problem 1: 25 points
+     8	UNIX, bash, compiled vs scripting
+     9	Problem 2: 25 points
+    10	Binary File I/O
+    11	Problem 3: 25 points
+    12	Fork, exec, and pipes
+    13	Problem 4: 25 points
+    14	Signals
+    15	Bonus 1: 10 points
+    16	Bonus 2: 10 points
+    17	Bonus 3: 10 points
+    18	Total:
+
+    19	Deliverables:
+    20	You are to submit a gzipped tarball of all your source code, makefiles and git log to
+    21	eLearning. Also please include a README file that describes any bonus problems you’ve
+    22	done and any other relevant notes to make my life easier.
+    23	UT Dallas CS 3377 Dr. Simmons Final Page 2 of 9
+    24	Problem 1: basic UNIX, bash scripting, compiled vs interpreted languages
+    25	Supposed we want to compute an estimate of π. As you know, the area of a circle of radius
+    26	(r) is A = π r2. A circle with r = 1 is called the unit circle and has an area π, so the area of one
+    27	fourth of the unit circle is π / 4. The left side of the figure below shows a unit square, that is
+    28	a square with sides of length one, with an “inscribed” quarter unit circle. The right side of
+    29	the figure below is the same unit square with 500 random points plotted inside it.
+    30	The ratio of the number of points inside the quarter circle to the total number of points in
+    31	the square should ideally be the same as the ratio of the area of the quarter circle to the
+    32	area of the square. That is:
+    33	This gives us a way to estimate π. The more random points we generate, the better the
+    34	estimate.
+    35	Your assignment is to write a bash script and a C/C++ code to calculate π using the above
+    36	information together with a random number generator to perform a “monte carlo”
+    37	simulation.
+    38	For bash, you will need some way to generate random numbers. Using awk, we can
+    39	generate (pseudo-)random numbers for our script.
+    40	UT Dallas CS 3377 Dr. Simmons Final Page 3 of 9
+    41	For your C/C++ program, use GSL’s RNG.
+    42	Once both programs are running, fill out and submit the following table twice, once for the
+    43	bash script and once for the compiled program.
+    44	# points Time (s) Estimated value Deviation % error
+    45	10
+    46	100
+    47	1000
+    48	10000
+    49	Also include the answers to the following questions in the write up in your tarball:
+    50	1.1Instead of running a give number of points, run as many points as you can in 100
+    51	seconds. How many points were you able to compute for your bash and your
+    52	compiled implementations?
+    53	1.2Which code was faster and why?
+    54	1.3Did you notice any difference in the accuracy? If there was a difference, what
+    55	could you attribute this to?
+    56	UT Dallas CS 3377 Dr. Simmons Final Page 4 of 9
+    57	Problem 2: Binary File I/O
+    58	For this problem, you are to start with the same codes that you created for HW 5, dealer
+    59	and hand. You are to augment dealer so that it can take an additional input option, -o
+    60	filename. This filename will be a binary file that contains the results of our simulation. If
+    61	filename does not exist, your program dealer will create the file. If filename does exist, then
+    62	simply append the results to the end of the file.
+    63	Once your dealer program can save statistics to filename, run it with 1000 trials per
+    64	percentage “-p” starting with an input percentage of 10 and incrementing by 10 until you
+    65	get to 90% for a total of 9 x 1000 trials run.
+    66	Finally, create a program named pitboss. This program will take two arguments, the dealer
+    67	output file that you want it to parse as well as the “-p” value from the above runs for which
+    68	it is to generate statistics.
+    69	Example:
+    70	UT Dallas CS 3377 Dr. Simmons Final Page 5 of 9
+    71	Problem 3: Fork, exec, and pipes
+    72	UNIX systems include a program (filter) that copies standard input to standard output and
+    73	a file descriptor passed on the command line at the same time. This program is tee.
+    74	For example:
+    75	UT Dallas CS 3377 Dr. Simmons Final Page 6 of 9
+    76	For this problem, we are going to generate our own version of tee called mighty, which will
+    77	be equivalent to the “cat –b …” command from above. At the command line you will type
+    78	the following to generate the same results as the above shell command:
+    79	Details:
+    80	• Error check the CLI input
+    81	o argv[1] will be the input file that’s going to get “tee”’d
+    82	o argv[2] will be the file you write to
+    83	• create a pipe
+    84	• fork the process
+    85	• child will:
+    86	o call dup2 so that any writes to standard output will go instead of the write
+    87	end of the pipe
+    88	o then execute the “cat –b” command using “execl”
+    89	• parent will:
+    90	o open argv[2] for writing
+    91	o read from the pipe until there are no characters left
+    92	o write to STDOUT
+    93	o write to the fire descriptor associated with argv[2]
+    94	UT Dallas CS 3377 Dr. Simmons Final Page 7 of 9
+    95	Problem 4: Signals
+    96	Write a program that will fork a child process. The parent will send a randomly generated
+    97	signal to this child process. The child will overwrite the default action of all the signals (1 –
+    98	31; inclusive) so that a message is displayed with the child receives the signal. The parent
+    99	will overwrite the default action of the same signals as well. In the parent’s signal handler,
+   100	it will send a SIGKILL to the child.
+   101	Details:
+   102	Parent will:
+   103	• Overwrite the default action of signals 1-31
+   104	• Seed the GSL random number generator
+   105	• Sleep for 1 second
+   106	• Loop infinitely doing the following:
+   107	o Randomly generating a signal between 1-31
+   108	o Printing a message of what signal will be sent to the child
+   109	o Sending the randomly generated signal to the child
+   110	o Nanosleeping for half a second
+   111	Child will:
+   112	• Overwrite the default action of signals 1-31
+   113	• Loop infinitely doing the following:
+   114	o Printing a message “child waiting”
+   115	o Nanosleeping for half a second
+   116	The child’s handler will:
+   117	• print the number of the signal received with a message that the child received it
+   118	The parent’s handler will:
+   119	• Print the numeric value of the signal received with a message that the parent
+   120	received it
+   121	• Send the SIGKILL signal to the child. Hint: the fork return will be a global variable
+   122	• Wait for the child
+   123	• print a message that the parent is done
+   124	• exit
+   125	UT Dallas CS 3377 Dr. Simmons Final Page 8 of 9
+   126	UT Dallas CS 3377 Dr. Simmons Final Page 9 of 9
+   127	Bonus Questions – each question is worth 10 bonus exam points
+   128	B1 Write a computer program to compute the natural log of the factorial N for every
+   129	integer between 1 and 100, and compare the results to that given by a simple form of
+   130	Stirling’s approximation.
+   131	When you run your program, have it write the results to STDOUT using a format similar to:
+   132	Calculate the value of N at which Stirling’s approximation will be within 0.1% of the exact
+   133	result. There are many ways to do this; how you do it is left up to you.
+   134	B2 Write a computer program that calculates and prints out all “ugly numbers” below
+   135	10000. Ugly numbers are numbers whose only prime factors are 2, 3 or 5. The sequence 1,
+   136	2, 3, 4, 5, 6, 8, 9, 10, 12, 15, … shows the first 11 ugly numbers. By convention, 1 is included.
+   137	B3 Write a computer program that determines if an integer provide as input is an abundant
+   138	number, a deficient number or a perfect number. If it is abundant, it also prints out its
+   139	“abundance” and if it is deficient it prints out its “deficiency”.
+   140	https://en.wikipedia.org/wiki/Abundant_number
+   141	https://en.wikipedia.org/wiki/Deficient_number
+   142	https://en.wikipedia.org/wiki/Perfect_number

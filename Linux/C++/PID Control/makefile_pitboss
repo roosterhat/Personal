@@ -1,0 +1,29 @@
+#Files
+EXEC  := pitboss
+SRC  := pitboss.cpp
+OBJ  := $(patsubst %.cpp,%.o,$(SRC))
+HOME  := /home/011/j/je/jeo170030
+
+#Options
+CC  := g++ 
+LDLIBS  := 
+LDFLAGS  := 
+LFLAGS  := -I$(HOME)/homework/final_jeo170030/p2
+HEADER := pitboss.h
+
+#Rules
+$(EXEC): $(OBJ)
+	$(CC) $(LDFLAGS) $(LFLAGS) $(LDLIBS) -o $@ $^
+%.o: %.cpp
+	$(CC) -c $(LFLAGS) $<
+$(OBJ): $(HEADER)
+
+.PHONY: clobber clean neat echo
+clobber: clean
+	$(RM) $(EXEC)
+clean: neat
+	$(RM) $(OBJ)
+neat:
+	$(RM) *~ .*~
+echo:
+	@echo $(OBJ)

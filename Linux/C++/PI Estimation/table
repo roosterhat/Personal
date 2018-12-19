@@ -1,0 +1,25 @@
+Bash:
+ints 	| Time	| Estimated value 	| Deviation	| % error
+-----------------------------------------------------------------
+10	|0.078	|3.2			|0.0584073	|0.01859
+100	|0.644	|3.16			|0.0184073	|0.00586
+1000	|5.983	|3.204			|0.0624073	|0.01891
+10000	|58.843	|3.1029			|0.0386927	|0.01231
+
+C++:
+ints    | Time  | Estimated value       | Deviation 	| % error
+-----------------------------------------------------------------
+10	|0.006	|2.4			|0.741593	|0.23605
+100	|0.004	|2.92			|0.221592	|0.07054
+1000	|0.004	|3.12			|0.021593	|0.00687
+10000	|0.004	|3.142			|0.000407	|0.00012
+
+1.1)
+	Bash:	11036	
+	C++:	1328276916
+1.2)
+	C++, because its compiled into binary code which is also optimized rather than copiled at runtime
+
+1.3)
+	C++ was far more accurate than the bash script because it was ran 120000 times more
+

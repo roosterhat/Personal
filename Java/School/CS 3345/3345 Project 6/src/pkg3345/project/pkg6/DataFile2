@@ -1,0 +1,55 @@
+Seattle|San Francisco|140|140
+Seattle|Los Angeles|200|180
+Seattle|New York|300|240
+Seattle|Houston|240|240
+Seattle|Chicago|200|200
+San Francisco|Seattle|140|140
+San Francisco|Los Angeles|120|100
+San Francisco|Houston|280|240
+San Francisco|New York|300|260
+Los Angeles|Seattle|210|180
+Los Angeles|San Francisco|120|100
+Los Angeles|New York|300|250
+Los Angeles|Dallas|250|180
+Los Angeles|Houston|260|200
+Los Angeles|Chicago|250|180
+Los Angeles|Washington|300|230
+Dallas|Houston|100|60
+Dallas|Austin|90|45
+Dallas|Kansas City|140|90
+Dallas|New Orleans|120|110
+Dallas|Los Angeles|240|200
+Dallas|Minneapolis|200|160
+Dallas|Chicago|180|130
+Dallas|New York|240|200
+Dallas|Nashville|140|120
+Houston|Austin|80|40
+Houston|Dallas|100|60
+Houston|Seattle|250|240
+Houston|Los Angeles|240|210
+Houston|San Francisco|260|230
+Houston|Miami|200|180
+Houston|New York|280|240
+Austin|Houston|90|45
+Austin|Dallas|100|50
+Austin|Kansas City|200|160
+Austin|Chicago|260|200
+Austin|New Orleans|120|90
+Kansas City|Minneapolis|150|90
+Kansas City|Dallas|150|90
+Kansas City|Nashville|140|80
+Kansas City|Chicago|140|80
+Minneapolis|Chicago|110|60
+Minneapolis|Kansas City|140|90
+Minneapolis|Seattle|180|160
+Minneapolis|Dallas|210|170
+Minneapolis|New York|200|160
+Chicago|Minneapolis|100|60
+Chicago|Nashville|120|90
+Chicago|Seattle|210|200
+Chicago|New York|160|120
+Chicago|Dallas|180|140
+Chicago|Houston|200|180
+Chicago|Los Angeles|260|180
+Chicago|Kansas City|140|100
+
