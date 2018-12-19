@@ -7,7 +7,6 @@ package mathinterpreter.Operation;
 
 import java.util.ArrayList;
 import java.util.regex.Pattern;
-import mathinterpreter.Equation;
 import mathinterpreter.MathInterpreter;
 
 /**

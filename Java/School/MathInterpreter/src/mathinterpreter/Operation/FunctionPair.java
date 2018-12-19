@@ -26,7 +26,8 @@ public class FunctionPair extends Pair{
     protected ArrayList<String> evaluateContents(ArrayList<ArrayList<String>> contents)throws Exception{
         ArrayList<String> results = new ArrayList();
         for(ArrayList<String> x : contents)
-            results.add(String.join("",_main.processEquation(x)));
+            if(!x.isEmpty())
+                results.add(String.join("",_main.processEquation(x)));
         return results;
     }
     
