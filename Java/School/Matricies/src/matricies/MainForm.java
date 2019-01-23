@@ -48,7 +48,7 @@ public class MainForm extends javax.swing.JFrame {
     ArrayList<Command> commands;
     ArrayList<Command> creators;
     File importFile;
-    Equation equation;
+    MathEquation equation;
     boolean shiftState = false;
     
     public MainForm() {

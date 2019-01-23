@@ -20,7 +20,7 @@ import mathinterpreter.Operation.PairFunction;
 import mathinterpreter.Operation.Summation;
 import mathinterpreter.Operation.UniaryFunction;
 
-public class MatrixEquation extends Equation{
+public class MatrixEquation extends MathEquation{
     MainForm _main;
     MatrixConverter mc;
     public MatrixEquation(MainForm m){
