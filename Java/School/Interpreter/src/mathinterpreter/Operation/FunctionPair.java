@@ -7,9 +7,10 @@ package mathinterpreter.Operation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import mathinterpreter.Interpreter;
-import mathinterpreter.Util.Equation;
+import Interpreter.Interpreter;
+import Interpreter.Equation;
 import mathinterpreter.Util.ObjectInstance;
+import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
 
 /**
@@ -17,19 +18,26 @@ import mathinterpreter.Util.Range;
  * @author eriko
  */
 public class FunctionPair<IN_TYPE> extends Pair{
-    String seperator = ",";
-    FunctionPairFunction function;
+    Seperator seperator = new Seperator(",");
+    FunctionPairAction function;
     
-    public FunctionPair(int weight, FunctionPairFunction<IN_TYPE> function){
-        super("[","]",Math.max(weight + 1, 5));
-        this.function = function;
-        this.converter = x->x;
+    public FunctionPair(int weight){
+        this(weight, x->x);
     } 
     
-    public FunctionPair(int weight, FunctionPairFunction<IN_TYPE> function, Converter converter){
-        super("[","]",Math.max(weight + 1, 5));
+    public FunctionPair(int weight, Converter converter){
+        this(weight, converter, new DefaultFunction());
+    } 
+    
+    public FunctionPair(int weight, Converter converter, FunctionPairAction<IN_TYPE> function){
+        super("[","]",weight);
         this.function = function;
         this.converter = converter;
+    }
+    
+    public Output processOperation(Equation equation, int index)throws Exception{
+        Range range = findRange(equation.parsedEquation, index);
+        return new Output(execute(equation.split(new Range(range.start + 1, range.end - 1))),range);
     }
     
     public String execute(Equation equation)throws Exception{
@@ -55,25 +63,52 @@ public class FunctionPair<IN_TYPE> extends Pair{
         ArrayList<Equation> results = new ArrayList();
         int marker = 0;
         for(ObjectInstance instance: equation.segmentedObjectEquation){
-            if(instance.object.equals(seperator)){
+            if(instance.object != null && instance.object.equals(seperator)){
                 results.add(equation.split(new Range(marker,instance.range.end - 1)));
                 marker = instance.range.end + 1;
             }
         }
-        results.add(equation.split(new Range(marker,equation.objectEquation.size())));
+        if(marker < equation.objectEquation.size())
+            results.add(equation.split(new Range(marker,equation.objectEquation.size()-1)));
         return results;
     }
     
     public ArrayList<String> getTokens(){
-        return new ArrayList(Arrays.asList(new String[]{open,close,seperator}));
+        return new ArrayList(Arrays.asList(new String[]{open,close}));
     }
     
     public boolean equals(Object o){
-        return open.equals(o) || close.equals(o) || seperator.equals(o);
+        return open.equals(o) || close.equals(o);
     }
     
     public String toString(){
         return open+seperator+close;
     }
     
+}
+
+class Seperator extends Operation{
+    public Seperator(String seperator){
+        super(seperator, 0, x->x);
+    }
+
+    @Override
+    public Output processOperation(Equation equation, int index) throws Exception {
+        return new Output("",new Range(index,index));
+    }
+
+    @Override
+    protected String execute(Equation parts) throws Exception {
+        return "";
+    }
+}
+
+class DefaultFunction<TYPE> implements FunctionPairAction<TYPE>{
+    public String execute(ArrayList<TYPE> array){
+        String res = "";
+        for(int i = 0; i < array.size()-1; i++)
+            res += array.get(i)+",";
+        res+=array.get(array.size()-1);
+        return res;
+    }
 }

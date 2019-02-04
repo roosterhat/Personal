@@ -5,6 +5,8 @@
  */
 package mathinterpreter;
 
+import Interpreter.Equation;
+import Interpreter.Interpreter;
 import mathinterpreter.Operation.UniaryOperation;
 import mathinterpreter.Operation.BinaryOperation;
 import mathinterpreter.Operation.Parenthesis;
@@ -13,7 +15,7 @@ import mathinterpreter.Operation.Parenthesis;
  *
  * @author ostlinja
  */
-public class LogicEquation extends Interpreter{
+public class LogicEquation extends Equation{
 //    public static void main(String[] args) {
 //        LogicEquation eq = new LogicEquation("~((x&y)|A)");
 //        try{System.out.println(eq.f(true,true,false));}catch(Exception e){System.out.println(e.getMessage());}
@@ -62,6 +64,6 @@ public class LogicEquation extends Interpreter{
         String[] res = new String[args.length];
         for(int i=0;i<args.length;i++)
             res[i] = String.valueOf(args[i]);
-        return interpret(res);
+        return new Interpreter(this).interpret(res);
     }
 }

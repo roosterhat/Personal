@@ -3,14 +3,18 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package mathinterpreter.Util;
+package Interpreter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Observable;
 import java.util.Set;
 import mathinterpreter.Operation.Operation;
 import mathinterpreter.Parser.StringParser;
+import mathinterpreter.Util.ObjectInstance;
+import mathinterpreter.Util.OperationInstance;
+import mathinterpreter.Util.Range;
 
 /**
  *
@@ -20,6 +24,7 @@ public class Equation {
     final public ArrayList<String> defaultVariables = new ArrayList(Arrays.asList("x","y","z"));
     public ArrayList<String> illegalCharacters = new ArrayList(Arrays.asList("�","∞","NaN"));
     public ArrayList<String> variables;
+    public ArrayList<String> extra;
     public String equation;
     public ArrayList<String> parsedEquation;
     public ArrayList objectEquation;
@@ -34,28 +39,40 @@ public class Equation {
         this.objectEquation = new ArrayList();
         this.segmentedObjectEquation = new ArrayList();
         this.variables = new ArrayList(defaultVariables);
+        this.operations = new ArrayList();
         this.parser = new StringParser();
+        this.extra = new ArrayList();
     }
     
-    public Equation(String equation){
+    public Equation(String equation, ArrayList<Operation> operations){
         setEquation(equation);
+        this.operations = operations;
         this.variables = new ArrayList(defaultVariables);
         this.parser = new StringParser();
+        this.extra = new ArrayList();
     }
     
-    public Equation(ArrayList<String> parsedEquation){
+    public Equation(ArrayList<String> parsedEquation, ArrayList<Operation> operations){
         setEquation(parsedEquation);
+        this.operations = operations;
         this.variables = new ArrayList(defaultVariables);
         this.parser = new StringParser();
+        this.extra = new ArrayList();
     }
     
-    public Equation(String equation, ArrayList<String> paredEquation, ArrayList objectEquation, ArrayList<ObjectInstance> SOE){
+    public Equation(String equation, ArrayList<String> paredEquation, ArrayList objectEquation, ArrayList<ObjectInstance> SOE, ArrayList<Operation> operations){
         this.equation = equation;
         this.parsedEquation = paredEquation;
         this.objectEquation = objectEquation;
         this.segmentedObjectEquation = SOE;
+        this.operations = operations;
         this.variables = new ArrayList(defaultVariables);
         this.parser = new StringParser();
+        this.extra = new ArrayList();
+    }
+    
+    public void reconstructEquation(){
+        setEquation(equation);
     }
     
     private ArrayList<String> parseEquation(String equation){
@@ -63,31 +80,6 @@ public class Equation {
         ArrayList parsedResult = parser.parseString(equation);
         parsedResult.removeIf(x->((String)x).replace(" ","").isEmpty());
         return parsedResult;
-    }
-    
-    private ArrayList createObjectEquation(ArrayList<String> parsedEquation){
-        ArrayList result = new ArrayList(parsedEquation.size());
-        for(String s : parsedEquation){
-            Operation o = getOperation(s);
-            result.add(o==null ? s : o);
-        }
-        return result;
-    }
-    
-    private ArrayList<ObjectInstance> segmentObjectEquation(ArrayList objectEquation){
-        ArrayList<ObjectInstance> segmentedEquation = new ArrayList();
-        for(int i = 0; i < objectEquation.size(); i++){
-            Object o = objectEquation.get(i);
-            if(o instanceof Operation){
-                Operation op = (Operation)o;
-                Range range = op.findRange(objectEquation, i);
-                segmentedEquation.add(new OperationInstance(op,range));
-                i += range.length()+1;
-            }
-            else
-                segmentedEquation.add(new ObjectInstance(o,new Range(i,i)));
-        }
-        return segmentedEquation;
     }
     
     private void objectify(ArrayList<String> parsedEquation){
@@ -99,7 +91,7 @@ public class Equation {
             Operation obj = getOperation(part);
             objectEquation.add(obj==null ? part : obj);
             if(marker <= i){
-                if(obj instanceof Operation){
+                if(obj!=null){
                     Operation op = (Operation)obj;
                     Range range = op.findRange(parsedEquation, i);
                     segmentedObjectEquation.add(new OperationInstance(op,range));
@@ -111,19 +103,24 @@ public class Equation {
         }
     }
     
+    private void resetEquation(){
+        this.equation = "";
+        this.parsedEquation = new ArrayList();
+        this.objectEquation = new ArrayList();
+        this.segmentedObjectEquation = new ArrayList();
+    }
+    
     public void setEquation(String equation){
+        resetEquation();
         this.equation = equation;
         this.parsedEquation = parseEquation(equation);
-        //this.objectEquation = createObjectEquation(parsedEquation);
-        //this.segmentedObjectEquation = segmentObjectEquation(parsedEquation);
         objectify(parsedEquation);
     }
     
     public void setEquation(ArrayList<String> parsedEquation){
+        resetEquation();
         this.equation = String.join("", parsedEquation);
         this.parsedEquation = parsedEquation;
-        //this.objectEquation = createObjectEquation(parsedEquation);
-        //this.segmentedObjectEquation = segmentObjectEquation(parsedEquation);
         objectify(parsedEquation);
     }
     
@@ -175,21 +172,22 @@ public class Equation {
         for(Operation o: operations)
             hs.addAll(o.getTokens());
         hs.addAll(variables);
+        hs.addAll(extra);
         return new ArrayList(hs);
     }
     
     public Equation split(Range range){
-        Equation eq = new Equation((ArrayList<String>)new ArrayList(parsedEquation.subList(range.start, range.end)));
+        Equation eq = new Equation();
         eq.operations = operations;
         eq.variables = variables;
         eq.parser = parser;
         eq.illegalCharacters = illegalCharacters;
+        eq.setEquation((ArrayList<String>)new ArrayList(parsedEquation.subList(range.start, range.end+1)));
         return eq;
     }
     
     public Equation clone(){
-        Equation eq = new Equation(equation, parsedEquation, objectEquation, segmentedObjectEquation);
-        eq.operations = operations;
+        Equation eq = new Equation(equation, parsedEquation, objectEquation, segmentedObjectEquation, operations);
         eq.variables = variables;
         eq.parser = parser;
         eq.illegalCharacters = illegalCharacters;
@@ -199,4 +197,12 @@ public class Equation {
     public String toString(){
         return equation;
     }
+}
+
+class EquationObserver<Type> extends Observable{
+    ArrayList<Type> observed;
+    public EquationObserver(ArrayList<Type> observed){
+        this.observed = observed;
+    }
+    
 }

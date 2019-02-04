@@ -5,27 +5,51 @@
  */
 package mathinterpreter.Operation;
 
+import Interpreter.Equation;
+import Interpreter.Interpreter;
 import java.util.ArrayList;
+import mathinterpreter.Util.Output;
+import mathinterpreter.Util.Range;
 
 /**
  *
  * @author ostlinja
  */
-public class Function<IN_TYPE> extends UniaryOperation<String>{
+public class Function<IN_TYPE> extends Operation<IN_TYPE>{
     public FunctionPair bounds;
+    public FunctionAction function;
     
-    public Function(String name,int weight, FunctionPairFunction<IN_TYPE> function){
-        this(name,weight,function,x->Double.valueOf(x));
+    public Function(String name, int weight, FunctionAction<IN_TYPE> function, Converter<IN_TYPE> converter, Equation equation){
+        this(name, weight, function, converter, new FunctionPair(weight - 1), equation);
     }
     
-    public Function(String name, int weight, FunctionPairFunction<IN_TYPE> function, Converter converter){
-        super(name,weight,x->x);
-        this.bounds = new FunctionPair(weight,function,converter);
+    public Function(String name, int weight, FunctionAction<IN_TYPE> function, Converter<IN_TYPE> converter, FunctionPair bounds, Equation equation){
+        super(name, weight, converter);
+        this.function = function;
+        this.bounds = bounds; //ensure that the weight of the FunctionPair is less than the function
+        equation.addOperation(bounds);
+        equation.addOperation(bounds.seperator);
     }
     
-    public Function(String name, int weight, FunctionPair bounds){
-        super(name, weight, x->x);
-        this.bounds = bounds;
+    public Output processOperation(Equation equation, int index)throws Exception{
+        Object obj = equation.objectEquation.get(Math.min(index + 1, equation.objectEquation.size() - 1));
+        if(obj instanceof FunctionPair){
+            Range range = ((FunctionPair) obj).findRange(equation.parsedEquation, index + 1);
+            return new Output(execute(Interpreter.evaluate(equation.split(range))), new Range(index,range.end));
+        }
+        throw new Exception("Expected FunctionPair adjacent to Function '"+super.operator+"' in '"+equation+"'");
+        
+    }
+    
+    public String execute(Equation equation)throws Exception{
+        return function.execute(convertInput(equation.parsedEquation.get(0)));
+    }
+    
+    private ArrayList<IN_TYPE> convertInput(String input)throws Exception{
+        ArrayList<IN_TYPE> res = new ArrayList();
+        for(String s : input.split(bounds.seperator.operator))
+            res.add(converter.convert(s));
+        return res;
     }
     
     public ArrayList<String> getTokens(){
@@ -33,15 +57,8 @@ public class Function<IN_TYPE> extends UniaryOperation<String>{
         temp.addAll(bounds.getTokens());
         return temp;
     }
-    
-    public boolean equals(Object o){
-        return operator.equals(o) || bounds.seperator.equals(o);
-    }
-    
+
     public String toString(){
         return operator+bounds;
     }
-
-
-    
 }

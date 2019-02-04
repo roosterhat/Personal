@@ -5,6 +5,7 @@
  */
 package logical;
 
+import Interpreter.Interpreter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +13,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.swing.table.DefaultTableModel;
-import mathinterpreter.*;
+import mathinterpreter.LogicEquation;
 
 /**
  *
@@ -161,7 +162,7 @@ public class LogicPane extends javax.swing.JPanel {
         ArrayList<Boolean> formatTargets = new ArrayList();
         for(char c: states.toCharArray())
             formatTargets.add(c=='0');
-        return new LogicOutput(equation.getEquation(), formatTargets, Boolean.valueOf(outcome));
+        return new LogicOutput(equation.equation, formatTargets, Boolean.valueOf(outcome));
     }
     
     private void setFormat(ArrayList<String> variables){
@@ -177,7 +178,7 @@ public class LogicPane extends javax.swing.JPanel {
         for(String states: getBinaryOutput(variables.size())){
             Map arguments = new HashMap();
             variables.forEach(x->arguments.put(x, states.charAt(variables.indexOf(x))=='0'));
-            try{results.add(createOutput(states,equation.interpret(arguments)));}
+            try{results.add(createOutput(states,new Interpreter(equation).interpret(arguments)));}
             catch(Exception e){System.out.println(e);return;}                
         }
         displayResults();
@@ -185,7 +186,7 @@ public class LogicPane extends javax.swing.JPanel {
     
     private ArrayList<String> getVariables(){
         Set<String> vars = new HashSet();
-        for(String part: (ArrayList<String>)equation.getParsedEquation())
+        for(String part: (ArrayList<String>)equation.parsedEquation)
             if(equation.variables.contains(part))
                 vars.add(part);
         return new ArrayList(vars);

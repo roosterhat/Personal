@@ -28,7 +28,7 @@ public class TestCases {
     public static void createTestCases(BatchTester bt){
         DoubleComparator c = new DoubleComparator();
         ScoredCase<Integer,Double> case1 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("(x(-3-1))^2");
+            MathInterpreter eq = new MathInterpreter("(x(-3-1))^2");
             return eq.fD((Integer)x);
         },new Integer[]{3,-4,5},new Double[]{144d,256d,400d});
         case1.customComparator = c;
@@ -37,7 +37,7 @@ public class TestCases {
         bt.addTestCase(case1);
         
         ScoredCase<Integer,Double> case2 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("(1+(cosx)^2)/(cosx)^2");
+            MathInterpreter eq = new MathInterpreter("(1+(cosx)^2)/(cosx)^2");
             return eq.fD((Integer)x);
         },new Integer[]{10,-4,5},new Double[]{2.420371762,3.340550,13.42788170});
         case2.customComparator = c;
@@ -46,7 +46,7 @@ public class TestCases {
         bt.addTestCase(case2);
         
         ScoredCase<Integer,Double> case3 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("sin(pi/x)");
+            MathInterpreter eq = new MathInterpreter("sin(pi/x)");
             return eq.fD((Integer)x);
         },new Integer[]{1,2,3,4,5,6},new Double[]{0d,1d,0.8660254,0.707106,0.587785,0.5});
         case3.customComparator = c;
@@ -55,24 +55,24 @@ public class TestCases {
         bt.addTestCase(case3);
         
         ErrorCase<Integer> case3_E = new ErrorCase(x->{
-            MathEquation eq = new MathEquation("sin(pi/x)");
+            MathInterpreter eq = new MathInterpreter("sin(pi/x)");
             return eq.fD((Integer)x);
         },new Integer[]{0},new Exception[]{new Exception("Divide by zero Error")});
         case3_E.title = "sin(pi/x)";
         bt.addTestCase(case3_E);
         
         ScoredCase<Integer,Double> case4 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("(csclnx*cotlnx)/(2x)");
+            MathInterpreter eq = new MathInterpreter("(csclnx*cotlnx)/(2x)");
             return eq.fD((Integer)x);
-        },new Integer[]{3,4,100},new Double[]{0.095577831,0.023730817,-0.00054126});
+        },new Integer[]{3,4,100},new Double[]{0.095577831,0.023730817,-0.00054126593337});
         case4.customComparator = c;
         case4.title = "(csclnx*cotlnx)/(2x)";
         case4.errorMargin = ScoredCase.LOW_ERROR;
         bt.addTestCase(case4);
         
         ScoredCase<Integer,Double> case5 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("238Ex");
-            eq.setDecimalDepth(10);
+            MathInterpreter eq = new MathInterpreter("238Ex");
+            ((MathEquation)eq.equation).setDecimalDepth(10);
             return eq.fD((Integer)x);
         },new Integer[]{-8},new Double[]{0.00000238});
         case5.customComparator = c;
@@ -81,8 +81,8 @@ public class TestCases {
         bt.addTestCase(case5);
         
         ScoredCase<Double,Double> case6 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("238*10^((-2x)-1)");
-            eq.setDecimalDepth(10);
+            MathInterpreter eq = new MathInterpreter("238*10^((-2x)-1)");
+            ((MathEquation)eq.equation).setDecimalDepth(10);
             return eq.fD((Double)x);
         },new Double[]{3.5},new Double[]{0.00000238});
         case6.customComparator = c;
@@ -91,7 +91,7 @@ public class TestCases {
         bt.addTestCase(case6);
         
         ScoredCase<Integer,Double> case7 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("abs((5-15)/2)");
+            MathInterpreter eq = new MathInterpreter("abs((5-15)/2)");
             return eq.fD((Integer)x);
         },new Integer[]{0},new Double[]{5d});
         case7.customComparator = c;
@@ -104,9 +104,9 @@ public class TestCases {
         values.put("x", 3);
         values.put("y", 4);
         ScoredCase<Map,Double> case8 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("3<x>+xy");
-            eq.variables.add("<x>");
-            eq.parseEquation();
+            MathInterpreter eq = new MathInterpreter("3<x>+xy");
+            eq.equation.variables.add("<x>");
+            ((MathEquation)eq.equation).reconstructEquation();
             return Double.valueOf(eq.interpret((Map)x));
         },new Map[]{values},new Double[]{18d});
         case8.customComparator = c;
@@ -115,7 +115,7 @@ public class TestCases {
         bt.addTestCase(case8);
         
         ScoredCase<Integer,Double> case9 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("max[2,(x(-3-1))^2,50+3,6,7,12,8]");
+            MathInterpreter eq = new MathInterpreter("max[2,(x(-3-1))^2,50+3,6,7,12,8]");
             return eq.fD((Integer)x);
         },new Integer[]{3,0,1},new Double[]{144d,53d,53d});
         case9.customComparator = c;
@@ -124,7 +124,7 @@ public class TestCases {
         bt.addTestCase(case9);
         
         ScoredCase<Integer,Double> case10 = new ScoredCase(x->{
-            MathEquation eq = new MathEquation("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");
+            MathInterpreter eq = new MathInterpreter("min[2,x,50+1,6,7,12,8,-max[2,2x,6,7,12,8]]");
             return eq.fD((Integer)x);
         },new Integer[]{10,0,22},new Double[]{-20d,-12d,-44d});
         case10.customComparator = c;
@@ -133,24 +133,24 @@ public class TestCases {
         bt.addTestCase(case10);
         
         TimedCase<Integer> case11 = new TimedCase(x->{
-            MathEquation eq = new MathEquation();
-            for(int i=0;i<10000;i++)
-                eq.setEquation("(csclnx*cotlnx)/(2x)");
+            MathInterpreter eq = new MathInterpreter();
+            for(int i=0;i<(int)x;i++)
+                eq.equation.setEquation("(csclnx*cotlnx)/(2x)");
             return "";
-        },new Integer[]{10});
+        },new Integer[]{10000});
         case11.title = "Parsing Test: '(csclnx*cotlnx)/(2x)'";
         bt.addTestCase(case11);
         
         ScoredCase<Double,Double> case12 = new ScoredCase(x->{
             double area = 0;
-            double start = (Double)x;
-            double end = 10;
+            double start = ((Double[])x)[0];
+            double end = ((Double[])x)[1];
             double step = 0.001;
-            MathEquation eq = new MathEquation("sin(pi/x)");
+            MathInterpreter eq = new MathInterpreter("sin(pi/x)");
             for(double i=start;i<end;i+=step)
                 area+=(eq.fD(i)*step);
             return area;
-        },new Double[]{0.001},new Double[]{4.9915});
+        },new Double[][]{{0.001,10d}},new Double[]{4.9915});
         case12.customComparator = c;
         case12.title = "Integral Test: 'sin(pi/x)'";
         case12.errorMargin = ScoredCase.MEDIUM_ERROR;
@@ -162,7 +162,7 @@ public class TestCases {
 class DoubleComparator extends CustomComparator<Double>{
     @Override
     public double compare(Double d1, Double d2) {
-        return 1-d1/d2;
+        return Math.abs(1-d1/d2);
     }
     
 }

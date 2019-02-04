@@ -5,6 +5,7 @@
  */
 package matricies;
 
+import Interpreter.Interpreter;
 import java.awt.BorderLayout;
 import mathinterpreter.Operation.Operation;
 import java.awt.Component;
@@ -360,7 +361,7 @@ public class MainForm extends javax.swing.JFrame {
         if(!e.equals("")){
             equation.setEquation(e);
             String res = "";
-            try{res = equation.interpret();}
+            try{res = new Interpreter(equation).interpret();}
             catch(Exception ex){res = ex.getMessage();}
             updateAllTabs();
             return res;

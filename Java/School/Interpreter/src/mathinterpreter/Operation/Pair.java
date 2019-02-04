@@ -7,8 +7,8 @@ package mathinterpreter.Operation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import mathinterpreter.Interpreter;
-import mathinterpreter.Util.Equation;
+import Interpreter.Interpreter;
+import Interpreter.Equation;
 import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
 
@@ -19,12 +19,12 @@ import mathinterpreter.Util.Range;
 public abstract class Pair  extends Operation<String>{
     
     public String open, close;
-    protected PairFunction function;
+    protected PairAction function;
     public Pair(String open, String close, int weight){
         this(open,close,weight,new DefaultPairFunction());
     }
     
-    public Pair(String open, String close, int weight, PairFunction function)
+    public Pair(String open, String close, int weight, PairAction function)
     {
         super(open+close,weight);
         this.open = open;
@@ -34,25 +34,25 @@ public abstract class Pair  extends Operation<String>{
     
     public Output processOperation(Equation equation, int index)throws Exception{
         Range range = findRange(equation.parsedEquation, index);
-        return new Output(execute(equation.split(range)),range);
+        return new Output(execute(equation.split(new Range(range.start + 1, range.end - 1))),range);
     }
     
-    public Range findRange(ArrayList array, int index){
+    public Range findRange(ArrayList<String> equation, int index){
         try{
-            return new Range(index,findClosing(new ArrayList(array.subList(index, array.size())))+index);
+            return new Range(index, findClosing(equation,index));
         }catch(Exception e){
             System.out.println(e);
             return new Range(index,index);
         }
     }
     
-    protected int findClosing(ArrayList array)throws Exception{
+    protected int findClosing(ArrayList<String> array, int index)throws Exception{
         int count = 0;
-        for(int i = 0;i<array.size();i++){
-            Object obj = array.get(i);
-            if(obj.equals(close))
+        for(int i = index;i<array.size();i++){
+            String part = array.get(i);
+            if(part.equals(close))
                 count--;
-            if(obj.equals(open))
+            if(part.equals(open))
                 count++;
             if(count==0)
                 return i;
@@ -65,7 +65,7 @@ public abstract class Pair  extends Operation<String>{
         for(int i = 0; i < array.size();i++){
             if(open.equals(array.get(i))){
                 try{
-                    int closeIndex = findClosing(new ArrayList(array.subList(i, array.size())));
+                    int closeIndex = findClosing(new ArrayList(array.subList(i, array.size())),0);
                     instances.add(new Range(i,closeIndex));
                 }catch(Exception e){
                     System.out.println(e);
@@ -99,7 +99,7 @@ public abstract class Pair  extends Operation<String>{
     }
 }
 
-class DefaultPairFunction implements PairFunction{
+class DefaultPairFunction implements PairAction{
     public String execute(Equation equation) throws Exception {
         return Interpreter.evaluate(equation).equation;
     }

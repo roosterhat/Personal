@@ -5,10 +5,13 @@
  */
 package mathinterpreter.Operation;
 
+import java.util.ArrayList;
+import Interpreter.Equation;
+
 /**
  *
  * @author ostlinja
  */
-public interface UniaryFunction<I>{      
-    String execute(I x)throws Exception;
+public interface PairAction{
+    public String execute(Equation equation)throws Exception;
 }

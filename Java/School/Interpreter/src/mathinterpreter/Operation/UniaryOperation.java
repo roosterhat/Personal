@@ -5,7 +5,7 @@
  */
 package mathinterpreter.Operation;
 
-import mathinterpreter.Util.Equation;
+import Interpreter.Equation;
 import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
 
@@ -18,22 +18,20 @@ public class UniaryOperation<IN_TYPE> extends Operation<IN_TYPE>{
     public static int LEFT = -1;
     public static int RIGHT = 1;
     public int inputSide;
-    UniaryFunction<IN_TYPE> function;
-
-    public UniaryOperation(String operation,int weight, UniaryFunction<IN_TYPE> f){
-        this(operation,weight,RIGHT,f,x->(IN_TYPE)Double.valueOf(x));
+    UniaryOperationAction<IN_TYPE> function;
+    
+    public UniaryOperation(String operation, int weight, UniaryOperationAction<IN_TYPE> function, Converter<IN_TYPE> converter){
+        this(operation, weight, RIGHT, function, converter);
     }
-    public UniaryOperation(String operation,int weight, int side, UniaryFunction<IN_TYPE> f){
-        this(operation,weight,side,f,x->(IN_TYPE)Double.valueOf(x));
-    }
-    public UniaryOperation(String operation,int weight, int side ,UniaryFunction<IN_TYPE> f,Converter<IN_TYPE> c){
-        super(operation,weight,c);
+    
+    public UniaryOperation(String operation,int weight, int side, UniaryOperationAction<IN_TYPE> function, Converter<IN_TYPE> converter){
+        super(operation,weight,converter);
         inputSide = side;
-        function = f;
+        this.function = function;
     }
     
     public String execute(Equation equation)throws Exception{
-        return function.execute(converter.convert(equation.parsedEquation.get(0)));
+        return function.execute(converter.convert(equation.parsedEquation.get(inputSide < 0 ? 0 : 1)));
     }
 
     public Output<String> processOperation(Equation equation, int index) throws Exception {

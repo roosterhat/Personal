@@ -5,7 +5,7 @@
  */
 package mathinterpreter.Operation;
 
-import mathinterpreter.Util.Equation;
+import Interpreter.Equation;
 import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
 
@@ -15,12 +15,10 @@ import mathinterpreter.Util.Range;
  * @param <IN_TYPE> Type to be converted to from string
  */
 public class BinaryOperation<IN_TYPE> extends Operation<IN_TYPE>{
-    BinaryFunction<IN_TYPE> function;
+    BinaryOperationAction<IN_TYPE> function;
    
-    public BinaryOperation(String operation, int weight ,BinaryFunction<IN_TYPE> function){
-        this(operation, weight, function, x->(IN_TYPE)Double.valueOf(x));
-    }
-    public BinaryOperation(String operation, int weight, BinaryFunction<IN_TYPE> function, Converter<IN_TYPE> converter){
+
+    public BinaryOperation(String operation, int weight, BinaryOperationAction<IN_TYPE> function, Converter<IN_TYPE> converter){
         super(operation, weight, converter);
         this.function = function;
     }

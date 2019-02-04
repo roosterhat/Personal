@@ -5,10 +5,12 @@
  */
 package mathinterpreter.Operation;
 
+import java.util.ArrayList;
+
 /**
  *
- * @author ostlinja
+ * @author eriko
  */
-public interface BinaryFunction<I>{      
-    String execute(I x,I y)throws Exception;
+public interface FunctionAction<TYPE> {
+    public String execute(ArrayList<TYPE> equation)throws Exception;
 }

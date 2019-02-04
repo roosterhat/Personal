@@ -5,116 +5,107 @@
  */
 package mathinterpreter;
 
-import mathinterpreter.Operation.Operation;
+import Interpreter.Equation;
+import Interpreter.Interpreter;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import mathinterpreter.Util.BinaryTree;
-import mathinterpreter.Util.Entry;
-import mathinterpreter.Util.Equation;
-import mathinterpreter.Util.ObjectInstance;
-import mathinterpreter.Util.OperationInstance;
-import mathinterpreter.Util.Output;
+import java.util.Arrays;
+import mathinterpreter.Operation.Operation;
+import mathinterpreter.Operation.Pair;
+import mathinterpreter.Operation.UniaryOperation;
 
 /**
  *
- * @author ostlinja
+ * @author eriko
  */
-public class Interpreter {
-    private static BinaryTree<Entry<Operation>> operationTree;
-    public Equation equation;
-    
-    public Interpreter(){
-        equation = new Equation();
-        operationTree = new BinaryTree();
-        operationTree.setComparator((x,y)->(((Entry<Operation>)y).value.weight-((Entry<Operation>)x).value.weight));
+public class MathInterpreter extends Interpreter{
+    public MathInterpreter(){
+        super(new MathEquation());
     }
     
-    public Interpreter(Equation equation){
-        this.equation = equation;
-        operationTree = new BinaryTree();
-        operationTree.setComparator((x,y)->(((Entry<Operation>)y).value.weight-((Entry<Operation>)x).value.weight));
+    public MathInterpreter(String equation){
+        super(new MathEquation(equation));
     }
     
-    public Equation getEquation(){return equation;}    
-    
-    private void subsituteVariables(Equation eq, Map<String,String> values)throws Exception{
-        ArrayList<String> vars = eq.getRelaventVariables();
-        ArrayList<String> temp = (ArrayList<String>)eq.parsedEquation.clone();
-        for(String var: values.keySet()){
-            vars.removeIf(x->var.equals(x) && temp.contains(var));
-            while(temp.contains(var))
-                temp.set(temp.indexOf(var), String.valueOf(values.get(var)));
-        }
-        if(vars.size()>0)
-            throw new Exception("No value specified for variable(s) "+vars);
-        eq.setEquation(temp);
-    }
-        
-    protected void preProcessEquation(Equation equation){
+    public MathInterpreter(MathEquation equation){
+        super(equation);
     }
     
-    public void processEquation(Equation equation)throws Exception{
-        evaluate(equation);
+    public String f(int... arguments)throws Exception{
+        double[] res = new double[arguments.length];
+        for(int i=0;i<arguments.length;i++)
+            res[i] = (double)arguments[i];
+        return f(res);
+    }
+   
+    //attempts to solve the equation for the given value
+    public String f(double... arguments)throws Exception{
+        String[] args = new String[arguments.length];
+        for(int i = 0;i<arguments.length;i++)
+            args[i] = String.valueOf(arguments[i]);
+        return interpret(args);
     }
     
-    protected void postProcessEquation(Equation equation){
+    public double fD(double... args)throws Exception{
+        return Double.valueOf(f(args));
     }
     
-    public static BinaryTree<Entry<Operation>> createBinaryOperationTree(Equation equation){
-        operationTree.clear();
-        for(ObjectInstance o : equation.segmentedObjectEquation)
-            if(o instanceof OperationInstance)
-                    operationTree.add(new Entry(((OperationInstance) o).object, ((OperationInstance) o).range.start));
-        return operationTree;
+    public double fD(int... args)throws Exception{
+        return Double.valueOf(f(args));
     }
 
-    public static void condense(Equation equation, Output output){
-        ArrayList<String> temp = new ArrayList(equation.parsedEquation.subList(0, output.range.start));
-        if(output.value instanceof ArrayList)
-            temp.addAll((ArrayList<String>)output.value);
-        else
-            temp.add((String)output.value);
-        temp.addAll(equation.parsedEquation.subList(output.range.end+1, equation.parsedEquation.size()));
-        equation.setEquation(temp);
-    }
-    
-    //attemps to evalute the given equation <eq> to completion, by evalutating all Pairs, Functions and Operations
-    public static Equation evaluate(Equation eq)throws Exception{
-        ArrayList<Entry<Operation>> operationStack;
-        while(!(operationStack = createBinaryOperationTree(eq).inorder()).isEmpty()){
-            Entry<Operation> e = operationStack.get(0);
-            Output result = e.value.processOperation(eq, e.index);
-            condense(eq,result);
+    @Override
+    protected void preProcessEquation(Equation equation) {
+        Operation op = equation.operations.get(0);
+        for(int i=0;i<equation.objectEquation.size();i++){
+            String part = equation.parsedEquation.get(i);
+            if(equation.variables.contains(part)){
+                if((i - 1) >= 0 && !(equation.objectEquation.get(i - 1) instanceof Operation)){
+                    equation.parsedEquation.add(i, "*");
+                    equation.objectEquation.add(i++, op);
+                }
+                if((i + 1) < equation.objectEquation.size() && !(equation.objectEquation.get(i + 1) instanceof Operation)){
+                    equation.parsedEquation.add(i + 1, "*");
+                    equation.objectEquation.add(++i, op);
+                }
+            }
+            else if(isNegativeNumber(equation.parsedEquation,i)){
+                equation.parsedEquation.set(i,"-"+equation.parsedEquation.get(i+1));
+                equation.objectEquation.set(i++,new String());
+                equation.parsedEquation.remove(i);
+                equation.objectEquation.remove(i--);
+            }
+            else if(part.equals("(") && !(equation.objectEquation.get(Math.max(i - 1, 0)) instanceof Operation)){
+                equation.parsedEquation.add(i, "*");
+                equation.objectEquation.add(i++, op);
+            }
+            else if(part.equals(")") && !(equation.objectEquation.get(Math.min(i + 1, equation.objectEquation.size() - 1)) instanceof Operation)){
+                equation.parsedEquation.add(i + 1, "*");
+                equation.objectEquation.add(++i, op);
+            }
         }
-        return eq;
+        equation.setEquation(equation.parsedEquation);
     }
     
-    //Used to evaluate the equation with the given arguments
-    public String interpret(String... arguments)throws Exception{
-        return interpret(convertArguments(arguments));
-    }
-    
-    private Map<String, String> convertArguments(String[] args){
-        Map<String, String> vars = new HashMap();
-        ArrayList<String> relaventVars = equation.getRelaventVariables();
-        for(int i=0;i<Math.min(args.length,relaventVars.size());i++)
-            vars.put(relaventVars.get(i), args[i]);
-        return vars;
-    }
-    
-    public String interpret(Map<String,String> arguments)throws Exception{
-        Equation eq = equation.clone();
-        preProcessEquation(eq);
-        subsituteVariables(eq,arguments);
-        processEquation(eq);
-        postProcessEquation(eq);
-        return eq.toString();
-    }
-    
-    public String toString(){
-        return equation.equation;
+    //functions the same as the isNegativeNumber but handles ArrayLists
+    //used when the negative sign and number are split
+    protected boolean isNegativeNumber(ArrayList<String> s, int index){
+        String part = s.get(index);
+        if(equation.isValidOperation(part)){
+            Operation o = equation.getOperation(s.get(Math.max(index-1, 0)));
+            if(part.equals("-"))
+                return  (index==0)  ||
+                        ((o!=null && 
+                        (o instanceof UniaryOperation ? ((UniaryOperation)o).inputSide==UniaryOperation.RIGHT : true) &&
+                        (o instanceof Pair ? ((Pair)o).open.equals(s.get(index-1)) : true)) &&
+                        (index<s.size() && isNumber(s.get(index+1))));
+        }
+        else if(isNumber(part))
+            return Double.valueOf(part)<0;
+        return false;
+    } 
+                 
+    public boolean isNumber(String s){
+        return s.matches("\\-?\\d+(\\.\\d+)?");
     }
 }
-
 

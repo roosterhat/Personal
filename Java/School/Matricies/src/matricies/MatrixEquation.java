@@ -16,9 +16,9 @@ import java.util.ArrayList;
 import java.util.Map;
 import mathinterpreter.*;
 import mathinterpreter.Operation.BinaryOperation;
-import mathinterpreter.Operation.PairFunction;
 import mathinterpreter.Operation.Summation;
-import mathinterpreter.Operation.UniaryFunction;
+import mathinterpreter.Operation.UniaryOperationAction;
+import mathinterpreter.Operation.PairAction;
 
 public class MatrixEquation extends MathEquation{
     MainForm _main;
@@ -71,7 +71,7 @@ public class MatrixEquation extends MathEquation{
                 m.add(temp);
             }
             return mc.revert(m);
-        },x->x));  
+        },x->x,this));  
         
         addOperation(new Function("sub",0,x->{
             Matrix m = mc.convert((String)x.get(0));
@@ -85,7 +85,7 @@ public class MatrixEquation extends MathEquation{
                 m.add(t);
             }
             return mc.revert(m);
-        },x->x));
+        },x->x,this));
         
         addOperation(new Function("mult",0,x->{
             Matrix m = mc.convert((String)x.get(0));
@@ -97,7 +97,7 @@ public class MatrixEquation extends MathEquation{
                 m.multiply(temp);
             }
             return mc.revert(m);
-        },x->x));
+        },x->x,this));
         
         addOperation(new Function("div",0,x->{
             Matrix m = mc.convert((String)x.get(0));
@@ -109,7 +109,7 @@ public class MatrixEquation extends MathEquation{
                 m.multiply(temp.getInverted());
             }
             return mc.revert(m);
-        },x->x));
+        },x->x,this));
        
         
         addOperation(new Function("new",5,x->{
@@ -120,7 +120,7 @@ public class MatrixEquation extends MathEquation{
                 return _main.createNew(m,String.valueOf(x.get(2)));
             else
                 return _main.createNew(m);
-        },x->x));
+        },x->x,this));
         
         addOperation(new Function("id",5,x->{
             int r = x.size()>=2 ? (int)Double.parseDouble((String)x.get(0)) : 2;
@@ -130,7 +130,7 @@ public class MatrixEquation extends MathEquation{
                 return _main.createNew(m.newIdentity(r, c),(String)x.get(2));
             else
                 return _main.createNew(m.newIdentity(r, c));
-        },x->x));
+        },x->x,this));
         
         addOperation(new Function("set",5,x->{
             Matrix m = _main.matricies.get((String)x.get(0));
@@ -139,7 +139,7 @@ public class MatrixEquation extends MathEquation{
                 double val = Double.valueOf((String)x.get(3));
                 m.set(val, r, c);
             return (String)x.get(0);
-        },x->x));
+        },x->x,this));
         
         addOperation(new Function("resize",5,x->{
             String name = (String)x.get(0);
@@ -149,8 +149,14 @@ public class MatrixEquation extends MathEquation{
                 m.resize(r, c);
                 _main.resize(name, r, c);
             return name;
-        },x->x));
-        ((Summation)this.getOperation("summation")).setEquation(this.getClass(),new Object[]{_main});
+        },x->x,this));
+        
+        this.operations.remove(this.getOperation("summation"));
+        this.addOperation(new Summation(this));
+    }
+    
+    public boolean isNumber(String s){
+        return s.matches("\\-?\\d+(\\.\\d+)?");
     }
 }
 
@@ -174,7 +180,7 @@ class MatrixBinaryOperation extends BinaryOperation<Matrix>{
 }
 
 class MatrixUniaryOperation extends UniaryOperation<Matrix>{
-    public MatrixUniaryOperation(String operation, int weight, int side, UniaryFunction<Matrix,String> function, MatrixConverter converter){
+    public MatrixUniaryOperation(String operation, int weight, int side, UniaryOperationAction<Matrix> function, MatrixConverter converter){
         super(operation,weight,side,function,converter);
     }
 }
@@ -203,6 +209,6 @@ interface MatrixFunction{
     public String execute(Matrix x, String y)throws Exception;
 }
 
-interface LiteralFunction extends PairFunction{
+interface LiteralFunction extends PairAction{
     public ArrayList execute(ArrayList a);
 }

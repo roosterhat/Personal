@@ -7,7 +7,7 @@ package mathinterpreter.Operation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import mathinterpreter.Util.Equation;
+import Interpreter.Equation;
 import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
 
@@ -39,7 +39,7 @@ public abstract class Operation<IN_TYPE> {
         return instances;
     }
     
-    public Range findRange(ArrayList objectEquation, int index){
+    public Range findRange(ArrayList<String> equation, int index){
         return new Range(index, index);
     }
     

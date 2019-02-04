@@ -22,6 +22,7 @@ public class ParsingTests {
         p.parseString("summation[0,0,i]");
         BatchTester bt = new BatchTester();
         createTestCases(bt);    
+        //bt.displayReports();
         for(int i = 0; i < 5; i++){
             bt.runTestCases();
             System.out.println(bt.getBatchReports().get(i));
