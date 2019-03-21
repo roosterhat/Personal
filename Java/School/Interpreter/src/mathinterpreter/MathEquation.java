@@ -11,12 +11,13 @@ import mathinterpreter.Operation.BinaryOperation;
 import mathinterpreter.Operation.Operation;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import mathinterpreter.Operation.Pair;
 import mathinterpreter.Operation.Summation;
 import Interpreter.Equation;
+import Interpreter.Interpreter;
 import mathinterpreter.Operation.Converter;
 import mathinterpreter.Operation.Function;
+import mathinterpreter.Operation.FunctionPair;
 import mathinterpreter.Util.Output;
 import mathinterpreter.Util.Range;
 
@@ -42,8 +43,6 @@ public class MathEquation extends Equation{
     }
         
     private void setOperators(){
-        //addOperation(new BinaryOperation<Double>("+",1,(x,y)->df.format(x+y)));
-        //addOperation(new BinaryOperation<Double>("-",1,(x,y)->df.format(x-y)));
         addOperation(new Minus(df,this));
         addOperation(new Plus(df,this));
         addOperation(new BinaryOperation<Double>("*",2,(x,y)->df.format(x*y), new DoubleConverter()));
@@ -128,7 +127,7 @@ public class MathEquation extends Equation{
     }
        
     private void setFunctions(){
-        addOperation(new Function("max",3,
+        addOperation(new Function("max",4,
             x->{
                 if(x.isEmpty())
                     return "";
@@ -139,7 +138,7 @@ public class MathEquation extends Equation{
             },x->Double.valueOf(x),this
         ));
         
-        addOperation(new Function("min",3,
+        addOperation(new Function("min",4,
             x->{
                 if(x.isEmpty())
                     return "";
@@ -150,7 +149,7 @@ public class MathEquation extends Equation{
             },x->Double.valueOf(x),this
         ));
         
-        addOperation(new Function("sum",3,
+        addOperation(new Function("sum",4,
             x->{
                 double sum = 0;
                 for(double n: (ArrayList<Double>)x)
@@ -159,21 +158,8 @@ public class MathEquation extends Equation{
             },x->Double.valueOf(x),this
         ));
         
-        addOperation(new Function("rand",3,
-            x->{
-                if(x.size()==1)
-                    return String.valueOf(Math.random()*(Double)x.get(0));
-                else if(x.size()==2){
-                    double start = Math.min((Double)x.get(0),(Double)x.get(1));
-                    double end = Math.max((Double)x.get(0),(Double)x.get(1));
-                    return String.valueOf(start+(Math.random()*(end-start)));
-                }
-                else
-                    return String.valueOf(Math.random());
-            },x->Double.valueOf(x),this
-        ));
-        
-        addOperation(new Summation(this));
+        addOperation(new Rand(this));
+        addOperation(new Summation(new MathInterpreter(this)));
         
     }
     
@@ -303,14 +289,40 @@ class E extends BinaryOperation<Double>{
     }
 }
 
+class Rand extends Function<Double>{
+    public Rand(MathEquation equation){
+        super("rand",4,x->{
+            if(x.size()==1)
+                    return String.valueOf(Math.random()*x.get(0));
+            else if(x.size()==2){
+                double start = Math.min(x.get(0),x.get(1));
+                double end = Math.max(x.get(0),x.get(1));
+                return String.valueOf(start+(Math.random()*(end-start)));
+            }
+            else
+                return String.valueOf(Math.random());
+        },x->Double.valueOf(x),equation);
+    }
+    
+    public Output processOperation(Equation equation, int index)throws Exception{
+        Object obj = equation.objectEquation.get(Math.min(index + 1, equation.objectEquation.size() - 1));
+        if(obj instanceof FunctionPair){
+            Range range = ((FunctionPair) obj).findRange(equation.parsedEquation, index + 1);
+            return new Output(execute(Interpreter.evaluate(equation.split(range))), new Range(index,range.end));
+        }
+        return new Output(execute(new Equation()),new Range(index,index));
+        
+    }
+}
+
 class Literal extends Pair
 {
     public Literal(){
         super("\"'","'\"",10);
     }
     
-    public ArrayList<String> execute(ArrayList<String> array){
-        return new ArrayList(Arrays.asList(new String[]{String.join("", array)}));
+    public String execute(Equation equation){
+        return equation.equation;
     }
 }
 

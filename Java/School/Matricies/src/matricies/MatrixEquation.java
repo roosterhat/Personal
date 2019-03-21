@@ -152,7 +152,7 @@ public class MatrixEquation extends MathEquation{
         },x->x,this));
         
         this.operations.remove(this.getOperation("summation"));
-        this.addOperation(new Summation(this));
+        this.addOperation(new Summation(new MathInterpreter(this)));
     }
     
     public boolean isNumber(String s){

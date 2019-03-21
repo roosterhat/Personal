@@ -5,12 +5,10 @@
  */
 package Interpreter;
 
-import mathinterpreter.Operation.Operation;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import mathinterpreter.Util.BinaryTree;
-import mathinterpreter.Util.Entry;
 import mathinterpreter.Util.ObjectInstance;
 import mathinterpreter.Util.OperationInstance;
 import mathinterpreter.Util.Output;
@@ -20,22 +18,24 @@ import mathinterpreter.Util.Output;
  * @author ostlinja
  */
 public class Interpreter {
-    private static BinaryTree<Entry<Operation>> operationTree;
+    private static BinaryTree<OperationInstance> operationTree;
     public Equation equation;
     
     public Interpreter(){
         equation = new Equation();
         operationTree = new BinaryTree();
-        operationTree.setComparator((x,y)->(((Entry<Operation>)y).value.weight-((Entry<Operation>)x).value.weight));
+        operationTree.setComparator((x,y)->(((OperationInstance)y).operation.weight-((OperationInstance)x).operation.weight));
     }
     
     public Interpreter(Equation equation){
         this.equation = equation;
         operationTree = new BinaryTree();
-        operationTree.setComparator((x,y)->(((Entry<Operation>)y).value.weight-((Entry<Operation>)x).value.weight));
+        operationTree.setComparator((x,y)->(((OperationInstance)y).operation.weight-((OperationInstance)x).operation.weight));
     }
     
-    public Equation getEquation(){return equation;}    
+    public Equation getEquation(){return equation;}  
+    
+    public void setEquation(Equation equation){this.equation = equation;}
     
     private void subsituteVariables(Equation eq, Map<String,String> values)throws Exception{
         ArrayList<String> vars = eq.getRelaventVariables();
@@ -60,11 +60,11 @@ public class Interpreter {
     protected void postProcessEquation(Equation equation){
     }
     
-    private static BinaryTree<Entry<Operation>> createBinaryOperationTree(Equation equation){
+    private static BinaryTree<OperationInstance> createBinaryOperationTree(Equation equation){
         operationTree.clear();
         for(ObjectInstance o : equation.segmentedObjectEquation)
             if(o instanceof OperationInstance)
-                    operationTree.add(new Entry(((OperationInstance) o).object, ((OperationInstance) o).range.start));
+                    operationTree.add((OperationInstance)o);
         return operationTree;
     }
 
@@ -78,12 +78,12 @@ public class Interpreter {
         equation.setEquation(temp);
     }
     
-    //attemps to evalute the given equation <eq> to completion, by evalutating all Pairs, Functions and Operations
+    //attemps to evalute the given equation <eq> to completion, by evalutating all Operations inorder of their weight
     public static Equation evaluate(Equation eq)throws Exception{
-        ArrayList<Entry<Operation>> operationStack;
+        ArrayList<OperationInstance> operationStack;
         while(!(operationStack = createBinaryOperationTree(eq).inorder()).isEmpty()){
-            Entry<Operation> e = operationStack.get(0);
-            Output result = e.value.processOperation(eq, e.index);
+            OperationInstance instance = operationStack.get(0);
+            Output result = instance.operation.processOperation(eq, instance.range.start);
             condense(eq,result);
         }
         return eq;
@@ -103,7 +103,7 @@ public class Interpreter {
     }
     
     public String interpret(Map<String,String> arguments)throws Exception{
-        Equation eq = equation.clone();
+        Equation eq = (Equation)equation.clone();
         preProcessEquation(eq);
         subsituteVariables(eq,arguments);
         processEquation(eq);

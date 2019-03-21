@@ -32,7 +32,6 @@ public class CompSciGUI extends javax.swing.JFrame
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jCheckBox1 = new javax.swing.JCheckBox();
         jToolBar1 = new javax.swing.JToolBar();
         button1 = new java.awt.Button();
         button2 = new java.awt.Button();
@@ -48,8 +47,6 @@ public class CompSciGUI extends javax.swing.JFrame
         CurrentLabel = new javax.swing.JLabel();
         filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 48), new java.awt.Dimension(0, 48), new java.awt.Dimension(32767, 48));
         jCheckBox2 = new javax.swing.JCheckBox();
-
-        jCheckBox1.setText("jCheckBox1");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Cryptoquip");
@@ -471,7 +468,6 @@ public class CompSciGUI extends javax.swing.JFrame
     private java.awt.Button button5;
     private java.awt.Button button6;
     private javax.swing.Box.Filler filler1;
-    private javax.swing.JCheckBox jCheckBox1;
     private javax.swing.JCheckBox jCheckBox2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;

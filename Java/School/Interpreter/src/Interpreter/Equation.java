@@ -8,7 +8,6 @@ package Interpreter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Observable;
 import java.util.Set;
 import mathinterpreter.Operation.Operation;
 import mathinterpreter.Parser.StringParser;
@@ -186,23 +185,17 @@ public class Equation {
         return eq;
     }
     
-    public Equation clone(){
-        Equation eq = new Equation(equation, parsedEquation, objectEquation, segmentedObjectEquation, operations);
-        eq.variables = variables;
+    public Object clone(){
+        Equation eq = new Equation();
+        eq.operations = operations;
+        variables.forEach(x->eq.variables.add(x));
         eq.parser = parser;
-        eq.illegalCharacters = illegalCharacters;
+        illegalCharacters.forEach(x->eq.illegalCharacters.add(x));
+        eq.setEquation(parsedEquation);
         return eq;
     }
     
     public String toString(){
         return equation;
     }
-}
-
-class EquationObserver<Type> extends Observable{
-    ArrayList<Type> observed;
-    public EquationObserver(ArrayList<Type> observed){
-        this.observed = observed;
-    }
-    
 }

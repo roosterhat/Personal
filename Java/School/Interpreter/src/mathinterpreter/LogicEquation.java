@@ -53,7 +53,7 @@ public class LogicEquation extends Equation{
             return String.valueOf(x==y);
         },x->Boolean.valueOf(x)));
         addOperation(new BinaryOperation<Boolean>("->",0,(x,y)->{
-            return String.valueOf(!(x&&!y));
+            return String.valueOf(!(x && !y));
         },x->Boolean.valueOf(x)));
         addOperation(new UniaryOperation<Boolean>("~",1,UniaryOperation.RIGHT,x->{
             return String.valueOf(!x);

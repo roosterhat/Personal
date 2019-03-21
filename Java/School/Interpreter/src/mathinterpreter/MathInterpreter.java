@@ -8,7 +8,6 @@ package mathinterpreter;
 import Interpreter.Equation;
 import Interpreter.Interpreter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import mathinterpreter.Operation.Operation;
 import mathinterpreter.Operation.Pair;
 import mathinterpreter.Operation.UniaryOperation;

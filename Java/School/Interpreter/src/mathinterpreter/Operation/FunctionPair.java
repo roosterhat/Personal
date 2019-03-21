@@ -19,6 +19,7 @@ import mathinterpreter.Util.Range;
  */
 public class FunctionPair<IN_TYPE> extends Pair{
     Seperator seperator = new Seperator(",");
+    String postSeperator = ";";
     FunctionPairAction function;
     
     public FunctionPair(int weight){
@@ -106,9 +107,10 @@ class Seperator extends Operation{
 class DefaultFunction<TYPE> implements FunctionPairAction<TYPE>{
     public String execute(ArrayList<TYPE> array){
         String res = "";
-        for(int i = 0; i < array.size()-1; i++)
-            res += array.get(i)+",";
-        res+=array.get(array.size()-1);
+        for(int i = 0; i <= array.size()-1; i++)
+            res += array.get(i)+";";
+//        if(!res.isEmpty())
+//            res = res.substring(0, res.length()-1);
         return res;
     }
 }

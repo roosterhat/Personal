@@ -361,7 +361,7 @@ public class MainForm extends javax.swing.JFrame {
         if(!e.equals("")){
             equation.setEquation(e);
             String res = "";
-            try{res = new Interpreter(equation).interpret();}
+            try{res = new MathInterpreter(equation).interpret();}
             catch(Exception ex){res = ex.getMessage();}
             updateAllTabs();
             return res;
