@@ -155,6 +155,15 @@ public class TestCases {
         case12.title = "Integral Test: 'sin(pi/x)'";
         case12.errorMargin = ScoredCase.MEDIUM_ERROR;
         bt.addTestCase(case12);
+        
+        TimedCase<Integer> case13 = new TimedCase(x->{
+            MathInterpreter eq = new MathInterpreter("(csclnx*cotlnx)/(2x)");
+            for(int i=0;i<(int)x;i++)
+                eq.fD(3);
+            return "";
+        },new Integer[]{1000});
+        case13.title = "Evaluation Test: '(csclnx*cotlnx)/(2x)'";
+        bt.addTestCase(case13);
     }
     
 }

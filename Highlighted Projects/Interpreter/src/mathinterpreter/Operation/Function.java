@@ -42,13 +42,14 @@ public class Function<IN_TYPE> extends Operation<IN_TYPE>{
     }
     
     public String execute(Equation equation)throws Exception{
-        return function.execute(convertInput(equation.parsedEquation.get(0)));
+        return function.execute(convertInput(equation.equation));
     }
     
     private ArrayList<IN_TYPE> convertInput(String input)throws Exception{
         ArrayList<IN_TYPE> res = new ArrayList();
-        for(String s : input.split(bounds.seperator.operator))
-            res.add(converter.convert(s));
+        for(String s : input.split(bounds.postSeperator))
+            if(!s.isEmpty())
+                res.add(converter.convert(s));
         return res;
     }
     

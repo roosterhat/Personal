@@ -5,15 +5,13 @@
         <group>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/LogicEquation.java</file>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/Interpreter/Interpreter.java</file>
-            <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Operation/BinaryFunction.java</file>
+            <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Operation/FunctionPair.java</file>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/MathEquation.java</file>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/Interpreter/Equation.java</file>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/TestCases.java</file>
-            <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Parser/ParsingTests.java</file>
-            <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Operation/BinaryOperation.java</file>
+            <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Operation/Function.java</file>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/MathInterpreter.java</file>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Operation/Summation.java</file>
-            <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Operation/Operation.java</file>
             <file>file:/C:/Users/eriko/OneDrive/Documents/GitHub/Personal/Java/School/Interpreter/src/mathinterpreter/Parser/StringParser.java</file>
         </group>
     </open-files>

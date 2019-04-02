@@ -18,19 +18,14 @@ import mathinterpreter.Util.Output;
  * @author ostlinja
  */
 public class Interpreter {
-    private static BinaryTree<OperationInstance> operationTree;
     public Equation equation;
     
     public Interpreter(){
         equation = new Equation();
-        operationTree = new BinaryTree();
-        operationTree.setComparator((x,y)->(((OperationInstance)y).operation.weight-((OperationInstance)x).operation.weight));
     }
     
     public Interpreter(Equation equation){
         this.equation = equation;
-        operationTree = new BinaryTree();
-        operationTree.setComparator((x,y)->(((OperationInstance)y).operation.weight-((OperationInstance)x).operation.weight));
     }
     
     public Equation getEquation(){return equation;}  
@@ -61,7 +56,8 @@ public class Interpreter {
     }
     
     private static BinaryTree<OperationInstance> createBinaryOperationTree(Equation equation){
-        operationTree.clear();
+        BinaryTree<OperationInstance> operationTree = new BinaryTree();
+        operationTree.setComparator((x,y)->(((OperationInstance)y).operation.weight-((OperationInstance)x).operation.weight));
         for(ObjectInstance o : equation.segmentedObjectEquation)
             if(o instanceof OperationInstance)
                     operationTree.add((OperationInstance)o);
@@ -115,5 +111,3 @@ public class Interpreter {
         return equation.equation;
     }
 }
-
-
