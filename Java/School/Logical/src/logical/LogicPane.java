@@ -8,6 +8,7 @@ package logical;
 import Interpreter.Interpreter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -161,7 +162,7 @@ public class LogicPane extends javax.swing.JPanel {
     private LogicOutput createOutput(String states, String outcome){
         ArrayList<Boolean> formatTargets = new ArrayList();
         for(char c: states.toCharArray())
-            formatTargets.add(c=='0');
+            formatTargets.add(c=='1');
         return new LogicOutput(equation.equation, formatTargets, Boolean.valueOf(outcome));
     }
     
@@ -177,7 +178,7 @@ public class LogicPane extends javax.swing.JPanel {
         results = new ArrayList();
         for(String states: getBinaryOutput(variables.size())){
             Map arguments = new HashMap();
-            variables.forEach(x->arguments.put(x, states.charAt(variables.indexOf(x))=='0'));
+            variables.forEach(x->arguments.put(x, states.charAt(variables.indexOf(x))=='1'));
             try{results.add(createOutput(states,new Interpreter(equation).interpret(arguments)));}
             catch(Exception e){System.out.println(e);return;}                
         }
@@ -197,6 +198,7 @@ public class LogicPane extends javax.swing.JPanel {
         int max = (int)Math.pow(2,val);  
         for (int i = 0; i < max; i++)
             temp.add(String.format("%"+val+"s", Integer.toBinaryString(i)).replaceAll(" ", "0"));
+        //Collections.reverse(temp);
         return  temp;
     }
     

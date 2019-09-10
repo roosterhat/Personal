@@ -52,15 +52,12 @@ class EventLog:
         self.log.append(res)
 
 class DynamicLog:
-    def __init__(self,*args):
-        temp = []
-        for t in args:
-            temp.append(t)
-        self.title = temp
+    def __init__(self, headers, index= False, timeStamp= True):
+        self.title = headers
         self.log = []
         self.buffer = 2
-        self.timeStamp = True
-        self.index = False
+        self.timeStamp = timeStamp
+        self.index = index
 
     def __iter__(self):
         return self.toTable().__iter__()
@@ -131,6 +128,10 @@ class DynamicLog:
                 rangeTable.append(res)
         return rangeTable
 
+    def formatEntry(self, entry):
+        form = ''.join(self._parseFormat(self._getFormat()))
+        return form.format(*entry)
+
     def _parseFormat(self,form):
         res = []
         for f in re.findall("{[^}]+}",form):
@@ -153,15 +154,13 @@ class DynamicLog:
             res += "{:<"+str(i)+"s}"
         return res
 
-    def newEntry(self,*args):
+    def newEntry(self, args):
         localtime = time.strftime("%m/%d %H:%M",time.localtime())
         entry = []
         entry.append(len(self))
         entry.append(localtime)
-        if len(args)>1 and isinstance(args[1],ObjectConverter):#args[1] = ObjectConverter, args[0] = object
-            args = args[1].toArray(args[0])
-        for i in args:
-            entry.append(i)
+        for value in args:
+            entry.append(value)
         self.log.append(entry)
 
     def setTimeStampState(self,b):

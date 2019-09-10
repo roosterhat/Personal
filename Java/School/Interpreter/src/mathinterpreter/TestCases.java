@@ -159,7 +159,7 @@ public class TestCases {
         TimedCase<Integer> case13 = new TimedCase(x->{
             MathInterpreter eq = new MathInterpreter("(csclnx*cotlnx)/(2x)");
             for(int i=0;i<(int)x;i++)
-                eq.fD(3);
+                eq.fD(Math.random()*100);
             return "";
         },new Integer[]{1000});
         case13.title = "Evaluation Test: '(csclnx*cotlnx)/(2x)'";

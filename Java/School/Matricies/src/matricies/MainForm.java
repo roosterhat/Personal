@@ -5,7 +5,6 @@
  */
 package matricies;
 
-import Interpreter.Interpreter;
 import java.awt.BorderLayout;
 import mathinterpreter.Operation.Operation;
 import java.awt.Component;
