@@ -211,10 +211,22 @@ public class LogicPane extends javax.swing.JPanel {
             LogicOutput output = results.get(i);
             ArrayList<Boolean> states = (ArrayList<Boolean>)output.states.clone();
             states.add(output.output);
-            data[i] = states.toArray();
+            if(MainFrame.toggle)
+                data[i] = states.toArray();
+            else{
+                ArrayList row = new ArrayList();
+                for(boolean state: states)
+                    row.add(state ? "1" : "0");
+                data[i] = row.toArray();
+            }
         }
         DefaultTableModel m = new DefaultTableModel(data,headers);
         jTable1.setModel(m);
+    }
+    
+    public void updateView(){
+        if(!results.isEmpty())
+            displayResults();
     }
     
     

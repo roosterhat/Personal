@@ -1,2 +1,0 @@
-logical.MainFrame
-logical.Entry
