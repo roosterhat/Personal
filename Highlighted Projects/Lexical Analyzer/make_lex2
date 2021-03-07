@@ -1,0 +1,8 @@
+G++ = g++ -std=c++11
+
+lex2 : lex2.o regex.o
+	$(G++) -o lex2 lex2.o regex.o
+lex2.o : lex2.cpp lex2.h
+	$(G++) -c lex2.cpp
+regex.o : regex.cpp regex.h
+	$(G++) -c regex.cpp

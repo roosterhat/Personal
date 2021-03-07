@@ -6,3 +6,4 @@
 /Java/School/BatchTester/build/
 /Java/School/BatchTester/dist/
 /Java/School/BatchTester/nbproject/private/
+*.[class, xml]
