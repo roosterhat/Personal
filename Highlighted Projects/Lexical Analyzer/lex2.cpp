@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include "lex2.h"
+#include "proto/Cache.pb.h"
 
 using namespace std;
 
@@ -31,34 +32,94 @@ bool LexicalAnalyzer::next(Token &token){
     return false;
 }
 
+bool loadMatcher(string name, Matcher * out){
+    fstream in(cacheDir+"/"+name, ios::in | ios::binary);
+    if(in.is_open()){
+        cache::Matcher matcher;
+        if(!matcher.ParseFromIstream(&in))
+            return false;
+        *out = Matcher(matcher);
+        in.close();
+        return true;
+    }
+    return false;
+}
+
+bool cacheMatcher(string name, Matcher * matcher){
+    fstream out(cacheDir+"/"+name, ios::out | ios::trunc | ios::binary);
+    if(out.is_open()){
+        matcher->toProto().SerializeToOstream(&out);
+        out.close();
+        return true;
+    }
+    return false;
+}
+
 void buildMatchers(LexicalAnalyzer &lexer){
-    cout<<"Compiling Expressions..."<<endl;
+
+    cout<<"Loading Expressions..."<<endl;
     string p_0to9 = "0123456789";
     string p_1to9 = "123456789";
     string p_atoz = "abcdefghijklmnopqrstuvwxyz";
     string p_AtoZ = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    Matcher TAGS("TAGS",Token("TAGS",Token::RESERVED));
-    Matcher BEGIN("BEGIN",Token("BEGIN",Token::RESERVED));
-    Matcher SEQ("SEQUENCE",Token("SEQUENCE",Token::RESERVED));
-    Matcher INT("INTEGER",Token("INTEGER",Token::RESERVED));
-    Matcher DATE("DATE",Token("DATE",Token::RESERVED));
-    Matcher END("END",Token("END",Token::RESERVED));
+    struct Matcher_info{
+        string name;
+        Matcher * matcher;
+        string pattern;
+        Token::Type type;
+    };
 
-    Matcher ASSIGN("::=",Token("ASSIGN",Token::TOKEN));
-    Matcher LCURLY("{",Token("LCURLY",Token::TOKEN));
-    Matcher RCURLY("}",Token("RCURLY",Token::TOKEN));
-    Matcher COMMA(",",Token("COMMA",Token::TOKEN));
-    Matcher LPAREN("\\(",Token("LPAREN",Token::TOKEN));
-    Matcher RPAREN("\\)",Token("RPAREN",Token::TOKEN));
-    Matcher RANGE("..",Token("Range_Seperator",Token::TOKEN));
-    Matcher NUMBER("0|(["+p_1to9+"]["+p_0to9+"]*)",Token("Number",Token::TOKEN));
-    Matcher VERT("\\|",Token("VERT",Token::TOKEN));
+    Matcher TAGS, BEGIN, SEQ, INT, DATE, END, ASSIGN, LCURLY, RCURLY, COMMA, LPAREN, RPAREN, RANGE, NUMBER, VERT, TYPEREF, IDEN;
+    
+    vector<Matcher_info> matchers {
+        {"TAGS", &TAGS, "TAGS", Token::RESERVED},
+        {"BEGIN", &BEGIN, "BEGIN", Token::RESERVED},
+        {"SEQUENCE", &SEQ, "SEQUENCE", Token::RESERVED},
+        {"INTEGER", &INT, "INTEGER", Token::RESERVED},
+        {"DATE", &DATE, "DATE", Token::RESERVED},
+        {"END", &END, "END", Token::RESERVED},
+        {"ASSIGN", &ASSIGN, "::=", Token::TOKEN},
+        {"LCURLY", &LCURLY, "{", Token::TOKEN},
+        {"RCURLY", &RCURLY, "}", Token::TOKEN},
+        {"COMMA", &COMMA, ",", Token::TOKEN},
+        {"LPAREN", &LPAREN, "\\(", Token::TOKEN},
+        {"RPAREN", &RPAREN, "\\)", Token::TOKEN},
+        {"RANGE", &RANGE, "..", Token::TOKEN},
+        {"NUMBER", &NUMBER, "0|(["+p_1to9+"]["+p_0to9+"]*)", Token::TOKEN},
+        {"VERT", &VERT, "\\|", Token::TOKEN},
+        {"TYPEREF", &TYPEREF, "["+p_AtoZ+"](["+p_AtoZ+p_atoz+p_0to9+"]|(-["+p_AtoZ+p_atoz+p_0to9+"]))*", Token::TYPE_REF},
+        {"IDEN", &IDEN, "["+p_atoz+"](["+p_AtoZ+p_atoz+p_0to9+"]|(-["+p_AtoZ+p_atoz+p_0to9+"]))*", Token::ID},
+    };
 
-    Matcher TYPEREF("["+p_AtoZ+"](["+p_AtoZ+p_atoz+p_0to9+"]|(-["+p_AtoZ+p_atoz+p_0to9+"]))*",Token("TypeRef",Token::TYPE_REF));
-    Matcher IDEN("["+p_atoz+"](["+p_AtoZ+p_atoz+p_0to9+"]|(-["+p_AtoZ+p_atoz+p_0to9+"]))*",Token("Identifier",Token::ID));
+    for(Matcher_info m : matchers){
+        if(!loadMatcher(m.name, m.matcher)){
+            *m.matcher = Matcher(m.pattern, Token(m.name, m.type));
+            cacheMatcher(m.name, m.matcher);
+        }
+    }
 
-    lexer.matchers = vector<Matcher> {TAGS,BEGIN,SEQ,INT,DATE,END,ASSIGN,LCURLY,RCURLY,COMMA,LPAREN,RPAREN,RANGE,VERT,NUMBER,TYPEREF,IDEN};
+    // Matcher TAGS("TAGS",Token("TAGS",Token::RESERVED));
+    // Matcher BEGIN("BEGIN",Token("BEGIN",Token::RESERVED));
+    // Matcher SEQ("SEQUENCE",Token("SEQUENCE",Token::RESERVED));
+    // Matcher INT("INTEGER",Token("INTEGER",Token::RESERVED));
+    // Matcher DATE("DATE",Token("DATE",Token::RESERVED));
+    // Matcher END("END",Token("END",Token::RESERVED));
+
+    // Matcher ASSIGN("::=",Token("ASSIGN",Token::TOKEN));
+    // Matcher LCURLY("{",Token("LCURLY",Token::TOKEN));
+    // Matcher RCURLY("}",Token("RCURLY",Token::TOKEN));
+    // Matcher COMMA(",",Token("COMMA",Token::TOKEN));
+    // Matcher LPAREN("\\(",Token("LPAREN",Token::TOKEN));
+    // Matcher RPAREN("\\)",Token("RPAREN",Token::TOKEN));
+    // Matcher RANGE("..",Token("Range_Seperator",Token::TOKEN));
+    // Matcher NUMBER("0|(["+p_1to9+"]["+p_0to9+"]*)",Token("Number",Token::TOKEN));
+    // Matcher VERT("\\|",Token("VERT",Token::TOKEN));
+
+    // Matcher TYPEREF("["+p_AtoZ+"](["+p_AtoZ+p_atoz+p_0to9+"]|(-["+p_AtoZ+p_atoz+p_0to9+"]))*",Token("TypeRef",Token::TYPE_REF));
+    // Matcher IDEN("["+p_atoz+"](["+p_AtoZ+p_atoz+p_0to9+"]|(-["+p_AtoZ+p_atoz+p_0to9+"]))*",Token("Identifier",Token::ID));
+
+    lexer.matchers = vector<Matcher> {TAGS, BEGIN, SEQ, INT, DATE, END, ASSIGN, LCURLY, RCURLY, COMMA, LPAREN, RPAREN, RANGE, VERT, NUMBER, TYPEREF, IDEN};
     cout<<"Complete"<<endl;
 }
 

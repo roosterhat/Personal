@@ -3,6 +3,8 @@
 #include <map>
 #include <set>
 #include <iostream>
+#include "proto/Cache.pb.h"
+#include <google/protobuf/map.h>
 
 #pragma once
 
@@ -40,9 +42,54 @@ class DFA{
             initial = init;
             final_s = fin;
         }
+        DFA(cache::DFA dfa){
+            states = dfa.states();
+            initial = dfa.initial();
+            for(cache::Pair pair: *dfa.mutable_alpha_index())
+                alpha_index[pair.key()] = pair.value();
+            alphabet = std::vector<char>(dfa.mutable_alphabet()->begin(), dfa.mutable_alphabet()->end());
+            final_s = std::vector<int>(dfa.mutable_final_s()->begin(), dfa.mutable_final_s()->end());
+            int x,y;
+            for(x = 0; x < dfa.mutable_transitions()->size(); x++){
+                transitions.push_back(std::vector<std::vector<int>>());
+                cache::V_2D v_2d = dfa.mutable_transitions()->at(x);
+                for(y = 0; y < v_2d.mutable_array()->size(); y++){
+                    transitions[x].push_back(std::vector<int>());
+                    cache::V_1D v_1d = v_2d.mutable_array()->at(y);
+                    for(auto i : *v_1d.mutable_item()){
+                        transitions[x][y].push_back(i);
+                    }
+                }
+            }
+        }
         void minimize();
         void print();
         bool consume(std::string input, std::vector<int> &indices);
+        cache::DFA toProto(){
+            cache::DFA dfa;
+            dfa.set_states(states);
+            dfa.set_initial(initial);
+            for(std::pair<const char, int> p : alpha_index){
+                cache::Pair* pair = dfa.add_alpha_index();
+                pair->set_key((uint32_t) p.first);
+                pair->set_value(p.second);
+            }
+            for(char c : alphabet)
+                dfa.add_alphabet((uint32_t)c);
+            for(int s : final_s)
+                dfa.add_final_s(s);
+            int x,y,z;
+            for(x = 0; x < transitions.size(); x++){
+                cache::V_2D *v_2d = dfa.add_transitions();
+                for(y = 0; y < transitions[x].size(); y++){
+                    cache::V_1D *v_1d = v_2d->add_array();
+                    for(z = 0; z < transitions[x][y].size(); z++){
+                        v_1d->add_item(transitions[x][y][z]);
+                    }
+                }
+            }
+            return dfa;
+        }
 };
 
 class NFA : public DFA{
@@ -117,6 +164,16 @@ class Regex{
             dfa = nfa.toDFA();
             //dfa.minimize();
         }
+        Regex(cache::Regex regex){
+            dfa = DFA(regex.dfa());
+            expression = regex.expression();
+        }
         bool match(std::string target, Match &match);
+        cache::Regex toProto(){
+            cache::Regex regex;
+            *regex.mutable_dfa() = dfa.toProto();
+            regex.set_expression(expression);
+            return regex;
+        }
 };
 

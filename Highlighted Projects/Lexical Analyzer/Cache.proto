@@ -1,0 +1,42 @@
+syntax = "proto2";
+
+package cache;
+
+message Matcher {
+    required string pattern = 1;
+    required Regex exp = 2;
+    required Token token = 3;
+}
+
+message Token {
+    required string token = 1;
+    required string lexeme = 2;
+    required uint32 type = 3;
+}
+
+message Regex {
+    required DFA dfa = 1;
+    required string expression = 2;
+}
+
+message DFA {
+    required uint32 states = 1;
+    required uint32 initial = 2;
+    repeated Pair alpha_index = 5;
+    repeated uint32 alphabet = 3;
+    repeated uint32 final_s = 4;
+    repeated V_2D transitions = 6;
+}
+
+message Pair {
+    required uint32 key = 1;
+    required uint32 value = 2;
+}
+
+message V_2D {
+    repeated V_1D array = 1;
+}
+
+message V_1D {
+    repeated int32 item = 1;
+}

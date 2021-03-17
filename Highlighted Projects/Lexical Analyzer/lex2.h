@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include "regex.h"
+#include "proto/Cache.pb.h"
 
 #pragma once
 
@@ -19,6 +20,18 @@ class Token{
             type = t.type;
             lexeme = t.lexeme;
         }
+        Token(cache::Token t){
+            token = t.token();
+            lexeme = t.lexeme();
+            type = static_cast<Token::Type>(t.type());
+        }
+        cache::Token toProto(){
+            cache::Token c_token;
+            c_token.set_token(token);
+            c_token.set_lexeme(lexeme);
+            c_token.set_type(static_cast<uint32_t>(type));
+            return c_token;
+        }
 };
 
 class Matcher{
@@ -32,12 +45,24 @@ class Matcher{
             token = t;
             exp = Regex(pattern);
         }
+        Matcher(cache::Matcher matcher){
+            pattern = matcher.pattern();
+            token = Token(matcher.token());
+            exp = Regex(matcher.exp());
+        }
         bool match(std::string value){
             return true;
         }
         Token generate(std::string value){
             token.lexeme = value;
             return token;
+        }
+        cache::Matcher toProto(){
+            cache::Matcher matcher;
+            matcher.set_pattern(pattern);
+            *matcher.mutable_exp() = exp.toProto();
+            *matcher.mutable_token() = token.toProto();
+            return matcher;
         }
 };
 
@@ -60,8 +85,11 @@ class LexicalAnalyzer{
         }
 };
 
+bool loadMatcher(std::string name, Matcher * out);
+bool cacheMatcher(std::string name, Matcher * matcher);
 void buildMatchers(LexicalAnalyzer &lexer);
 int main(int argc, char** args);
+std::string cacheDir = "cache";
 
 
 
