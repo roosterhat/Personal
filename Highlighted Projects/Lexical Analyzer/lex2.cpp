@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <windows.h>
 #include "lex2.h"
 #include "proto/Cache.pb.h"
 
@@ -92,6 +93,7 @@ void buildMatchers(LexicalAnalyzer &lexer){
         {"IDEN", &IDEN, "["+p_atoz+"](["+p_AtoZ+p_atoz+p_0to9+"]|(-["+p_AtoZ+p_atoz+p_0to9+"]))*", Token::ID},
     };
 
+    CreateDirectory("cache", NULL);
     for(Matcher_info m : matchers){
         if(!loadMatcher(m.name, m.matcher)){
             *m.matcher = Matcher(m.pattern, Token(m.name, m.type));

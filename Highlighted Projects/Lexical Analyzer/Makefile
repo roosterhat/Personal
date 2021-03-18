@@ -1,4 +1,4 @@
-CPP = cl /std:c11 /MTD /Z7 /DEBUG:NONE
+CPP = cl /std:c11 /MT
 PROTOBUF_DIR=C:\Users\eriko\OneDrive\Documents\GitHub\vcpkg\packages\protobuf_x64-windows-static
 INC_DIR = $(PROTOBUF_DIR)\include
 LIB_DIR = $(PROTOBUF_DIR)\lib
@@ -15,4 +15,4 @@ Cache.pb.obj: Cache.pb.cc Cache.pb.h
 	$(CPP) /c Cache.pb.cc /I$(INC_DIR)
 
 clean:
-	del *.obj lex2 cache\*
+	del *.obj lex2
