@@ -1,0 +1,235 @@
+body {
+    margin: 0;
+}
+
+.container {
+    display: flex;
+}
+
+.btn-container { 
+    display: flex;
+
+    .btn {
+        width: 50px;
+        height: 50px;
+        margin: 10px;
+        padding: 0;
+        position: relative;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .lds-ring {
+            width: 80%;
+            height: 80%;
+
+            div {
+                border-width: 4px;
+            }
+        }
+    }
+
+    .divider {
+        border-left: solid 1px #000;
+        margin: 5px 0px;
+    }
+}
+
+.canvas-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.config-name {
+    width: 100%;
+    height: 40px;
+    margin-bottom: 5px;
+    font-size: 20px;
+    padding: 0px 5px;
+}
+
+.buttons {
+    border: solid 1px #000;
+    padding: 5px;
+    height: 50%;
+    overflow: auto;
+
+    .button-item {
+        border: solid 1px #000;
+        padding: 5px;
+        border-radius: 3px;
+        transition: all 200ms ease;
+
+        .header {
+            height: 25px;
+            margin-bottom: 5px;
+            display: flex;
+            
+            input {
+                height: 100%;
+                width: 100%;
+            }
+        }
+
+        &:hover {
+            background: #e8f4ff
+        }
+    }
+}
+
+.close {
+    border: none;
+    background: red;
+    height: 100%;
+    aspect-ratio: 1;
+
+    i {
+        color: white;
+    }
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+.file-upload {
+    width: 100%;
+    height: 100%;
+
+    label {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    input[type="file"] {
+        position: absolute;
+        width: 0;
+        height: 0;
+    }
+}
+
+.error-message {
+    color: red;
+    margin-bottom: 5px;
+}
+
+.config-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: #12121299;
+
+    .window {
+        width: 400px;
+        height: 500px;
+        padding: 10px 15px;
+        background: #fff;
+        border-radius: 3px;
+        display: flex;
+        flex-direction: column;
+
+        .title {
+            font-weight: 700;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .list {
+            height: 100%;
+            box-shadow: inset 0px 0px 3px 0px #000;
+            overflow: auto;
+            padding: 2px;
+
+            .loader {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                width: 100%;
+                height: 100%;
+            }
+
+            .item {
+                height: 20px;
+                display: flex;
+                align-items: center;
+                padding: 5px;
+                cursor: pointer;
+
+                &:nth-child(even) {
+                    background: #f1f1f1;
+                }
+
+                &.selected {
+                    background: #c4e2ff
+                }
+
+                &:hover {
+                    background: #e8f4ff
+                }                
+            }
+        }
+
+        .action-container{
+            width: 100%;
+            height: 30px;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+
+            button {
+                width: 100px;
+                cursor: pointer;
+            }
+        }
+    }
+}
+
+.lds-ring {
+    position: absolute;
+    width: 10%;
+    height: 10%;
+
+    div {
+        box-sizing: border-box;
+        display: block;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 8px solid #3841c5;
+        border-radius: 50%;
+        animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        border-color: #3841c5 transparent transparent transparent;
+
+        &:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+
+        &:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+
+        &:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+    }
+}
+
+@keyframes lds-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
