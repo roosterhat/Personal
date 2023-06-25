@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_cors import CORS
 import re
-from os import listdir
+from os import listdir, system
 from os.path import isfile, join
 import json
 import uuid
@@ -106,6 +106,28 @@ def background(filename):
         return "Failed", 500
     finally:
         f.close()
+
+@app.route('/trigger/<config>/<id>')
+def trigger(config, id):
+    if not isfile('./Data/Configs/'+config):
+        return 'Config does not exists', 400
+    try:
+        f = open('./Data/Configs/'+config, 'r')
+        data = json.loads(f.read())
+        buttons = [b for b in data['buttons'] if b['id'] == id]
+        if not any(buttons):
+            return 'Button does not exist', 400
+        triggerIR(data['ir_config'], buttons[0]['action'])
+        return "Success", 200
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    finally:
+        f.close()
+
+def triggerIR(config, action):
+    print(f"Trigger: [{config}] [{action}]")
+    #system(f"irsend SEND_ONCE {config} {action}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3001)

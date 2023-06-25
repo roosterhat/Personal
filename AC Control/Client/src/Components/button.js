@@ -6,6 +6,7 @@ class Button extends React.Component {
 
         this.state = {
             name: this.getName(),
+            action: this.props.button.action,
             color: this.props.button.shape.color
         }
     }
@@ -17,8 +18,9 @@ class Button extends React.Component {
                     <input value={this.state.name} onChange={this.setName} onBlur={() => this.setState({name: this.getName()})}/>
                     <button className='close' onClick={this.props.remove}><i className="fa-solid fa-xmark"></i></button>
                 </div>
-                <div>
+                <div className='body'>
                     <input className="color" value={this.state.color} onInput={this.setColor} type="color"/>
+                    <input value={this.state.action} onChange={this.setAction} placeholder='IR data'/>
                 </div>
             </div>
         );
@@ -37,6 +39,11 @@ class Button extends React.Component {
         this.props.button.shape.color = e.target.value;
         this.setState({color: e.target.value})
         this.props.update()
+    }
+
+    setAction = (e) => {
+        this.props.button.action = e.target.value;
+        this.setState({action: e.target.value})
     }
 
     setHighlight = (state) => {

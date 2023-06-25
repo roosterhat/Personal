@@ -11,6 +11,8 @@ class CanvasEngine {
     currentDrag = null;    
     editing = false;
     pointing = false;
+    backgroundOriginalPosition = null;
+    backgroundPosition = null;
 
     Init() {
         console.log("Init")
@@ -20,7 +22,7 @@ class CanvasEngine {
         this.context.canvas.height = document.body.offsetHeight;
 
         this.canvas.addEventListener("mousemove", event => {
-            var mouse = this.ToCanvasCoordinates(event);
+            var mouse = this.PageToOriginalBackgroundCoordinates(event);
             if(this.dragging)
                 this.DragItem(mouse);
             this.Update(mouse);
@@ -32,39 +34,50 @@ class CanvasEngine {
                 this.currentDrag = null;
             }
     
-            var coord = this.ToCanvasCoordinates(event);
-            if(this.editing && this.currentShape){
-                if(this.currentShape.type == 'poly'){
-                    var d = this.currentShape.vertices.length > 0 ? this.Dist(coord, this.currentShape.vertices[0]) : -1;
-                    if(d <= Math.min(100 / d, 10) && this.currentShape.vertices.length > 2) {
+            var mouse = this.PageToOriginalBackgroundCoordinates(event);
+            var scale = this.BackgroundScaleRatio();
+            if(this.editing){
+                if(this.currentShape){
+                    if(this.currentShape.type == 'poly'){
+                        var d = this.currentShape.vertices.length > 0 ? this.Dist(mouse, this.currentShape.vertices[0]) : -1;
+                        if(d <= Math.min(100 / d * scale, 10) && this.currentShape.vertices.length > 2) {
+                            this.currentShape.closed = true;
+                            this.Reset();
+                        }
+                        else {
+                            this.currentShape.vertices.push({'x': mouse.x, 'y': mouse.y, 'index': this.shapes[this.shapes.length - 1].vertices.length});
+                        }
+                    }
+                    else if (this.currentShape.type == 'ellipse') {
+                        this.currentShape.x = mouse.x;
+                        this.currentShape.y = mouse.y;
                         this.currentShape.closed = true;
                         this.Reset();
                     }
-                    else {
-                        this.currentShape.vertices.push({'x': coord.x, 'y': coord.y, 'index': this.shapes[this.shapes.length - 1].vertices.length});
-                    }
-                }
-                else if (this.currentShape.type == 'ellipse') {
-                    this.currentShape.x = coord.x;
-                    this.currentShape.y = coord.y;
-                    this.currentShape.closed = true;
-                    this.Reset();
                 }
             }
-            this.Update(coord);
+            else {
+                for(var shape of this.shapes) {
+                    if(this.Inside(shape, mouse)){
+                        shape['function']()
+                        break;
+                    }
+                }
+            }
+            this.Update(mouse);
         })
     
         this.canvas.addEventListener("mousedown", (event) => {
             this.dragging = this.editing && !this.currentShape && this.canDrag;
-            this.Update(this.ToCanvasCoordinates(event));
+            this.Update(this.PageToOriginalBackgroundCoordinates(event));
         });
     
         this.canvas.addEventListener("wheel", (event) => {
             if(this.currentShape && this.currentShape.type === "ellipse"){
-                var delta = event.deltaY / 10;
+                var delta = event.deltaY / 20;
                 this.currentShape.r1 = Math.max(this.currentShape.r1 - delta, 1);
                 this.currentShape.r2 = Math.max(this.currentShape.r2 - delta, 1);
-                this.Update(this.ToCanvasCoordinates(event));
+                this.Update(this.PageToOriginalBackgroundCoordinates(event));
             }
         });
     
@@ -75,12 +88,18 @@ class CanvasEngine {
                 this.Update();
             }
             else if (event.key === "Delete" && this.currentShape) {
-                if(this.currentShape.vertices.length > 0){
+                if(this.currentShape.type == "poly" && this.currentShape.vertices.length > 0){
                     this.currentShape.vertices.pop();
-                    this.Update(this.lastMouse);
+                    this.Update();
                 }
             }
         })
+
+        window.onresize = () => {
+            this.context.canvas.width = document.body.offsetWidth / 2;
+            this.context.canvas.height = document.body.offsetHeight;
+            this.Update();
+        };
     }
 
     Update(mouse) {
@@ -97,21 +116,24 @@ class CanvasEngine {
             var x = (this.canvas.width / 2) - (this.background.width / 2) * scale;
             var y = (this.canvas.height / 2) - (this.background.height / 2) * scale;
             this.context.drawImage(this.background, x, y, this.background.width * scale, this.background.height * scale);
+            this.backgroundPosition = {'scale': scale, 'x': x, 'y': y};
         }
+
+        var canvasMouse = this.OriginalBackgroundToCanvasCoordinates(mouse);
         
         for(var shape of this.shapes){
             if(shape.type === "poly" && shape.vertices.length > 0){
                 this.DrawPoly(shape, mouse);
                 if(this.editing){
-                    this.DrawVerticies(shape, mouse);
-                    this.DrawCenter(shape, mouse);
+                    this.DrawVerticies(shape, canvasMouse);
+                    this.DrawCenter(shape, canvasMouse);
                 }
             }
             else if(shape.type === "ellipse" && shape.closed) {
                 this.DrawEllipse(shape, mouse);
                 if(this.editing){
-                    this.DrawCenter(shape, mouse);
-                    this.DrawRadii(shape, mouse);
+                    this.DrawRadii(shape, canvasMouse);
+                    this.DrawCenter(shape, canvasMouse);                    
                 }
             }        
         }    
@@ -121,14 +143,16 @@ class CanvasEngine {
                 this.context.beginPath();
                 var verts = this.currentShape.vertices
                 if(verts.length > 0){
-                    this.context.moveTo(verts[verts.length - 1].x, verts[verts.length - 1].y);
-                    this.context.lineTo(mouse.x, mouse.y);
+                    var vert = this.OriginalBackgroundToCanvasCoordinates(verts[verts.length - 1]);
+                    this.context.moveTo(vert.x, vert.y);
+                    this.context.lineTo(canvasMouse.x, canvasMouse.y);
                 }
                 this.context.stroke();
             }
             else if(this.currentShape.type === "ellipse") {
+                var scale = this.BackgroundScaleRatio();
                 this.context.beginPath();
-                this.context.ellipse(mouse.x, mouse.y, this.currentShape.r1, this.currentShape.r2, 0, 0, 2 * Math.PI)
+                this.context.ellipse(canvasMouse.x, canvasMouse.y, this.currentShape.r1 * scale, this.currentShape.r2 * scale, 0, 0, 2 * Math.PI)
                 this.context.stroke();
             }
         }  
@@ -139,7 +163,9 @@ class CanvasEngine {
     DrawEllipse(shape, mouse){
         this.context.strokeStyle = shape.color;
         this.context.beginPath();
-        this.context.ellipse(shape.x, shape.y, shape.r1, shape.r2, 0, 0, 2 * Math.PI)
+        var coord = this.OriginalBackgroundToCanvasCoordinates(shape);
+        var scale = this.BackgroundScaleRatio();
+        this.context.ellipse(coord.x, coord.y, shape.r1 * scale, shape.r2 * scale, 0, 0, 2 * Math.PI)
         if(this.editing)
             this.context.stroke();
         this.context.fillStyle = this.editing ? (shape.highlight ? "#e8f4ff99" : "#000000") : "#fafafa99";
@@ -156,10 +182,12 @@ class CanvasEngine {
         var r = 2;
         var p = {};
         var d = 0;
-        
+        var coord = this.OriginalBackgroundToCanvasCoordinates(shape);
+        var scale = this.BackgroundScaleRatio();
+
         this.context.beginPath();
-        p = {x: shape.x + shape.r1, y: shape.y};
-        d = this.Dist(p, mouse);
+        p = {x: coord.x + shape.r1 * scale, y: coord.y};
+        d = this.Dist(p, mouse) * scale;
         this.context.moveTo(p.x, p.y);
         this.context.ellipse(p.x, p.y, r, r, 0, 0, 2 * Math.PI)
         if(!this.currentShape && !this.dragging && d <= 15) {
@@ -169,8 +197,8 @@ class CanvasEngine {
         this.context.stroke();
         
         this.context.beginPath();
-        p = {x: shape.x, y: shape.y - shape.r2};
-        d = this.Dist(p, mouse);
+        p = {x: coord.x, y: coord.y - shape.r2 * scale};
+        d = this.Dist(p, mouse) * scale;
         this.context.moveTo(p.x, p.y);
         this.context.ellipse(p.x, p.y, r, r, 0, 0, 2 * Math.PI)
         if(!this.currentShape && !this.dragging && d <= 15) {
@@ -183,12 +211,15 @@ class CanvasEngine {
     DrawPoly(shape, mouse) {
         this.context.strokeStyle = shape.color;
         this.context.beginPath();
-        this.context.moveTo(shape.vertices[0].x, shape.vertices[0].y);
+        var coord = this.OriginalBackgroundToCanvasCoordinates(shape.vertices[0]);
+        this.context.moveTo(coord.x, coord.y);
         for(var vertex of shape.vertices) {
-            this.context.lineTo(vertex.x, vertex.y);                   
+            coord = this.OriginalBackgroundToCanvasCoordinates(vertex);
+            this.context.lineTo(coord.x, coord.y);                   
         }
         if(shape.closed) {
-            this.context.lineTo(shape.vertices[0].x, shape.vertices[0].y);
+            coord = this.OriginalBackgroundToCanvasCoordinates(shape.vertices[0]);
+            this.context.lineTo(coord.x, coord.y);
         }     
         if(this.editing)
             this.context.stroke();
@@ -205,10 +236,12 @@ class CanvasEngine {
     DrawVerticies(shape, mouse) {
         for(var vertex of shape.vertices) {
             this.context.beginPath();
-            this.context.moveTo(vertex.x, vertex.y);
-            var d = this.Dist(vertex, mouse);
+            var coord = this.OriginalBackgroundToCanvasCoordinates(vertex);
+            var scale = this.BackgroundScaleRatio();
+            this.context.moveTo(coord.x, coord.y);
+            var d = this.Dist(coord, mouse) * scale;
             var r = shape === this.currentShape && vertex.index == 0 && shape.vertices.length > 2  ? Math.max(Math.min(100 / d, 10), 2) : 2;
-            this.context.ellipse(vertex.x, vertex.y, r, r, 0, 0, 2 * Math.PI)
+            this.context.ellipse(coord.x, coord.y, r, r, 0, 0, 2 * Math.PI)
             if(!this.currentShape && !this.dragging && d <= 15) {
                 this.canDrag = true
                 this.currentDrag = {'item': vertex, 'type': 'vertex'}
@@ -221,21 +254,25 @@ class CanvasEngine {
         if(shape.closed){
             this.context.beginPath();
             if(shape.type == 'poly') {
-                var c = this.Center(shape);
-                this.context.moveTo(c.x, c.y);
-                var d = this.Dist(c, mouse);
+                var center = this.Center(shape);
+                var coord = this.OriginalBackgroundToCanvasCoordinates(center);
+                var scale = this.BackgroundScaleRatio();
+                this.context.moveTo(coord.x, coord.y);
+                var d = this.Dist(coord, mouse) * scale;
                 var r = !this.currentShape && !(this.dragging && this.currentDrag.item !== shape) ? Math.max(Math.min(100 / d, 5), 2) : 2;
-                this.context.ellipse(c.x, c.y, r, r, 0, 0, 2 * Math.PI)
+                this.context.ellipse(coord.x, coord.y, r, r, 0, 0, 2 * Math.PI)
                 if(!this.currentShape && !this.dragging && d <= 15) {
                     this.canDrag = true
                     this.currentDrag = {'item': shape, 'type': 'poly'}
                 }            
             }
             else if (shape.type == 'ellipse') {
-                this.context.moveTo(shape.x, shape.y);
-                var d = this.Dist(shape, mouse);
+                var coord = this.OriginalBackgroundToCanvasCoordinates(shape);
+                var scale = this.BackgroundScaleRatio();
+                this.context.moveTo(coord.x, coord.y);
+                var d = this.Dist(coord, mouse) * scale;
                 var r = !this.currentShape && !(this.dragging && this.currentDrag.item === shape && this.currentDrag.type !== 'ellipse') ? Math.max(Math.min(100 / d, 5), 2) : 2;
-                this.context.ellipse(shape.x, shape.y, r, r, 0, 0, 2 * Math.PI)
+                this.context.ellipse(coord.x, coord.y, r, r, 0, 0, 2 * Math.PI)
                 if(!this.currentShape && !this.dragging && d <= 15) {
                     this.canDrag = true
                     this.currentDrag = {'item': shape, 'type': 'ellipse'}
@@ -252,6 +289,7 @@ class CanvasEngine {
     DragItem(mouse) {
         if(!this.currentDrag) return;
         var delta = {x: mouse.x - this.lastMouse.x, y: mouse.y - this.lastMouse.y};
+
         if(this.currentDrag.type == 'vertex') {
             this.currentDrag.item.x = mouse.x;
             this.currentDrag.item.y = mouse.y;
@@ -263,8 +301,8 @@ class CanvasEngine {
             }
         }
         else if(this.currentDrag.type == 'ellipse') {
-            this.currentDrag.item.x += delta.x;
-            this.currentDrag.item.y += delta.y;
+            this.currentDrag.item.x = mouse.x;
+            this.currentDrag.item.y = mouse.y;
         }
         else if(this.currentDrag.type == 'radius-h') {
             this.currentDrag.item.r1 = Math.max(this.currentDrag.item.r1 + delta.x, 1);
@@ -274,8 +312,24 @@ class CanvasEngine {
         }
     }
 
-    ToCanvasCoordinates(coordinates) {
-        return {x: coordinates.x - (this.canvas.offsetLeft + this.canvas.clientLeft), y: coordinates.y - (this.canvas.offsetTop + this.canvas.clientTop)};
+    PageToOriginalBackgroundCoordinates(coordinates) {
+        if(!this.backgroundPosition) return coordinates;
+        var scale = this.BackgroundScaleRatio();
+        return {
+            x: ((coordinates.x - (this.canvas.offsetLeft + this.canvas.clientLeft)) - this.backgroundPosition.x) / scale, 
+            y: ((coordinates.y - (this.canvas.offsetTop + this.canvas.clientTop)) - this.backgroundPosition.y) / scale
+        };
+    }
+
+    OriginalBackgroundToCanvasCoordinates(coordinates) {
+        if(!this.backgroundOriginalPosition) return coordinates;
+        var scale = this.BackgroundScaleRatio();
+        return {x: this.backgroundPosition.x + coordinates.x * scale, y: this.backgroundPosition.y + coordinates.y * scale};
+    }
+
+    BackgroundScaleRatio() {
+        if(!(this.backgroundPosition && this.backgroundOriginalPosition)) return 1;
+        return this.backgroundPosition.scale / this.backgroundOriginalPosition.scale;
     }
 
     Reset() {
@@ -352,11 +406,10 @@ class CanvasEngine {
         this.Update()
     }
 
-    async LoadBackground(file) {
+    async LoadBackground(file, position) {
         this.backgroundLoaded = false;
         document.getElementById('spinner').style.display = "block";
         this.background = new Image();
-        console.log(Object.prototype.toString.call(file))
         if(Object.prototype.toString.call(file) === "[object File]"){
             const reader = new FileReader()
             var dataUrl = await new Promise(resolve => {
@@ -369,18 +422,33 @@ class CanvasEngine {
         }
         else if(Object.prototype.toString.call(file) === "[object String]") {
             this.background.src = `http://${window.location.hostname}:3001/background/${file}`
-        }        
-        else {
-            this.backgroundLoaded = true;
-            document.getElementById('spinner').style.display = "none";
-            this.Update();
-        }
+        }   
         
-        this.background.onload = () => { 
-            this.backgroundLoaded = true;
-            document.getElementById('spinner').style.display = "none";
-            this.Update();
+        console.log(Object.prototype.toString.call(file) === "[object String]")
+        console.log(file, position)
+        
+        await new Promise(resolve => {
+            this.background.onload = () => { 
+                console.log("load")
+                resolve();
+            }
+        });        
+
+        if(position){
+            this.backgroundOriginalPosition = position
         }
+        else{
+            var scale = Math.min(this.canvas.width / this.background.width, this.canvas.height / this.background.height);
+            var x = (this.canvas.width / 2) - (this.background.width / 2) * scale;
+            var y = (this.canvas.height / 2) - (this.background.height / 2) * scale;
+            this.backgroundOriginalPosition = {'scale': scale, 'x': x, 'y': y};
+            console.log(this.backgroundOriginalPosition)
+        }        
+
+        this.backgroundLoaded = true;
+        document.getElementById('spinner').style.display = "none";
+        this.Update();
+        return this.backgroundPosition;
     }
 
     RemoveShape(shape) {

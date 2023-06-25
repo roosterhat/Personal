@@ -58,16 +58,24 @@ class Main extends React.Component {
                             </div>
                             {this.state.error ? <div className='error-message'>{this.state.error}</div> : null}
                             <input className='config-name' value={this.state.EditConfig.name} onChange={e => this.setConfigName(e.target.value)} placeholder='Config name'/>
+                            <div className='config'>
+                                <div className='name'>{this.state.EditConfig.ir_config ? this.state.EditConfig.ir_config : 'Select configuration file...'}</div>
+                                <div className='file-config'>
+                                    <label htmlFor="config"><i className="fa-regular fa-folder-open"></i></label>
+                                    <input type="file" id="config" name="config" accept=".conf" onChange={e => this.setConfig(e.target.files)}/>
+                                </div>
+                            </div>
                             <div className="buttons">
-                                {
-                                    this.state.buttons.map(button => 
-                                        <Button 
-                                            key={button.id} 
-                                            button={button} 
-                                            update={() => this.Engine.Update()}
-                                            remove={() => this.removeButton(button)}
-                                        />)
-                                }
+                            {
+                                this.state.buttons.map(button => 
+                                    <Button 
+                                        key={button.id} 
+                                        button={button} 
+                                        update={() => this.Engine.Update()}
+                                        remove={() => this.removeButton(button)}
+                                    />
+                                )
+                            }
                             </div>
                         </div>
                     ) :
@@ -76,6 +84,7 @@ class Main extends React.Component {
                             { this.Config ? <button className="btn" onClick={this.edit}><i className="fa-solid fa-pen-to-square"></i></button> : null }
                             <button className="btn" onClick={this.new}><i className="fa-solid fa-plus"></i></button>
                             <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
+                            <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
                         </div>   
                     )
                 }       
@@ -93,18 +102,21 @@ class Main extends React.Component {
         if(this.Engine.currentShape)
             this.Engine.shapes.pop();
 
+        const id = this.uuidv4();
         if(type === "poly")
-            this.Engine.currentShape = { 'vertices': [], 'type': 'poly', 'closed': false, 'highlight': false, 'color': '#000000' };
+            this.Engine.currentShape = { 'vertices': [], 'type': 'poly', 'closed': false, 'highlight': false, 'color': '#000000'  };
         else if(type === "ellipse")
             this.Engine.currentShape = { 'x': 0, 'y': 0, r1: 10, r2: 10, 'type': 'ellipse', 'closed': false, 'highlight': false, 'color': '#000000' };
 
+        this.Engine.currentShape['function'] = () => {this.triggerIr(id)};
+
         this.Engine.shapes.push(this.Engine.currentShape)
         this.state.buttons.push({ 
-            'id': this.uuidv4(), 
+            'id': id, 
             'shape': this.Engine.currentShape, 
             'name': '', 
-            'index': this.state.buttons.length, 
-            'function': () => {} 
+            'action': '',
+            'index': this.state.buttons.length
         })
         this.setState({buttons: this.state.buttons})
     }
@@ -128,6 +140,7 @@ class Main extends React.Component {
             'name': null,
             'buttons': [],
             'background': null,
+            'ir_config': null,
             'id': this.uuidv4()
         }})
         this.Engine.shapes = [];
@@ -138,16 +151,23 @@ class Main extends React.Component {
     cancelEdit = () => {
         const buttons = JSON.parse(JSON.stringify(this.Config && this.Config.buttons ? this.Config.buttons : []))
         this.setState({editing: false, buttons: buttons, EditConfig: null, error: null})
-        this.Engine.shapes = buttons.map(x => x.shape);
+        this.Engine.shapes = buttons.map(x => { 
+            x.shape['function'] = () => this.triggerIr(x.id);
+            return x.shape
+        });
         var background = this.Config && this.Config.background ? this.Config.background : null
         if(background !== this.state.EditConfig.background)
-            this.Engine.LoadBackground(background)
+            this.Engine.LoadBackground(background.file, background.position)
         this.Engine.SetEdit(false);
     }
     
     complete = async () => {
         if(!this.state.EditConfig.name || this.state.EditConfig.name.trim().length == 0) {
             this.setState({error: "Enter a valid config name"})
+            return;
+        }
+        else if(!this.state.EditConfig.ir_config || this.state.EditConfig.ir_config.trim().length == 0) {
+            this.setState({error: "Enter a valid config file"})
             return;
         }
         else {
@@ -170,14 +190,14 @@ class Main extends React.Component {
             this.state.EditConfig.name = name
         this.state.EditConfig.buttons = this.state.buttons;
         try{
-            if(Object.prototype.toString.call(this.state.EditConfig.background) === "[object File]"){
+            if(Object.prototype.toString.call(this.state.EditConfig.background.file) === "[object File]"){
                 const response = await fetch(`http://${window.location.hostname}:3001/upload`,{
                     method: "POST",
                     headers: { "Content-Type": "image" },
-                    body: this.state.EditConfig.background
+                    body: this.state.EditConfig.background.file
                 })
                 if(response.status == 200)
-                    this.state.EditConfig.background = await response.text()
+                    this.state.EditConfig.background.file = await response.text()
             }
             const response = await fetch(`http://${window.location.hostname}:3001/save`,{
                 method: "POST",
@@ -202,8 +222,11 @@ class Main extends React.Component {
                 this.Config = await response.json();
                 const buttons = JSON.parse(JSON.stringify(this.Config.buttons))
                 this.setState({buttons: buttons})
-                this.Engine.shapes = buttons.map(x => x.shape);
-                this.Engine.LoadBackground(this.Config.background)
+                this.Engine.shapes = buttons.map(x => { 
+                    x.shape['function'] = () => this.triggerIr(x.id);
+                    return x.shape
+                });
+                this.Engine.LoadBackground(this.Config.background.file, this.Config.background.position)
                 this.Engine.Update()
             }
         }
@@ -217,13 +240,26 @@ class Main extends React.Component {
 
     upload = async (files) => {
         if(files && files.length > 0){
-            this.state.EditConfig.background = files[0];
-            this.Engine.LoadBackground(files[0])
+            var position = await this.Engine.LoadBackground(files[0])
+            this.state.EditConfig.background = { 'file': files[0], 'position': position };
         }
     }
 
-    triggerIr = (button) => {
+    setConfig = (files) => {
+        if(files && files.length > 0){
+            this.state.EditConfig.ir_config = files[0].name;
+            this.setState({EditConfig: this.state.EditConfig});
+        }
+    }
 
+    triggerIr = async (id) => {
+        console.log("trigger: "+id)
+        try {
+            const response = await fetch(`http://${window.location.hostname}:3001/trigger/${this.Config.id}/${id}`)
+        }
+        catch(ex) {
+            console.error(ex);
+        } 
     }
 }
 
