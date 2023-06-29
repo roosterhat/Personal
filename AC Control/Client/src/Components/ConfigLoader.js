@@ -43,7 +43,7 @@ class ConfigLoader extends React.Component {
     list = async () => {
         try {
             this.setState({loading: true})
-            const response = await fetch(`http://${window.location.hostname}:3001/list`)
+            const response = await fetch(`http://${window.location.hostname}:3001/api/list`)
             if(response.status == 200)
                 this.setState({configs: await response.json()})
         }

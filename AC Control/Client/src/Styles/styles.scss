@@ -169,6 +169,7 @@ body {
     align-items: center;
     justify-content: center;
     position: fixed;
+    inset: 0;
     width: 100%;
     height: 100%;
     background: #12121299;
@@ -236,6 +237,16 @@ body {
                 cursor: pointer;
             }
         }
+    }
+}
+
+.controls {
+    display: block;
+}
+
+@media only screen and (max-device-width: 800px) {
+    .btn-container:not(.editing) {
+        flex-direction: column;
     }
 }
 

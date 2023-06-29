@@ -18,8 +18,8 @@ class CanvasEngine {
         console.log("Init")
         this.canvas = document.getElementById("canvas")
         this.context = this.canvas.getContext("2d");
-        this.context.canvas.width = document.body.offsetWidth / 2;
-        this.context.canvas.height = document.body.offsetHeight;
+        this.context.canvas.width = document.documentElement.clientWidth > 800 ? document.documentElement.clientWidth / 2 : document.documentElement.clientWidth;
+        this.context.canvas.height = document.documentElement.clientHeight;
 
         this.canvas.addEventListener("mousemove", event => {
             var mouse = this.PageToOriginalBackgroundCoordinates(event);
@@ -96,8 +96,8 @@ class CanvasEngine {
         })
 
         window.onresize = () => {
-            this.context.canvas.width = document.body.offsetWidth / 2;
-            this.context.canvas.height = document.body.offsetHeight;
+            this.context.canvas.width = document.documentElement.clientWidth > 800 || this.editing ? document.documentElement.clientWidth / 2 : document.documentElement.clientWidth;
+            this.context.canvas.height = document.documentElement.clientHeight;
             this.Update();
         };
     }
@@ -421,11 +421,13 @@ class CanvasEngine {
             this.background.src = dataUrl
         }
         else if(Object.prototype.toString.call(file) === "[object String]") {
-            this.background.src = `http://${window.location.hostname}:3001/background/${file}`
+            this.background.src = `http://${window.location.hostname}:3001/api/background/${file}`
         }   
-        
-        console.log(Object.prototype.toString.call(file) === "[object String]")
-        console.log(file, position)
+        else {
+            this.backgroundLoaded = true;
+            document.getElementById('spinner').style.display = "none";
+            return;
+        }
         
         await new Promise(resolve => {
             this.background.onload = () => { 
@@ -442,7 +444,6 @@ class CanvasEngine {
             var x = (this.canvas.width / 2) - (this.background.width / 2) * scale;
             var y = (this.canvas.height / 2) - (this.background.height / 2) * scale;
             this.backgroundOriginalPosition = {'scale': scale, 'x': x, 'y': y};
-            console.log(this.backgroundOriginalPosition)
         }        
 
         this.backgroundLoaded = true;

@@ -35,11 +35,12 @@ class Main extends React.Component {
                 <div className="canvas-container">
                     <LoadingSpinner id="spinner" style={{display: 'none'}}/>
                     <canvas id="canvas"></canvas>
-                </div>            
+                </div>         
+                <div className='controls'>
                 {this.state.editing ?
                     (
                         <div id="edit">
-                            <div className="btn-container">
+                            <div className={"btn-container" + (this.state.editing ? " editing" : "")}>
                                 <button className="btn" onClick={() => this.addShape('poly')}><i className="fa-solid fa-draw-polygon"></i></button>
                                 <button className="btn" onClick={() => this.addShape('ellipse')}><i className="fa-regular fa-circle"></i></button>
                                 <button className="btn">
@@ -57,14 +58,8 @@ class Main extends React.Component {
                                 <button className="btn" onClick={this.complete}>{this.state.saving ? <LoadingSpinner /> : <i className="fa-solid fa-check"></i>}</button>
                             </div>
                             {this.state.error ? <div className='error-message'>{this.state.error}</div> : null}
-                            <input className='config-name' value={this.state.EditConfig.name} onChange={e => this.setConfigName(e.target.value)} placeholder='Config name'/>
-                            <div className='config'>
-                                <div className='name'>{this.state.EditConfig.ir_config ? this.state.EditConfig.ir_config : 'Select configuration file...'}</div>
-                                <div className='file-config'>
-                                    <label htmlFor="config"><i className="fa-regular fa-folder-open"></i></label>
-                                    <input type="file" id="config" name="config" accept=".conf" onChange={e => this.setConfig(e.target.files)}/>
-                                </div>
-                            </div>
+                            <input className='config-name' value={this.state.EditConfig.name} onChange={e => this.setConfigName(e.target.value)} placeholder='Display name'/>
+                            <input className='config-name' value={this.state.EditConfig.ir_config} onChange={e => this.setConfig(e.target.value)} placeholder='Config remote name'/>
                             <div className="buttons">
                             {
                                 this.state.buttons.map(button => 
@@ -89,6 +84,7 @@ class Main extends React.Component {
                     )
                 }       
                 {this.state.showConfigSelect ? <ConfigLoader select={(config) => this.load(config)} close={() => this.setState({showConfigSelect: false})}/> : null}  
+                </div>   
             </div>
         );
     }
@@ -139,7 +135,7 @@ class Main extends React.Component {
         this.setState({editing: true, buttons: [], EditConfig: {
             'name': null,
             'buttons': [],
-            'background': null,
+            'background': {},
             'ir_config': null,
             'id': this.uuidv4()
         }})
@@ -156,7 +152,7 @@ class Main extends React.Component {
             return x.shape
         });
         var background = this.Config && this.Config.background ? this.Config.background : null
-        if(background !== this.state.EditConfig.background)
+        if(background.file !== this.state.EditConfig.background.file)
             this.Engine.LoadBackground(background.file, background.position)
         this.Engine.SetEdit(false);
     }
@@ -191,7 +187,7 @@ class Main extends React.Component {
         this.state.EditConfig.buttons = this.state.buttons;
         try{
             if(Object.prototype.toString.call(this.state.EditConfig.background.file) === "[object File]"){
-                const response = await fetch(`http://${window.location.hostname}:3001/upload`,{
+                const response = await fetch(`http://${window.location.hostname}:3001/api/upload`,{
                     method: "POST",
                     headers: { "Content-Type": "image" },
                     body: this.state.EditConfig.background.file
@@ -199,7 +195,7 @@ class Main extends React.Component {
                 if(response.status == 200)
                     this.state.EditConfig.background.file = await response.text()
             }
-            const response = await fetch(`http://${window.location.hostname}:3001/save`,{
+            const response = await fetch(`http://${window.location.hostname}:3001/api/save`,{
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(this.state.EditConfig)
@@ -217,7 +213,7 @@ class Main extends React.Component {
     load = async (name) => {
         try{
             this.setState({showConfigSelect: false, uploading: true})
-            const response = await fetch(`http://${window.location.hostname}:3001/retrieve/${name}`)
+            const response = await fetch(`http://${window.location.hostname}:3001/api/retrieve/${name}`)
             if(response.status == 200){
                 this.Config = await response.json();
                 const buttons = JSON.parse(JSON.stringify(this.Config.buttons))
@@ -245,17 +241,15 @@ class Main extends React.Component {
         }
     }
 
-    setConfig = (files) => {
-        if(files && files.length > 0){
-            this.state.EditConfig.ir_config = files[0].name;
-            this.setState({EditConfig: this.state.EditConfig});
-        }
+    setConfig = (name) => {
+        this.state.EditConfig.ir_config = name;
+        this.setState({EditConfig: this.state.EditConfig})
     }
 
     triggerIr = async (id) => {
         console.log("trigger: "+id)
         try {
-            const response = await fetch(`http://${window.location.hostname}:3001/trigger/${this.Config.id}/${id}`)
+            const response = await fetch(`http://${window.location.hostname}:3001/api/trigger/${this.Config.id}/${id}`)
         }
         catch(ex) {
             console.error(ex);
