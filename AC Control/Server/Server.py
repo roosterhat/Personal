@@ -16,7 +16,6 @@ contentTypeMap = { 'js': 'text/javascript', 'ico': 'image/x-icon', 'css': 'text/
 app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-camera = cv2.VideoCapture(0)
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -81,7 +80,7 @@ def retrieve(id):
             f.close()
         f = open(f"./Data/Configs/{id}", 'rb')
         data = f.read()
-        return data, 200, {'ContentType':'application/json'} 
+        return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
@@ -111,7 +110,7 @@ def background(filename):
     try:
         f = open('./Data/Backgrounds/'+filename, 'rb')
         data = f.read()
-        return data, 200, {'ContentType':'image'} 
+        return data, 200, {'Content-Type':'image'} 
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
@@ -120,17 +119,23 @@ def background(filename):
 
 @app.route('/api/frame')
 def frame():
-    if not camera:
-        return "No camera detected", 500
-    if not camera.isOpened():
-        return "Cannot open camera", 500
-    success, frame = camera.read()
-    if not success:
-        return "Can't receive frame", 500
-    success, buffer = cv2.imencode(".png", frame)
-    if not success:
-        return "Error processing image", 500
-    return io.BytesIO(buffer), 200, {'ContentType':'image'} 
+    try:
+        camera = cv2.VideoCapture(0)
+        if not camera:
+            return "No camera detected", 500
+        if not camera.isOpened():
+            return "Cannot open camera", 500
+        success, frame = camera.read()
+        if not success:
+            return "Can't receive frame", 500
+        success, buffer = cv2.imencode(".png", frame)
+        if not success:
+            return "Error processing image", 500
+        return bytes(buffer), 200, {'Content-Type':'image/png'} 
+    except Exception as ex:
+        return "Failed", 500
+    finally: 
+        camera.release()
 
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
@@ -155,6 +160,4 @@ def triggerIR(config, action):
     #system(f"irsend SEND_ONCE {config} {action}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3001)
-    if camera:
-        camera.release()
+    app.run(host='0.0.0.0', port=3001)        
