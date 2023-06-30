@@ -35,7 +35,7 @@ class Main extends React.Component {
                 <div className="canvas-container">
                     <div className="frame-container">
                         <img id="frame" src="api/frame"/>
-                        <div className="refresh" onClick={}><i className="fa-solid fa-arrows-rotate"></i></div>
+                        <div className="refresh" onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                     </div>
                     <LoadingSpinner id="spinner" style={{display: 'none'}}/>
                     <canvas id="canvas"></canvas>
