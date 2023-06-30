@@ -131,6 +131,8 @@ def frame():
         success, buffer = cv2.imencode(".png", frame)
         if not success:
             return "Error processing image", 500
+        for i in range(camera.get(cv2.CAP_PROP_BUFFERSIZE) - 1):
+            camera.read()
         return bytes(buffer), 200, {'Content-Type':'image/png'} 
     except Exception as ex:
         return "Failed", 500
