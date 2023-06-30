@@ -125,14 +125,13 @@ def frame():
             return "No camera detected", 500
         if not camera.isOpened():
             return "Cannot open camera", 500
-        success, frame = camera.read()
+        for i in range(int(camera.get(cv2.CAP_PROP_BUFFERSIZE))):
+            success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
         success, buffer = cv2.imencode(".png", frame)
         if not success:
             return "Error processing image", 500
-        for i in range(camera.get(cv2.CAP_PROP_BUFFERSIZE) - 1):
-            camera.read()
         return bytes(buffer), 200, {'Content-Type':'image/png'} 
     except Exception as ex:
         return "Failed", 500
