@@ -5,6 +5,7 @@ from os import listdir
 from os import path as Path
 import json
 import uuid
+import cv2
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileExtPattern = re.compile(r'\.(?P<ext>js|ico|css|png|jpg|html)$')
@@ -14,6 +15,7 @@ contentTypeMap = { 'js': 'text/javascript', 'ico': 'image/x-icon', 'css': 'text/
 app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+camera = cv2.VideoCapture(0)
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -115,6 +117,17 @@ def background(filename):
     finally:
         f.close()
 
+@app.route('/api/frame')
+def frame():
+    if not camera:
+        return "No camera detected", 500
+    if not camera.isOpened():
+        return "Cannot open camera", 500
+    ret, frame = camera.read()
+    if not ret:
+        return "Can't receive frame", 500
+    return bytes(frame), 200, {'ContentType':'image'} 
+
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
     if not Path.isfile('./Data/Configs/'+config):
@@ -139,3 +152,5 @@ def triggerIR(config, action):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3001)
+    if camera:
+        camera.release()
