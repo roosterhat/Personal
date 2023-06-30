@@ -41,6 +41,21 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+
+    .frame-container {
+        position: relative;
+
+        .frame {
+            
+        }
+
+        .refresh {
+            position: absolute;
+            top: 0;
+            right: 0;
+            cursor: pointer;
+        }
+    }
 }
 
 .config-name {

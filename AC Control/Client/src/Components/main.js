@@ -33,6 +33,10 @@ class Main extends React.Component {
         return (
             <div className="container">
                 <div className="canvas-container">
+                    <div className="frame-container">
+                        <img id="frame" src="api/frame"/>
+                        <div className="refresh" onClick={}><i className="fa-solid fa-arrows-rotate"></i></div>
+                    </div>
                     <LoadingSpinner id="spinner" style={{display: 'none'}}/>
                     <canvas id="canvas"></canvas>
                 </div>         
@@ -250,10 +254,16 @@ class Main extends React.Component {
         console.log("trigger: "+id)
         try {
             const response = await fetch(`http://${window.location.hostname}:3001/api/trigger/${this.Config.id}/${id}`)
+            refreshFrame();
         }
         catch(ex) {
             console.error(ex);
         } 
+    }
+
+    refreshFrame = () => {
+        var elem = document.getElementById("frame");
+        elem.src = `api/frame?${new Date().getTime()}`;
     }
 }
 
