@@ -6,7 +6,7 @@ from os import path as Path
 import json
 import uuid
 import io
-from picamera import PiCamera
+import cv2
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileExtPattern = re.compile(r'\.(?P<ext>js|ico|css|png|jpg|html)$')
