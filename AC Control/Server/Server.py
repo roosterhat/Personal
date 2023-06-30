@@ -5,7 +5,8 @@ from os import listdir
 from os import path as Path
 import json
 import uuid
-import cv2
+import io
+from picamera import PiCamera
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileExtPattern = re.compile(r'\.(?P<ext>js|ico|css|png|jpg|html)$')
@@ -123,10 +124,13 @@ def frame():
         return "No camera detected", 500
     if not camera.isOpened():
         return "Cannot open camera", 500
-    ret, frame = camera.read()
-    if not ret:
+    success, frame = camera.read()
+    if not success:
         return "Can't receive frame", 500
-    return bytes(frame), 200, {'ContentType':'image'} 
+    success, buffer = cv2.imencode(".png", frame)
+    if not success:
+        return "Error processing image", 500
+    return io.BytesIO(buffer), 200, {'ContentType':'image'} 
 
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
