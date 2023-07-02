@@ -18,8 +18,7 @@ class CanvasEngine {
         console.log("Init")
         this.canvas = document.getElementById("canvas")
         this.context = this.canvas.getContext("2d");
-        this.context.canvas.width = document.documentElement.clientWidth > 800 ? document.documentElement.clientWidth / 2 : document.documentElement.clientWidth;
-        this.context.canvas.height = document.documentElement.clientHeight;
+        this.RefreshDimensions()
 
         this.canvas.addEventListener("mousemove", event => {
             var mouse = this.PageToOriginalBackgroundCoordinates(event);
@@ -96,10 +95,17 @@ class CanvasEngine {
         })
 
         window.onresize = () => {
-            this.context.canvas.width = document.documentElement.clientWidth > 800 || this.editing ? document.documentElement.clientWidth / 2 : document.documentElement.clientWidth;
-            this.context.canvas.height = document.documentElement.clientHeight;
-            this.Update();
+            this.RefreshDimensions()
         };
+    }
+
+    RefreshDimensions() {
+        var elem = document.getElementById("canvas-container")
+        //this.context.canvas.width = document.documentElement.clientWidth > 800 ? document.documentElement.clientWidth / 2 : document.documentElement.clientWidth;
+        //this.context.canvas.height = document.documentElement.clientHeight;
+        this.context.canvas.width = elem.clientWidth
+        this.context.canvas.height = elem.clientHeight
+        this.Update();
     }
 
     Update(mouse) {

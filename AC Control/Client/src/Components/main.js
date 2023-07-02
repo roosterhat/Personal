@@ -18,6 +18,8 @@ class Main extends React.Component {
             showConfigSelect: false,
             EditConfig: null,
             error: null,
+            loadingFrame: false,
+            hasFrame: false,
             buttons: []
         }
         console.log("Main")
@@ -27,19 +29,28 @@ class Main extends React.Component {
         console.log("componentDidMount")
         this.Engine.Init();
         this.load("default");
+        this.checkHasWebcam();
     }
 
     render () {
         return (
             <div className="container">
-                <div className="canvas-container">
-                    <div className="frame-container">
-                        <img id="frame" src="api/frame"/>
-                        <div className="refresh" onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
-                    </div>
-                    <LoadingSpinner id="spinner" style={{display: 'none'}}/>
-                    <canvas id="canvas"></canvas>
-                </div>         
+                <div className="content-container">
+                    { this.state.hasFrame ? 
+                        <div className="frame-container">
+                            <div style={{position: 'relative'}}>
+                                <img id="frame" src="api/frame"/>
+                                <div className={"refresh" + (this.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
+                            </div>
+                        </div>
+                        :
+                        null
+                    }
+                    <div className="canvas-container" id="canvas-container">
+                        <LoadingSpinner id="spinner" style={{display: 'none'}}/>
+                        <canvas id="canvas"></canvas>
+                    </div>  
+                </div>                       
                 <div className='controls'>
                 {this.state.editing ?
                     (
@@ -251,10 +262,9 @@ class Main extends React.Component {
     }
 
     triggerIr = async (id) => {
-        console.log("trigger: "+id)
         try {
             const response = await fetch(`http://${window.location.hostname}:3001/api/trigger/${this.Config.id}/${id}`)
-            refreshFrame();
+            this.refreshFrame();
         }
         catch(ex) {
             console.error(ex);
@@ -262,8 +272,21 @@ class Main extends React.Component {
     }
 
     refreshFrame = () => {
+        this.setState({loadingFrame: true});
         var elem = document.getElementById("frame");
         elem.src = `api/frame?${new Date().getTime()}`;
+        elem.onload = () => { this.setState({loadingFrame: false}) }
+    }
+
+    checkHasWebcam = async () => {
+        try {
+            const response = await fetch(`http://${window.location.hostname}:3001/api/frame`)
+            this.setState({hasFrame: response.status == 200})
+        }
+        catch(ex) {
+            console.error(ex);
+            this.setState({hasFrame: false})
+        }
     }
 }
 

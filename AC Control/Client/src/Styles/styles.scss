@@ -4,6 +4,42 @@ body {
 
 .container {
     display: flex;
+    height: 100%;
+
+    .canvas-container {
+        height: 100%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .frame-container {
+        width: 100%;
+        max-height: 150px;
+        display: flex;
+        justify-content: center;
+
+        #frame {
+            height: 100%;
+        }
+    
+        .refresh {
+            position: absolute;
+            top: 0;
+            right: 0;
+            cursor: pointer; 
+            
+            i {
+                color: #fff;
+            }
+
+            &.loading {
+                animation: rotate 1s linear infinite;
+            }
+        }
+    }
+    
 }
 
 .btn-container { 
@@ -33,28 +69,6 @@ body {
     .divider {
         border-left: solid 1px #000;
         margin: 5px 0px;
-    }
-}
-
-.canvas-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .frame-container {
-        position: relative;
-
-        .frame {
-            
-        }
-
-        .refresh {
-            position: absolute;
-            top: 0;
-            right: 0;
-            cursor: pointer;
-        }
     }
 }
 
@@ -278,7 +292,7 @@ body {
         height: 100%;
         border: 8px solid #3841c5;
         border-radius: 50%;
-        animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        animation: rotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
         border-color: #3841c5 transparent transparent transparent;
 
         &:nth-child(1) {
@@ -295,7 +309,7 @@ body {
     }
 }
 
-@keyframes lds-ring {
+@keyframes rotate {
     0% {
         transform: rotate(0deg);
     }
