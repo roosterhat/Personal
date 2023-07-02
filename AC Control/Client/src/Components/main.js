@@ -275,7 +275,7 @@ class Main extends React.Component {
         this.setState({loadingFrame: true});
         var elem = document.getElementById("frame");
         elem.src = `api/frame?${new Date().getTime()}`;
-        elem.onload = () => { this.setState({loadingFrame: false}) }
+        elem.onload = () => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }
     }
 
     checkHasWebcam = async () => {
