@@ -40,7 +40,7 @@ class Main extends React.Component {
                         <div className="frame-container">
                             <div style={{position: 'relative'}}>
                                 <img id="frame" src="api/frame"/>
-                                <div className={"refresh" + (this.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
+                                <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                             </div>
                         </div>
                         :

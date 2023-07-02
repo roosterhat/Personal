@@ -321,9 +321,10 @@ class CanvasEngine {
     PageToOriginalBackgroundCoordinates(coordinates) {
         if(!this.backgroundPosition) return coordinates;
         var scale = this.BackgroundScaleRatio();
+        var pos = this.canvas.getBoundingClientRect();
         return {
-            x: ((coordinates.x - (this.canvas.offsetLeft + this.canvas.clientLeft)) - this.backgroundPosition.x) / scale, 
-            y: ((coordinates.y - (this.canvas.offsetTop + this.canvas.clientTop)) - this.backgroundPosition.y) / scale
+            x: ((coordinates.x - pos.x) - this.backgroundPosition.x) / scale, 
+            y: ((coordinates.y - pos.y) - this.backgroundPosition.y) / scale
         };
     }
 
