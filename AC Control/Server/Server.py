@@ -17,6 +17,9 @@ app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
+camera = cv2.VideoCapture(0)
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -120,13 +123,11 @@ def background(filename):
 @app.route('/api/frame')
 def frame():
     try:
-        camera = cv2.VideoCapture(0)
         if not camera:
             return "No camera detected", 500
         if not camera.isOpened():
             return "Cannot open camera", 500
-        for i in range(int(camera.get(cv2.CAP_PROP_BUFFERSIZE))):
-            success, frame = camera.read()
+        success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
         success, buffer = cv2.imencode(".png", frame)

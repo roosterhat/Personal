@@ -39,7 +39,7 @@ class Main extends React.Component {
                     { this.state.hasFrame ? 
                         <div className="frame-container">
                             <div style={{position: 'relative'}}>
-                                <img id="frame" src="api/frame"/>
+                                <img id="frame" src="api/frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
                                 <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                             </div>
                         </div>
@@ -275,7 +275,6 @@ class Main extends React.Component {
         this.setState({loadingFrame: true});
         var elem = document.getElementById("frame");
         elem.src = `api/frame?${new Date().getTime()}`;
-        elem.onload = () => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }
     }
 
     checkHasWebcam = async () => {
