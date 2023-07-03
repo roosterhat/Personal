@@ -101,10 +101,9 @@ class CanvasEngine {
 
     RefreshDimensions() {
         var elem = document.getElementById("canvas-container")
-        //this.context.canvas.width = document.documentElement.clientWidth > 800 ? document.documentElement.clientWidth / 2 : document.documentElement.clientWidth;
-        //this.context.canvas.height = document.documentElement.clientHeight;
-        this.context.canvas.width = elem.clientWidth
-        this.context.canvas.height = elem.clientHeight
+        var dims = elem.getBoundingClientRect();
+        this.context.canvas.width = dims.width;
+        this.context.canvas.height = dims.height;
         this.Update();
     }
 
