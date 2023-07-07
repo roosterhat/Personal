@@ -45,7 +45,7 @@ class Main extends React.Component {
                     { this.state.hasFrame && !this.state.editingFrame && !this.state.editing ? 
                         <div className="frame-container">
                             <div className="inner-frame">
-                                <img id="frame" src={`http://localhost:3001/api/frame/${this.Config ? this.Config.id : ""}`} onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
+                                <img id="frame" src={`http://${window.location.hostname}:3001/api/frame/${this.Config ? this.Config.id : ""}`} onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
                                 <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                             </div>
                         </div>

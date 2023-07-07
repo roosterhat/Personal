@@ -136,9 +136,9 @@ def frame(id = None):
         success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
-        success, buffer = cv2.imencode(".png", frame)
-        if not success:
-            return "Error processing image", 500
+        #success, buffer = cv2.imencode(".png", frame)
+        #if not success:
+        #    return "Error processing image", 500
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
@@ -148,13 +148,13 @@ def frame(id = None):
             (_,_), (width, height), _ = cv2.minAreaRect(points)
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
-            out = cv2.warpPerspective(np.array(buffer), transform, (int(width), int(height)))
+            out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
             buffer = io.BytesIO()
             Image.fromarray(out).save(buffer, "png")
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
         else:
-            return buffer, 200, {'Content-Type':'image/png'}
+            return bytes(frame), 200, {'Content-Type':'image/png'}
         # return bytes(buffer), 200, {'Content-Type':'image/png'} 
     except Exception as ex:
         print(ex)
