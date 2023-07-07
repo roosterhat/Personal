@@ -136,9 +136,6 @@ def frame(id = None):
         success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
-        #success, buffer = cv2.imencode(".png", frame)
-        #if not success:
-        #    return "Error processing image", 500
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
@@ -154,8 +151,10 @@ def frame(id = None):
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
         else:
-            return bytes(frame), 200, {'Content-Type':'image/png'}
-        # return bytes(buffer), 200, {'Content-Type':'image/png'} 
+            success, buffer = cv2.imencode(".png", frame)
+            if not success:
+               return "Error processing image", 500
+            return bytes(buffer), 200, {'Content-Type':'image/png'}
     except Exception as ex:
         print(ex)
         return "Failed", 500
