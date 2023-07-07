@@ -16,6 +16,7 @@ class EditFrame extends React.Component {
         this.Cancel = props.cancel;
         this.Complete = props.complete;
         this.Engine = props.Engine;
+        this.init();
     }
 
     render = () => {
@@ -24,6 +25,7 @@ class EditFrame extends React.Component {
                 <div className="btn-container editing">
                     <button className="btn" onClick={() => this.rotateImage(-90)}><i className="fa-solid fa-rotate-left"></i></button>
                     <button className="btn" onClick={() => this.rotateImage(90)}><i className="fa-solid fa-rotate-right"></i></button>                                
+                    <button className="btn" onClick={this.reset}><i className="fa-solid fa-eraser"></i></button>                                
                     <div className='divider'></div>
                     <button className='btn' onClick={this.cancel}><i className="fa-solid fa-xmark"></i></button>
                     <button className="btn" onClick={this.complete}>{this.state.saving ? <LoadingSpinner /> : <i className="fa-solid fa-check"></i>}</button>
@@ -85,11 +87,49 @@ class EditFrame extends React.Component {
         )
     }
 
+    init = () => {
+        this.Engine.shapes = []
+        this.Engine.imageEffects.rotate = this.Config.frame.rotate
+        var url = `http://${window.location.hostname}:3001/api/frame?${new Date().getTime()}`;
+        if(this.Config.frame.position){
+            this.Engine.shapes.push(...this.Config.frame.digits.map(x => x.shape))
+            this.Engine.shapes.push(...this.Config.frame.states.map(x => x.shape))
+            this.Engine.shapes.push(this.Config.frame.crop.shape);
+            this.Engine.LoadBackground(url, this.Config.frame.position);
+        }
+        else {
+            this.Engine.LoadBackground(url).then(position => {
+                var s = this.Engine.backgroundPosition.scale;
+                var shape = { 'vertices': [
+                    {x: 0, y: 0, index: 0}, 
+                    {x: this.Engine.background.width * s, y: 0, index: 1},
+                    {x: this.Engine.background.width * s, y: this.Engine.background.height * s, index: 2},
+                    {x: 0, y: this.Engine.background.height * s, index: 3}
+                ], 'type': 'poly', 'closed': true, 'highlight': false, 'color': '#000000'  };
+
+                this.Config.frame = {
+                    position: position,
+                    crop: { shape: shape, id: uuidv4() },
+                    digits: [],
+                    states: []
+                };
+                this.Engine.shapes.push(shape);
+                this.Engine.Update();
+                this.setConfig(this.Config);
+            });
+        }
+    }
+
     cancel = () => { this.Cancel(); }
 
     complete = () => {
         this.setState({saving: true})
         this.Complete()
+    }
+
+    reset = () => {
+        this.Config.frame = {}
+        this.init();
     }
 
     rotateImage = (degrees) => {
@@ -98,16 +138,6 @@ class EditFrame extends React.Component {
         else
             this.Config.frame.rotate += degrees % 360;
         this.Engine.imageEffects.rotate = this.Config.frame.rotate;
-        // if(this.Config.frame.crop){
-        //     var c = this.Engine.Center(this.Config.frame.crop);
-        //     var rads = degrees * Math.PI / 180;
-        //     for(var vertex of this.Config.frame.crop.vertices){
-        //         var r = this.Engine.Dist(c, vertex);
-        //         var a = Math.atan2(c.y - vertex.y, c.y - vertex.x) + rads;
-        //         vertex.x = c.x + Math.sin(a) * r;
-        //         vertex.y = c.y + Math.cos(a) * r;
-        //     }
-        // }
         this.setConfig(this.Config)
         this.Engine.Update()
     }

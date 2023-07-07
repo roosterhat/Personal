@@ -30,8 +30,7 @@ class Main extends React.Component {
     componentDidMount () {
         console.log("componentDidMount")
         this.Engine.Init();
-        this.load("default");
-        this.checkHasWebcam();
+        this.load("default").then(() => this.checkHasWebcam())
     }
 
     componentDidUpdate () {
@@ -46,7 +45,7 @@ class Main extends React.Component {
                     { this.state.hasFrame && !this.state.editingFrame && !this.state.editing ? 
                         <div className="frame-container">
                             <div className="inner-frame">
-                                <img id="frame" src="http://localhost:3001/api/frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
+                                <img id="frame" src={`http://localhost:3001/api/frame/${this.Config ? this.Config.id : ""}`} onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
                                 <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                             </div>
                         </div>
@@ -85,37 +84,7 @@ class Main extends React.Component {
     editFrame = () => {
         var config = JSON.parse(JSON.stringify(this.Config));
         this.setState({editingFrame: true, EditConfig: config})
-        this.Engine.shapes = []
-        this.Engine.imageEffects = config.frame
         this.Engine.SetEdit(true);
-        var url = `http://${window.location.hostname}:3001/api/frame`;
-        if(config.frame.position){
-            this.Engine.shapes.push(...config.frame.digits.map(x => x.shape))
-            this.Engine.shapes.push(...config.frame.states.map(x => x.shape))
-            this.Engine.shapes.push(config.frame.crop.shape);
-            this.Engine.LoadBackground(url, config.frame.position);
-        }
-        else {
-            this.Engine.LoadBackground(url).then(position => {
-                var s = this.Engine.backgroundPosition.scale;
-                var shape = { 'vertices': [
-                    {x: 0, y: 0, index: 0}, 
-                    {x: this.Engine.background.width * s, y: 0, index: 1},
-                    {x: this.Engine.background.width * s, y: this.Engine.background.height * s, index: 2},
-                    {x: 0, y: this.Engine.background.height * s, index: 3}
-                ], 'type': 'poly', 'closed': true, 'highlight': false, 'color': '#000000'  };
-
-                config.frame = {
-                    position: position,
-                    crop: { shape: shape, id: uuidv4() },
-                    digits: [],
-                    states: []
-                };
-                this.Engine.shapes.push(shape);
-                this.Engine.Update();
-                this.setState({EditConfig: config});
-            });
-        }
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
 
@@ -162,8 +131,9 @@ class Main extends React.Component {
             this.setState({saving: true, error: false}) 
             await this.save()
             this.setState({saving: false, editing: false, editingFrame: false}) 
-            this.switchToMainView();            
+            this.switchToMainView();
             this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
+            this.UpdateQueue.push(() => this.refreshFrame())
         }
     }
 
@@ -236,7 +206,7 @@ class Main extends React.Component {
     refreshFrame = () => {
         this.setState({loadingFrame: true});
         var elem = document.getElementById("frame");
-        elem.src = `api/frame?${new Date().getTime()}`;
+        elem.src = `http://${window.location.hostname}:3001/api/frame/${this.Config.id}?${new Date().getTime()}`;
     }
 
     checkHasWebcam = async () => {

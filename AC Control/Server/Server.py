@@ -7,6 +7,8 @@ import json
 import uuid
 import io
 import cv2
+import numpy as np
+from PIL import Image
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileExtPattern = re.compile(r'\.(?P<ext>js|ico|css|png|jpg|html)$')
@@ -118,11 +120,31 @@ def background(filename):
         f.close()
 
 @app.route('/api/frame')
-def frame():
+@app.route('/api/frame/<id>')
+def frame(id = None):
     try:
-        f = open('C:/Users/eriko/Pictures/PXL_20230626_022707896.jpg', 'rb')
-        data = f.read()
-        return data, 200, {'Content-Type':'image'} 
+        image = Image.open('C:/Users/eriko/Pictures/PXL_20230626_022707896.jpg')
+        image.load()
+        image = np.array(image)
+        if id is not None:
+            f = open(f"./Data/Configs/{id}", 'rb')
+            config = json.loads(f.read())
+            f.close()
+            scale = config["frame"]["position"]["scale"]
+            points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
+            (_,_), (width, height), _ = cv2.minAreaRect(points)
+            dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
+            transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
+            out = cv2.warpPerspective(image, transform, (int(width), int(height)))
+            buffer = io.BytesIO()
+            Image.fromarray(out).save(buffer, "png")
+            buffer.seek(0)
+            return buffer, 200, {'Content-Type':'image/png'} 
+        else:
+            buffer = io.BytesIO()
+            Image.fromarray(image).save(buffer, "png")
+            buffer.seek(0)
+            return buffer, 200, {'Content-Type':'image/png'} 
         # camera = cv2.VideoCapture(0)
         # camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         # if not camera:
