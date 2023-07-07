@@ -136,10 +136,12 @@ def frame(id = None):
         success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
+        
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
             f.close()
+        elif config["frame"] is not None and config["frame"]["position"] is not None and config["frame"]["crop"] is not None:
             scale = config["frame"]["position"]["scale"]
             points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
             (_,_), (width, height), _ = cv2.minAreaRect(points)

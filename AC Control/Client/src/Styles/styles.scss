@@ -29,13 +29,8 @@ body {
     .frame-container {
         width: 100%;
         max-height: 150px;
-
-        .inner-frame {
-            position: relative;
-            transform: translateX(-50%);
-            width: min-content;
-            left: 50%;
-        }
+        display: flex;
+        justify-content: center;
 
         #frame {
             height: 100%;
