@@ -424,12 +424,9 @@ class CanvasEngine {
     }
 
     Rotate(point, center, angle) {
-        console.log(point, center, angle)
         var r = this.Dist(point, center);
-        //var a = Math.atan((center.x - point.x) / (center.y - point.y)) + angle * Math.PI / 180;
         var a = Math.atan2((center.x - point.x), (center.y - point.y)) + angle * Math.PI / 180;
         var p = {x: center.x - Math.sin(a) * r, y: center.y - Math.cos(a) * r};
-        console.log(p);
         return p;
     }
 
@@ -485,7 +482,6 @@ class CanvasEngine {
 
         this.backgroundLoaded = true;
         document.getElementById('spinner').style.display = "none";
-        console.log(this.shapes);
         this.Update();
         return this.backgroundPosition;
     }

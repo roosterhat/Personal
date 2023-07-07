@@ -20,7 +20,7 @@ class EditBackground extends React.Component {
 
     render = () => {
         return (
-            <div id="edit">
+            <div className="edit">
                 <div className={"btn-container editing"}>
                     <button className="btn" onClick={() => this.addShape('poly')}><i className="fa-solid fa-draw-polygon"></i></button>
                     <button className="btn" onClick={() => this.addShape('ellipse')}><i className="fa-regular fa-circle"></i></button>

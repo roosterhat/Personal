@@ -43,9 +43,9 @@ class Main extends React.Component {
         return (
             <div className="container">
                 <div className="content-container">
-                    { this.state.hasFrame && !this.state.editingFrame ? 
+                    { this.state.hasFrame && !this.state.editingFrame && !this.state.editing ? 
                         <div className="frame-container">
-                            <div style={{position: 'relative'}}>
+                            <div className="inner-frame">
                                 <img id="frame" src="http://localhost:3001/api/frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
                                 <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                             </div>
@@ -143,16 +143,8 @@ class Main extends React.Component {
     }
 
     cancelEdit = () => {
-        const buttons = JSON.parse(JSON.stringify(this.Config && this.Config.buttons ? this.Config.buttons : []))
         this.setState({editing: false, editingFrame: false, EditConfig: null, error: null})
-        this.Engine.shapes = buttons.map(x => { 
-            x.shape['function'] = () => this.triggerIr(x.id);
-            return x.shape
-        });
-        this.Engine.imageEffects = {}
-        var background = this.Config && this.Config.background ? this.Config.background : null
-        this.Engine.LoadBackground((background ? `http://${window.location.hostname}:3001/api/background/${background.file}` : null), background.position)
-        this.Engine.SetEdit(false);
+        this.switchToMainView();
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
     
@@ -170,7 +162,7 @@ class Main extends React.Component {
             this.setState({saving: true, error: false}) 
             await this.save()
             this.setState({saving: false, editing: false, editingFrame: false}) 
-            this.Engine.SetEdit(false);
+            this.switchToMainView();            
             this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
         }
     }
@@ -209,12 +201,7 @@ class Main extends React.Component {
             const response = await fetch(`http://${window.location.hostname}:3001/api/retrieve/${name}`)
             if(response.status == 200){
                 this.Config = await response.json();
-                const buttons = JSON.parse(JSON.stringify(this.Config.buttons))
-                this.Engine.shapes = buttons.map(x => { 
-                    x.shape['function'] = () => this.triggerIr(x.id);
-                    return x.shape
-                });
-                this.Engine.LoadBackground(`http://${window.location.hostname}:3001/api/background/${this.Config.background.file}`, this.Config.background.position)
+                this.switchToMainView();               
             }
         }
         catch(ex) {
@@ -261,6 +248,19 @@ class Main extends React.Component {
             console.error(ex);
             this.setState({hasFrame: false})
         }
+    }
+
+    switchToMainView = () => {
+        const buttons = JSON.parse(JSON.stringify(this.Config && this.Config.buttons ? this.Config.buttons : []))
+        const background = this.Config && this.Config.background ? this.Config.background : null
+        this.Engine.SetEdit(false);
+        this.Engine.imageEffects = {}
+        this.Engine.shapes = buttons.map(x => { 
+            x.shape['function'] = () => this.triggerIr(x.id);
+            return x.shape
+        });
+        if(background)
+            this.Engine.LoadBackground(`http://${window.location.hostname}:3001/api/background/${background.file}`, background.position)
     }
 }
 
