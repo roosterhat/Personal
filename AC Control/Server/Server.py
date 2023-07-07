@@ -123,9 +123,22 @@ def background(filename):
 @app.route('/api/frame/<id>')
 def frame(id = None):
     try:
-        image = Image.open('C:/Users/eriko/Pictures/PXL_20230626_022707896.jpg')
-        image.load()
-        image = np.array(image)
+        #image = Image.open('C:/Users/eriko/Pictures/PXL_20230626_022707896.jpg')
+        #image.load()
+        #image = np.array(image)
+         
+        camera = cv2.VideoCapture(0)
+        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        if not camera:
+            return "No camera detected", 500
+        if not camera.isOpened():
+            return "Cannot open camera", 500
+        success, frame = camera.read()
+        if not success:
+            return "Can't receive frame", 500
+        success, buffer = cv2.imencode(".png", frame)
+        if not success:
+            return "Error processing image", 500
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
@@ -135,34 +148,19 @@ def frame(id = None):
             (_,_), (width, height), _ = cv2.minAreaRect(points)
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
-            out = cv2.warpPerspective(image, transform, (int(width), int(height)))
+            out = cv2.warpPerspective(np.array(buffer), transform, (int(width), int(height)))
             buffer = io.BytesIO()
             Image.fromarray(out).save(buffer, "png")
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
         else:
-            buffer = io.BytesIO()
-            Image.fromarray(image).save(buffer, "png")
-            buffer.seek(0)
-            return buffer, 200, {'Content-Type':'image/png'} 
-        # camera = cv2.VideoCapture(0)
-        # camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        # if not camera:
-        #     return "No camera detected", 500
-        # if not camera.isOpened():
-        #     return "Cannot open camera", 500
-        # success, frame = camera.read()
-        # if not success:
-        #     return "Can't receive frame", 500
-        # success, buffer = cv2.imencode(".png", frame)
-        # if not success:
-        #     return "Error processing image", 500
+            return buffer, 200, {'Content-Type':'image/png'}
         # return bytes(buffer), 200, {'Content-Type':'image/png'} 
     except Exception as ex:
         print(ex)
         return "Failed", 500
-    #finally: 
-    #    camera.release()
+    finally: 
+       camera.release()
 
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
