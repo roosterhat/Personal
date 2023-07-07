@@ -98,16 +98,16 @@ class EditFrame extends React.Component {
         else
             this.Config.frame.rotate += degrees % 360;
         this.Engine.imageEffects.rotate = this.Config.frame.rotate;
-        if(this.Config.frame.crop){
-            var c = this.Engine.Center(this.Config.frame.crop);
-            var rads = degrees * Math.PI / 180;
-            for(var vertex of this.Config.frame.crop.vertices){
-                var r = this.Engine.Dist(c, vertex);
-                var a = Math.atan2(c.y - vertex.y, c.y - vertex.x) + rads;
-                vertex.x = c.x + Math.sin(a) * r;
-                vertex.y = c.y + Math.cos(a) * r;
-            }
-        }
+        // if(this.Config.frame.crop){
+        //     var c = this.Engine.Center(this.Config.frame.crop);
+        //     var rads = degrees * Math.PI / 180;
+        //     for(var vertex of this.Config.frame.crop.vertices){
+        //         var r = this.Engine.Dist(c, vertex);
+        //         var a = Math.atan2(c.y - vertex.y, c.y - vertex.x) + rads;
+        //         vertex.x = c.x + Math.sin(a) * r;
+        //         vertex.y = c.y + Math.cos(a) * r;
+        //     }
+        // }
         this.setConfig(this.Config)
         this.Engine.Update()
     }

@@ -80,23 +80,20 @@ class Main extends React.Component {
                 </div>   
             </div>
         );
-    }
-
-    
+    }    
 
     editFrame = () => {
-        this.setState({editingFrame: true, EditConfig: JSON.parse(JSON.stringify(this.Config))})
+        var config = JSON.parse(JSON.stringify(this.Config));
+        this.setState({editingFrame: true, EditConfig: config})
         this.Engine.shapes = []
-        this.Engine.imageEffects = this.Config.frame
+        this.Engine.imageEffects = config.frame
         this.Engine.SetEdit(true);
         var url = `http://${window.location.hostname}:3001/api/frame`;
-        if(this.Config.frame.position){
-            this.Engine.LoadBackground(url, this.Config.frame.position);
-            this.Engine.shapes.push(...this.Config.frame.digits)
-            this.Engine.shapes.push(...this.Config.frame.states)
-            this.Engine.shapes.push(this.Config.frame.crop);
-            console.log(this.Engine.shapes)
-            this.Engine.Update();
+        if(config.frame.position){
+            this.Engine.shapes.push(...config.frame.digits.map(x => x.shape))
+            this.Engine.shapes.push(...config.frame.states.map(x => x.shape))
+            this.Engine.shapes.push(config.frame.crop.shape);
+            this.Engine.LoadBackground(url, config.frame.position);
         }
         else {
             this.Engine.LoadBackground(url).then(position => {
@@ -108,7 +105,7 @@ class Main extends React.Component {
                     {x: 0, y: this.Engine.background.height * s, index: 3}
                 ], 'type': 'poly', 'closed': true, 'highlight': false, 'color': '#000000'  };
 
-                this.state.EditConfig.frame = {
+                config.frame = {
                     position: position,
                     crop: { shape: shape, id: uuidv4() },
                     digits: [],
@@ -116,7 +113,7 @@ class Main extends React.Component {
                 };
                 this.Engine.shapes.push(shape);
                 this.Engine.Update();
-                this.setState({EditConfig: this.state.EditConfig});
+                this.setState({EditConfig: config});
             });
         }
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())

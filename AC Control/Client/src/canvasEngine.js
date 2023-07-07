@@ -16,6 +16,7 @@ class CanvasEngine {
     backgroundOriginalPosition = null;
     backgroundPosition = null;
     imageEffects = null;
+    center = null;
 
     Init() {
         console.log("Init")
@@ -24,7 +25,7 @@ class CanvasEngine {
         this.RefreshDimensions()
 
         this.canvas.addEventListener("mousemove", event => {
-            var mouse = this.PageToOriginalBackgroundCoordinates(event);
+            var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
             if(this.dragging)
                 this.DragItem(mouse);
             this.Update(mouse);
@@ -36,7 +37,7 @@ class CanvasEngine {
                 this.currentDrag = null;
             }
     
-            var mouse = this.PageToOriginalBackgroundCoordinates(event);
+            var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
             var scale = this.BackgroundScaleRatio();
             if(this.editing){
                 if(this.currentShape){
@@ -71,7 +72,8 @@ class CanvasEngine {
     
         this.canvas.addEventListener("mousedown", (event) => {
             this.dragging = this.editing && !this.currentShape && this.canDrag;
-            this.Update(this.PageToOriginalBackgroundCoordinates(event));
+            var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
+            this.Update(mouse);
         });
     
         this.canvas.addEventListener("wheel", (event) => {
@@ -79,7 +81,8 @@ class CanvasEngine {
                 var delta = event.deltaY / 20;
                 this.currentShape.r1 = Math.max(this.currentShape.r1 - delta, 1);
                 this.currentShape.r2 = Math.max(this.currentShape.r2 - delta, 1);
-                this.Update(this.PageToOriginalBackgroundCoordinates(event));
+                var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
+                this.Update(mouse);
             }
         });
     
@@ -107,10 +110,12 @@ class CanvasEngine {
         var dims = elem.getBoundingClientRect();
         this.context.canvas.width = dims.width;
         this.context.canvas.height = dims.height;
+        this.center = {x: dims.width / 2, y: dims.height / 2};
         this.Update();
     }
 
     Update(mouse) {
+        this.context.reset();
         if(!mouse) 
             mouse = this.lastMouse;
 
@@ -120,7 +125,6 @@ class CanvasEngine {
         this.pointing = false;
 
         if(this.backgroundLoaded){
-            this.context.save()
             this.context.translate(this.canvas.width/2, this.canvas.height/2);
             if(this.imageEffects){
                 if(this.imageEffects.rotate){                    
@@ -134,7 +138,7 @@ class CanvasEngine {
             var y =  - (this.background.height / 2) * scale;
             this.context.drawImage(this.background, x, y, this.background.width * scale, this.background.height * scale);
             this.backgroundPosition = {'scale': scale, 'x': (this.canvas.width / 2) + x, 'y': (this.canvas.height / 2) + y};
-            this.context.restore();
+            this.context.translate(-this.canvas.width/2, -this.canvas.height/2);
         }
 
         var canvasMouse = this.OriginalBackgroundToCanvasCoordinates(mouse);
@@ -419,6 +423,20 @@ class CanvasEngine {
         };
     }
 
+    Rotate(point, center, angle) {
+        console.log(point, center, angle)
+        var r = this.Dist(point, center);
+        //var a = Math.atan((center.x - point.x) / (center.y - point.y)) + angle * Math.PI / 180;
+        var a = Math.atan2((center.x - point.x), (center.y - point.y)) + angle * Math.PI / 180;
+        var p = {x: center.x - Math.sin(a) * r, y: center.y - Math.cos(a) * r};
+        console.log(p);
+        return p;
+    }
+
+    RotateMouse(mouse) {
+        return this.Rotate(mouse, this.center, this.imageEffects && this.imageEffects.rotate ? this.imageEffects.rotate : 0)
+    }
+
     SetEdit(state) {
         this.editing = state;
         this.shapes.forEach(x => x.highlight = false)
@@ -467,6 +485,7 @@ class CanvasEngine {
 
         this.backgroundLoaded = true;
         document.getElementById('spinner').style.display = "none";
+        console.log(this.shapes);
         this.Update();
         return this.backgroundPosition;
     }
