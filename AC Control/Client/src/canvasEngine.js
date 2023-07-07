@@ -1,3 +1,5 @@
+
+
 class CanvasEngine {
     context = null;
     canvas = null;
@@ -13,6 +15,7 @@ class CanvasEngine {
     pointing = false;
     backgroundOriginalPosition = null;
     backgroundPosition = null;
+    imageEffects = null;
 
     Init() {
         console.log("Init")
@@ -117,11 +120,21 @@ class CanvasEngine {
         this.pointing = false;
 
         if(this.backgroundLoaded){
+            this.context.save()
+            this.context.translate(this.canvas.width/2, this.canvas.height/2);
+            if(this.imageEffects){
+                if(this.imageEffects.rotate){                    
+                    this.context.rotate(this.imageEffects.rotate * Math.PI / 180);
+                }
+            }
             var scale = Math.min(this.canvas.width / this.background.width, this.canvas.height / this.background.height);
-            var x = (this.canvas.width / 2) - (this.background.width / 2) * scale;
-            var y = (this.canvas.height / 2) - (this.background.height / 2) * scale;
+            //var x = (this.canvas.width / 2) - (this.background.width / 2) * scale;
+            //var y = (this.canvas.height / 2) - (this.background.height / 2) * scale;
+            var x =  - (this.background.width / 2) * scale;
+            var y =  - (this.background.height / 2) * scale;
             this.context.drawImage(this.background, x, y, this.background.width * scale, this.background.height * scale);
-            this.backgroundPosition = {'scale': scale, 'x': x, 'y': y};
+            this.backgroundPosition = {'scale': scale, 'x': (this.canvas.width / 2) + x, 'y': (this.canvas.height / 2) + y};
+            this.context.restore();
         }
 
         var canvasMouse = this.OriginalBackgroundToCanvasCoordinates(mouse);
@@ -427,7 +440,7 @@ class CanvasEngine {
             this.background.src = dataUrl
         }
         else if(Object.prototype.toString.call(file) === "[object String]") {
-            this.background.src = `http://${window.location.hostname}:3001/api/background/${file}`
+            this.background.src = file
         }   
         else {
             this.backgroundLoaded = true;

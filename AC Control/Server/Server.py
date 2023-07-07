@@ -120,23 +120,27 @@ def background(filename):
 @app.route('/api/frame')
 def frame():
     try:
-        camera = cv2.VideoCapture(0)
-        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        if not camera:
-            return "No camera detected", 500
-        if not camera.isOpened():
-            return "Cannot open camera", 500
-        success, frame = camera.read()
-        if not success:
-            return "Can't receive frame", 500
-        success, buffer = cv2.imencode(".png", frame)
-        if not success:
-            return "Error processing image", 500
-        return bytes(buffer), 200, {'Content-Type':'image/png'} 
+        f = open('C:/Users/eriko/Pictures/PXL_20230626_022707896.jpg', 'rb')
+        data = f.read()
+        return data, 200, {'Content-Type':'image'} 
+        # camera = cv2.VideoCapture(0)
+        # camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        # if not camera:
+        #     return "No camera detected", 500
+        # if not camera.isOpened():
+        #     return "Cannot open camera", 500
+        # success, frame = camera.read()
+        # if not success:
+        #     return "Can't receive frame", 500
+        # success, buffer = cv2.imencode(".png", frame)
+        # if not success:
+        #     return "Error processing image", 500
+        # return bytes(buffer), 200, {'Content-Type':'image/png'} 
     except Exception as ex:
+        print(ex)
         return "Failed", 500
-    finally: 
-        camera.release()
+    #finally: 
+    #    camera.release()
 
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
