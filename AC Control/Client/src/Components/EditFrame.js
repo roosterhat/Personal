@@ -111,7 +111,8 @@ class EditFrame extends React.Component {
                     position: position,
                     crop: { shape: shape, id: uuidv4() },
                     digits: [],
-                    states: []
+                    states: [],
+                    rotate: 0
                 };
                 this.Engine.shapes.push(shape);
                 this.Engine.Update();
@@ -133,10 +134,7 @@ class EditFrame extends React.Component {
     }
 
     rotateImage = (degrees) => {
-        if(!this.Config.frame.rotate)
-            this.Config.frame.rotate = degrees;
-        else
-            this.Config.frame.rotate += degrees % 360;
+        this.Config.frame.rotate += degrees % 360;
         this.Engine.imageEffects.rotate = this.Config.frame.rotate;
         this.setConfig(this.Config)
         this.Engine.Update()

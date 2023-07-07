@@ -145,6 +145,7 @@ def frame(id = None):
             (_,_), (width, height), _ = cv2.minAreaRect(points)
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
+            frame = np.rot90(frame, config["frame"]["rotate"] / 90)
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
             buffer = io.BytesIO()
             Image.fromarray(out).save(buffer, "png")
