@@ -149,7 +149,7 @@ def frame(id = None):
             (_,_), (width, height), a = cv2.minAreaRect(points)
             print((width, height, a), flush=True)
             if 90 - a < 1:
-                w = width, width = height, height = w
+                width, height = height, width
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
