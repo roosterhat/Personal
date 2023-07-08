@@ -32,7 +32,7 @@ class Main extends React.Component {
         this.Engine.Init();
         this.load("default").then(async () => {
             if(await this.checkHasWebcam())
-                this.refreshFrame()
+                this.UpdateQueue.push(this.refreshFrame)
         })
     }
 
