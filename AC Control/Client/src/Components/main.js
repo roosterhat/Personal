@@ -237,6 +237,8 @@ class Main extends React.Component {
         });
         if(background)
             this.Engine.LoadBackground(`http://${window.location.hostname}:3001/api/background/${background.file}`, background.position)
+        if(this.state.hasFrame)
+            this.refreshFrame();
     }
 }
 
