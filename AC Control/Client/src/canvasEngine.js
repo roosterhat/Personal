@@ -132,8 +132,6 @@ class CanvasEngine {
                 }
             }
             var scale = Math.min(this.canvas.width / this.background.width, this.canvas.height / this.background.height);
-            //var x = (this.canvas.width / 2) - (this.background.width / 2) * scale;
-            //var y = (this.canvas.height / 2) - (this.background.height / 2) * scale;
             var x =  - (this.background.width / 2) * scale;
             var y =  - (this.background.height / 2) * scale;
             this.context.drawImage(this.background, x, y, this.background.width * scale, this.background.height * scale);

@@ -66,7 +66,7 @@ class EditFrame extends React.Component {
                 </div>
                 <div className="item-crop">
                     <div className="crop-header">
-                        <span>States Lights</span>
+                        <span>State Indicators</span>
                         <button className="btn" onClick={this.addState}><i className="fa-solid fa-plus"></i></button>
                     </div>
                     <div className="items">
