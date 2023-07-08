@@ -137,6 +137,7 @@ def frame(id = None):
         if not success:
             return "Can't receive frame", 500
         
+        config = {}
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
@@ -158,6 +159,7 @@ def frame(id = None):
             if not success:
                return "Error processing image", 500
             return bytes(buffer), 200, {'Content-Type':'image/png'}
+        
     except Exception as ex:
         print(ex)
         return "Failed", 500
