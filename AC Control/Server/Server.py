@@ -147,7 +147,7 @@ def frame(id = None):
             scale = config["frame"]["position"]["scale"]
             points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
             (_,_), (width, height), a = cv2.minAreaRect(points)
-            print(width, height, a)
+            print(width, height, a, flush=True)
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
