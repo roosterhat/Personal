@@ -142,7 +142,8 @@ def frame(id = None):
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
             f.close()
-        elif "frame" in config and "position" in config["frame"] and "crop" in config["frame"]:
+            
+        if "frame" in config and "position" in config["frame"] and "crop" in config["frame"]:
             scale = config["frame"]["position"]["scale"]
             points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
             (_,_), (width, height), _ = cv2.minAreaRect(points)
