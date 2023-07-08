@@ -32,6 +32,10 @@ body {
         display: flex;
         justify-content: center;
 
+        .inner-frame {
+            position: relative;
+        }
+
         #frame {
             height: 100%;
         }

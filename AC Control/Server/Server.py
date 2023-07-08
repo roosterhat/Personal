@@ -142,14 +142,14 @@ def frame(id = None):
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
             f.close()
-            
+
         if "frame" in config and "position" in config["frame"] and "crop" in config["frame"]:
             scale = config["frame"]["position"]["scale"]
             points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
             (_,_), (width, height), _ = cv2.minAreaRect(points)
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
-            frame = np.rot90(frame, config["frame"]["rotate"] / 90)
+            frame = np.rot90(frame, -config["frame"]["rotate"] / 90)
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
             buffer = io.BytesIO()
             Image.fromarray(out).save(buffer, "png")

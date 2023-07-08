@@ -30,7 +30,10 @@ class Main extends React.Component {
     componentDidMount () {
         console.log("componentDidMount")
         this.Engine.Init();
-        this.load("default").then(() => this.checkHasWebcam())
+        this.load("default").then(async () => {
+            if(await this.checkHasWebcam())
+                this.refreshFrame()
+        })
     }
 
     componentDidUpdate () {
@@ -45,7 +48,7 @@ class Main extends React.Component {
                     { this.state.hasFrame && !this.state.editingFrame && !this.state.editing ? 
                         <div className="frame-container">
                             <div className="inner-frame">
-                                <img id="frame" src={`http://${window.location.hostname}:3001/api/frame/${this.Config ? this.Config.id : ""}`} onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
+                                <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
                                 <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                             </div>
                         </div>
@@ -206,17 +209,20 @@ class Main extends React.Component {
     refreshFrame = () => {
         this.setState({loadingFrame: true});
         var elem = document.getElementById("frame");
-        elem.src = `http://${window.location.hostname}:3001/api/frame/${this.Config.id}?${new Date().getTime()}`;
+        if(elem)
+            elem.src = `http://${window.location.hostname}:3001/api/frame/${this.Config ? this.Config.id : ""}?${new Date().getTime()}`;
     }
 
     checkHasWebcam = async () => {
         try {
             const response = await fetch(`http://${window.location.hostname}:3001/api/frame`)
             this.setState({hasFrame: response.status == 200})
+            return response.status == 200;
         }
         catch(ex) {
             console.error(ex);
             this.setState({hasFrame: false})
+            return false;
         }
     }
 
