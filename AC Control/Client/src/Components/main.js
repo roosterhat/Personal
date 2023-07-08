@@ -88,7 +88,7 @@ class Main extends React.Component {
         var config = JSON.parse(JSON.stringify(this.Config));
         this.setState({editingFrame: true, EditConfig: config})
         this.Engine.SetEdit(true);
-        this.UpdateQueue.push(this.Engine.RefreshDimensions)
+        this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
 
     editButtons = () => {
@@ -96,7 +96,7 @@ class Main extends React.Component {
         this.setState({editing: true, EditConfig: editConfig})
         this.Engine.shapes = editConfig.buttons.map(x => x.shape);
         this.Engine.SetEdit(true);
-        this.UpdateQueue.push(this.Engine.RefreshDimensions)
+        this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
 
     newButtons = () => {
@@ -111,7 +111,7 @@ class Main extends React.Component {
         this.Engine.shapes = [];
         this.Engine.LoadBackground(null)
         this.Engine.SetEdit(true);
-        this.UpdateQueue.push(this.Engine.RefreshDimensions)
+        this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
 
     cancelEdit = () => {
@@ -233,7 +233,7 @@ class Main extends React.Component {
             return x.shape
         });
         if(background)
-            this.Engine.LoadBackground(`http://${window.location.hostname}:3001/api/background/${background.file}`, background.position).then(() => this.UpdateQueue.push(this.Engine.RefreshDimensions))
+            this.Engine.LoadBackground(`http://${window.location.hostname}:3001/api/background/${background.file}`, background.position).then(() => this.UpdateQueue.push(() => this.Engine.RefreshDimensions()))
         if(this.state.hasFrame)
             this.UpdateQueue.push(this.refreshFrame)
     }
