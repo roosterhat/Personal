@@ -150,10 +150,8 @@ def frame(id = None):
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
-            #out = np.rot90(out, -config["frame"]["rotate"] / 90)
-            out = cv2.rotate(out, config["frame"]["rotate"])
             buffer = io.BytesIO()
-            Image.fromarray(out).save(buffer, "png")
+            Image.fromarray(out).rotate(config["frame"]["rotate"]).save(buffer, "png")
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
         else:
