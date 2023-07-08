@@ -92,10 +92,12 @@ class EditFrame extends React.Component {
         this.Engine.imageEffects.rotate = this.Config.frame.rotate
         var url = `http://${window.location.hostname}:3001/api/frame?${new Date().getTime()}`;
         if(this.Config.frame.position){
-            this.Engine.shapes.push(...this.Config.frame.digits.map(x => x.shape))
-            this.Engine.shapes.push(...this.Config.frame.states.map(x => x.shape))
-            this.Engine.shapes.push(this.Config.frame.crop.shape);
-            this.Engine.LoadBackground(url, this.Config.frame.position);
+            this.Engine.LoadBackground(url, this.Config.frame.position).then(() => {
+                this.Engine.shapes.push(...this.Config.frame.digits.map(x => x.shape))
+                this.Engine.shapes.push(...this.Config.frame.states.map(x => x.shape))
+                this.Engine.shapes.push(this.Config.frame.crop.shape);
+                this.Engine.Update()
+            })
         }
         else {
             this.Engine.LoadBackground(url).then(position => {

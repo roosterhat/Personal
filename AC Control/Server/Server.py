@@ -122,11 +122,7 @@ def background(filename):
 @app.route('/api/frame')
 @app.route('/api/frame/<id>')
 def frame(id = None):
-    try:
-        #image = Image.open('C:/Users/eriko/Pictures/PXL_20230626_022707896.jpg')
-        #image.load()
-        #image = np.array(image)
-         
+    try:        
         camera = cv2.VideoCapture(0)
         camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not camera:
@@ -147,8 +143,7 @@ def frame(id = None):
             scale = config["frame"]["position"]["scale"]
             points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
             (_,_), (width, height), a = cv2.minAreaRect(points)
-            print((width, height, a), flush=True)
-            if 90 - a < 1:
+            if a > 45:
                 width, height = height, width
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
