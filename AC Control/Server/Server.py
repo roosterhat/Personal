@@ -1,14 +1,15 @@
 from flask import Flask, request, send_from_directory
 from flask_cors import CORS
 import re
-from os import listdir
-from os import path as Path
+from os import listdir, path as Path, system
 import json
 import uuid
 import io
 import cv2
 import numpy as np
 from PIL import Image
+
+#https://www.digikey.com/en/maker/blogs/2021/how-to-send-and-receive-ir-signals-with-a-raspberry-pi#:~:text=The%20Raspberry%20Pi%20can%20receive,of%20the%20Arduino's%20PWM%20pins.
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileExtPattern = re.compile(r'\.(?P<ext>js|ico|css|png|jpg|html)$')
@@ -150,7 +151,7 @@ def frame(id = None):
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
             out = np.rot90(out, config["frame"]["rotate"] / 90, axes=(0,1))
             buffer = io.BytesIO()
-            Image.fromarray(out).save(buffer, "png")
+            Image.fromarray(out).resize((225,150)).save(buffer, "png")
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
         else:
@@ -185,7 +186,8 @@ def trigger(config, id):
 
 def triggerIR(config, action):
     print(f"Trigger: [{config}] [{action}]")
-    #system(f"irsend SEND_ONCE {config} {action}")
+    system(f"irsend SEND_ONCE {config} {action}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3001)        
+
