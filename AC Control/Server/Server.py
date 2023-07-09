@@ -149,9 +149,12 @@ def frame(id = None):
             dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
-            out = np.rot90(out, config["frame"]["rotate"] / 90, axes=(0,1))
+            out = np.rot90(out, -config["frame"]["rotate"] / 90)
             buffer = io.BytesIO()
-            Image.fromarray(out).resize((225,150)).save(buffer, "png")
+            image = Image.fromarray(out)
+            scale = max(max(255 / image.width, 1), max(150 / image.height, 1))
+            image = image.resize(image.width * scale, image.height * scale)
+            image.save(buffer, "png")
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
         else:
