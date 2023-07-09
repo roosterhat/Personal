@@ -153,7 +153,7 @@ def frame(id = None):
             buffer = io.BytesIO()
             image = Image.fromarray(out)
             scale = max(max(255 / image.width, 1), max(150 / image.height, 1))
-            image = image.resize(image.width * scale, image.height * scale)
+            image = image.resize((image.width * scale, image.height * scale))
             image.save(buffer, "png")
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
