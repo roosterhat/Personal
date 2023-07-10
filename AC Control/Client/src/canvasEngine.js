@@ -18,6 +18,7 @@ class CanvasEngine {
     imageEffects = null;
     center = null;
     magnify = false;
+    sample = null;
 
     Init() {
         console.log("Init")
@@ -68,6 +69,11 @@ class CanvasEngine {
                     }
                 }
             }
+
+            if(this.sample){
+                this.sample(this.SampleColor(event))
+            }
+
             this.Update(mouse);
         })
     
@@ -88,11 +94,15 @@ class CanvasEngine {
         });
     
         document.addEventListener("keydown", event => {
-            console.log(event)
-            if(event.key === "Escape" && this.currentShape) {
-                this.shapes.pop()
-                this.Reset();
-                this.Update();
+            if(event.key === "Escape") {
+                if(this.currentShape) {
+                    this.shapes.pop()
+                    this.Reset();
+                    this.Update();
+                }
+                if(this.sample) {
+                    this.sample(null);
+                }
             }
             else if (event.key === "Delete" && this.currentShape) {
                 if(this.currentShape.type == "poly" && this.currentShape.vertices.length > 0){
@@ -147,46 +157,47 @@ class CanvasEngine {
 
         var canvasMouse = this.OriginalBackgroundToCanvasCoordinates(mouse);
         
-        for(var shape of this.shapes){
-            if(shape.type === "poly" && shape.vertices.length > 0){
-                this.DrawPoly(shape, mouse);
-                if(this.editing){
-                    this.DrawVerticies(shape, canvasMouse);
-                    this.DrawCenter(shape, canvasMouse);
+        if(!this.sample) {
+            for(var shape of this.shapes){
+                if(shape.type === "poly" && shape.vertices.length > 0){
+                    this.DrawPoly(shape, mouse);
+                    if(this.editing){
+                        this.DrawVerticies(shape, canvasMouse);
+                        this.DrawCenter(shape, canvasMouse);
+                    }
                 }
-            }
-            else if(shape.type === "ellipse" && shape.closed) {
-                this.DrawEllipse(shape, mouse);
-                if(this.editing){
-                    this.DrawRadii(shape, canvasMouse);
-                    this.DrawCenter(shape, canvasMouse);                    
-                }
-            }        
-        }    
+                else if(shape.type === "ellipse" && shape.closed) {
+                    this.DrawEllipse(shape, mouse);
+                    if(this.editing){
+                        this.DrawRadii(shape, canvasMouse);
+                        this.DrawCenter(shape, canvasMouse);                    
+                    }
+                }        
+            }    
 
-        if(this.currentShape){
-            if(this.currentShape.type === "poly"){
-                this.context.beginPath();
-                var verts = this.currentShape.vertices
-                if(verts.length > 0){
-                    var vert = this.OriginalBackgroundToCanvasCoordinates(verts[verts.length - 1]);
-                    this.context.moveTo(vert.x, vert.y);
-                    this.context.lineTo(canvasMouse.x, canvasMouse.y);
+            if(this.currentShape){
+                if(this.currentShape.type === "poly"){
+                    this.context.beginPath();
+                    var verts = this.currentShape.vertices
+                    if(verts.length > 0){
+                        var vert = this.OriginalBackgroundToCanvasCoordinates(verts[verts.length - 1]);
+                        this.context.moveTo(vert.x, vert.y);
+                        this.context.lineTo(canvasMouse.x, canvasMouse.y);
+                    }
+                    this.context.stroke();
                 }
-                this.context.stroke();
-            }
-            else if(this.currentShape.type === "ellipse") {
-                var scale = this.BackgroundScaleRatio();
-                this.context.beginPath();
-                this.context.ellipse(canvasMouse.x, canvasMouse.y, this.currentShape.r1 * scale, this.currentShape.r2 * scale, 0, 0, 2 * Math.PI)
-                this.context.stroke();
-            }
-        }  
+                else if(this.currentShape.type === "ellipse") {
+                    var scale = this.BackgroundScaleRatio();
+                    this.context.beginPath();
+                    this.context.ellipse(canvasMouse.x, canvasMouse.y, this.currentShape.r1 * scale, this.currentShape.r2 * scale, 0, 0, 2 * Math.PI)
+                    this.context.stroke();
+                }
+            }  
+        }
 
         if(this.magnify) {
-            var p = this.OriginalBackgroundToCanvasCoordinates(mouse);
-            var magnified = this.CreateMagnifyingEffect(p, 60, 2, 1, [0,0,0,255]);
-            this.context.putImageData(magnified, p.x - magnified.width / 2, p.y - magnified.height / 2);
+            var magnified = this.CreateMagnifyingEffect(canvasMouse, 60, 2, 1, [0,0,0,255]);
+            this.context.putImageData(magnified, canvasMouse.x - magnified.width / 2, canvasMouse.y - magnified.height / 2);
         }
 
         this.canvas.style.cursor = this.pointing ? "pointer" : (this.currentShape ? "crosshair" : (this.dragging ? "grabbing" : (this.canDrag ? "grab" :  (this.magnify ? "crosshair" : "default"))));      
@@ -473,6 +484,24 @@ class CanvasEngine {
         this.editing = state;
         this.shapes.forEach(x => x.highlight = false)
         this.Update()
+    }
+
+    UserSampleColor() {
+        var promise = new Promise(resolve => {
+            this.sample = (value) => {
+                this.magnify = false;
+                this.sample = null;
+                this.Update();
+                resolve(value);
+            }
+        })
+        this.magnify = true;
+        this.Update();
+        return promise;
+    }
+
+    SampleColor(point) {
+        return "#"+Array.from(this.context.getImageData(point.x, point.y, 1, 1).data).map(x => x.toString(16).padStart(2,'0')).join('');
     }
 
     async LoadBackground(file, position) {

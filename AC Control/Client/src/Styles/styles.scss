@@ -142,10 +142,24 @@ body {
         cursor: pointer;       
     }
 
-    .sample {
-        margin-left: 5px;
-        cursor: pointer;
-    }
+    .state-properties {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 4px;
+
+        .sample {
+            display: flex;
+
+            .sample-color {
+                height: 25px;
+                aspect-ratio: 1;
+                border: solid 3px #efefef;
+                background: #efefef;
+                border-radius: 3px;
+                margin-right: 5px;
+            }
+        }
+    }    
 }
 
 .item-crop {

@@ -1,1 +1,348 @@
-{"name": "LG", "buttons": [{"id": "9c8f7287-fc77-4aca-a3dc-a43c524a8eaa", "shape": {"vertices": [{"x": 105.13058186738837, "y": 225, "index": 0}, {"x": 118.13058186738837, "y": 226, "index": 1}, {"x": 157.13058186738837, "y": 178, "index": 2}, {"x": 153.13058186738837, "y": 167, "index": 3}, {"x": 74.13058186738837, "y": 166, "index": 4}, {"x": 66.13058186738837, "y": 178, "index": 5}], "type": "poly", "closed": true, "highlight": false, "color": "#000000"}, "name": "Temperature Down", "action": "KEY_TEMP_DOWN", "index": 0}, {"id": "7845b4b0-0e3c-40d8-8123-ed255b35c680", "shape": {"vertices": [{"x": 162.13058186738837, "y": 214, "index": 0}, {"x": 168.13058186738837, "y": 226, "index": 1}, {"x": 245.13058186738837, "y": 226, "index": 2}, {"x": 253.13058186738837, "y": 214, "index": 3}, {"x": 216.13058186738837, "y": 168, "index": 4}, {"x": 199.13058186738837, "y": 168, "index": 5}], "type": "poly", "closed": true, "highlight": false, "color": "#000000"}, "name": "Temperature Up", "action": "KEY_TEMP_UP", "index": 1}, {"id": "9997d9d6-fa50-4064-ae95-a1f48c3c4ed4", "shape": {"x": 234.13058186738837, "y": 82, "r1": 41, "r2": 22, "type": "ellipse", "closed": true, "highlight": false, "color": "#000000"}, "name": "Power", "action": "KEY_POWER", "index": 2}, {"id": "5fd3ae29-fd18-4228-9597-3ccc6809a174", "shape": {"x": 157.13058186738837, "y": 296, "r1": 63, "r2": 22, "type": "ellipse", "closed": true, "highlight": false, "color": "#000000"}, "name": "Fan Speed", "action": "KEY_FAN_SPEED", "index": 3}, {"id": "f47a0a48-8485-4b61-b0ea-a47cdcd6db23", "shape": {"x": 109.13058186738837, "y": 384, "r1": 35, "r2": 15, "type": "ellipse", "closed": true, "highlight": false, "color": "#000000"}, "name": "Timer", "action": "KEY_TIMER", "index": 4}, {"id": "95e2608e-2aec-420f-968f-2ee7623b02ae", "shape": {"x": 206.13058186738837, "y": 385, "r1": 33, "r2": 15, "type": "ellipse", "closed": true, "highlight": false, "color": "#000000"}, "name": "Mode", "action": "KEY_MODE", "index": 5}], "background": {"file": "b586f080-5b21-48b5-ae00-a5b79e2d6f76", "position": {"scale": 0.3761840324763194, "x": 115.86941813261163, "y": 0}}, "ir_config": "LG_LW1516ER", "id": "32d36558-985d-41a1-9a12-21003a2ef73c", "frame": {"position": {"scale": 1.8284313725490196, "x": 217.921568627451, "y": 0}, "crop": {"shape": {"vertices": [{"x": 150.7276249209361, "y": 202.54301075268816, "index": 0}, {"x": 534.7571948134091, "y": 153.41129032258064, "index": 1}, {"x": 494.1483238456673, "y": 506.35752688172045, "index": 2}, {"x": 143.20746363061352, "y": 391.0483870967742, "index": 3}], "type": "poly", "closed": true, "highlight": false, "color": "#ffffff"}, "id": "99c01b61-1684-4d37-a577-cd980e508580"}, "digits": [{"shape": {"vertices": [{"x": 360.2894528779253, "y": 244.65591397849462}, {"x": 352.26794750158126, "y": 322.86559139784947}, {"x": 394.8821948134092, "y": 327.8790322580645}, {"x": 406.9144528779253, "y": 245.6586021505376}], "type": "poly", "closed": true, "highlight": false, "color": "#00ff00"}, "id": "31d57949-d84c-48d2-9fab-56a50a2ee9df", "name": "Tens", "index": 1}, {"shape": {"vertices": [{"x": 416.43999051233396, "y": 244.65591397849462}, {"x": 405.4104206198608, "y": 329.88440860215053}, {"x": 444.51525932953825, "y": 334.89784946236557}, {"x": 456.5475173940544, "y": 247.66397849462365}], "type": "poly", "closed": true, "highlight": false, "color": "#00ff00"}, "id": "a7f54a73-49ca-4011-8aa9-f87f3058512c", "name": "Ones", "index": 2}], "states": [{"shape": {"x": 171.78407653383934, "y": 255.68548387096774, "r1": 11.978494623655905, "r2": 15.989247311827938, "type": "ellipse", "closed": true, "highlight": false, "color": "#ffffff"}, "id": "084ec5d0-6679-49e8-a940-e24c3700ea96", "name": "Cool", "index": 1}, {"shape": {"x": 170.78138836179633, "y": 290.7795698924731, "r1": 11.978494623655905, "r2": 13.98387096774195, "type": "ellipse", "closed": true, "highlight": false, "color": "#ffffff"}, "id": "5d5b9dbe-037e-414b-a40e-b67accdcc412", "name": "Energy Saver", "index": 2}, {"shape": {"x": 170.78138836179633, "y": 328.8817204301075, "r1": 12.981182795698913, "r2": 12.981182795698942, "type": "ellipse", "closed": true, "highlight": false, "color": "#ffffff"}, "id": "18574a03-8e2a-4ad7-9a91-cfced98c686c", "name": "Fan", "index": 3}, {"shape": {"x": 170.78138836179633, "y": 370.994623655914, "r1": 12.981182795698913, "r2": 14.986559139784958, "type": "ellipse", "closed": true, "highlight": false, "color": "#ffffff"}, "id": "23ac81d1-10de-47a7-8105-8b6a1cffaead", "name": "Dry", "index": 4}, {"shape": {"x": 223.92386148007589, "y": 392.0510752688172, "r1": 12.981182795698913, "r2": 15.989247311827967, "type": "ellipse", "closed": true, "highlight": false, "color": "#ffffff"}, "id": "874854fb-f63d-4bf7-92db-f96cb27b6619", "name": "Timer", "index": 5}], "rotate": 0}}
+{
+	"name": "LG",
+	"buttons": [
+		{
+			"id": "9c8f7287-fc77-4aca-a3dc-a43c524a8eaa",
+			"shape": {
+				"vertices": [
+					{
+						"x": 105.13058186738837,
+						"y": 225,
+						"index": 0
+					},
+					{
+						"x": 118.13058186738837,
+						"y": 226,
+						"index": 1
+					},
+					{
+						"x": 157.13058186738838,
+						"y": 178,
+						"index": 2
+					},
+					{
+						"x": 153.13058186738838,
+						"y": 167,
+						"index": 3
+					},
+					{
+						"x": 74.13058186738837,
+						"y": 166,
+						"index": 4
+					},
+					{
+						"x": 66.13058186738837,
+						"y": 178,
+						"index": 5
+					}
+				],
+				"type": "poly",
+				"closed": true,
+				"highlight": false,
+				"color": "#000000"
+			},
+			"name": "Temperature Down",
+			"action": "KEY_TEMP_DOWN",
+			"index": 0
+		},
+		{
+			"id": "7845b4b0-0e3c-40d8-8123-ed255b35c680",
+			"shape": {
+				"vertices": [
+					{
+						"x": 162.13058186738838,
+						"y": 214,
+						"index": 0
+					},
+					{
+						"x": 168.13058186738838,
+						"y": 226,
+						"index": 1
+					},
+					{
+						"x": 245.13058186738838,
+						"y": 226,
+						"index": 2
+					},
+					{
+						"x": 253.13058186738838,
+						"y": 214,
+						"index": 3
+					},
+					{
+						"x": 216.13058186738838,
+						"y": 168,
+						"index": 4
+					},
+					{
+						"x": 199.13058186738838,
+						"y": 168,
+						"index": 5
+					}
+				],
+				"type": "poly",
+				"closed": true,
+				"highlight": false,
+				"color": "#000000"
+			},
+			"name": "Temperature Up",
+			"action": "KEY_TEMP_UP",
+			"index": 1
+		},
+		{
+			"id": "9997d9d6-fa50-4064-ae95-a1f48c3c4ed4",
+			"shape": {
+				"x": 234.13058186738838,
+				"y": 82,
+				"r1": 41,
+				"r2": 22,
+				"type": "ellipse",
+				"closed": true,
+				"highlight": false,
+				"color": "#000000"
+			},
+			"name": "Power",
+			"action": "KEY_POWER",
+			"index": 2
+		},
+		{
+			"id": "5fd3ae29-fd18-4228-9597-3ccc6809a174",
+			"shape": {
+				"x": 157.13058186738838,
+				"y": 296,
+				"r1": 63,
+				"r2": 22,
+				"type": "ellipse",
+				"closed": true,
+				"highlight": false,
+				"color": "#000000"
+			},
+			"name": "Fan Speed",
+			"action": "KEY_FAN_SPEED",
+			"index": 3
+		},
+		{
+			"id": "f47a0a48-8485-4b61-b0ea-a47cdcd6db23",
+			"shape": {
+				"x": 109.13058186738837,
+				"y": 384,
+				"r1": 35,
+				"r2": 15,
+				"type": "ellipse",
+				"closed": true,
+				"highlight": false,
+				"color": "#000000"
+			},
+			"name": "Timer",
+			"action": "KEY_TIMER",
+			"index": 4
+		},
+		{
+			"id": "95e2608e-2aec-420f-968f-2ee7623b02ae",
+			"shape": {
+				"x": 206.13058186738838,
+				"y": 385,
+				"r1": 33,
+				"r2": 15,
+				"type": "ellipse",
+				"closed": true,
+				"highlight": false,
+				"color": "#000000"
+			},
+			"name": "Mode",
+			"action": "KEY_MODE",
+			"index": 5
+		}
+	],
+	"background": {
+		"file": "b586f080-5b21-48b5-ae00-a5b79e2d6f76",
+		"position": {
+			"scale": 0.3761840324763194,
+			"x": 115.86941813261163,
+			"y": 0
+		}
+	},
+	"ir_config": "LG_LW1516ER",
+	"id": "32d36558-985d-41a1-9a12-21003a2ef73c",
+	"frame": {
+		"position": {
+			"scale": 1.8284313725490196,
+			"x": 217.921568627451,
+			"y": 0
+		},
+		"crop": {
+			"shape": {
+				"vertices": [
+					{
+						"x": 150.7276249209361,
+						"y": 202.54301075268817,
+						"index": 0
+					},
+					{
+						"x": 534.7571948134091,
+						"y": 153.41129032258065,
+						"index": 1
+					},
+					{
+						"x": 494.1483238456673,
+						"y": 506.35752688172047,
+						"index": 2
+					},
+					{
+						"x": 143.20746363061353,
+						"y": 391.0483870967742,
+						"index": 3
+					}
+				],
+				"type": "poly",
+				"closed": true,
+				"highlight": false,
+				"color": "#ffffff"
+			},
+			"id": "99c01b61-1684-4d37-a577-cd980e508580"
+		},
+		"digits": [
+			{
+				"shape": {
+					"vertices": [
+						{
+							"x": 360.2894528779253,
+							"y": 244.65591397849463
+						},
+						{
+							"x": 352.26794750158128,
+							"y": 322.86559139784949
+						},
+						{
+							"x": 394.8821948134092,
+							"y": 327.8790322580645
+						},
+						{
+							"x": 406.9144528779253,
+							"y": 245.6586021505376
+						}
+					],
+					"type": "poly",
+					"closed": true,
+					"highlight": false,
+					"color": "#00ff00"
+				},
+				"id": "31d57949-d84c-48d2-9fab-56a50a2ee9df",
+				"name": "Tens",
+				"index": 1
+			},
+			{
+				"shape": {
+					"vertices": [
+						{
+							"x": 416.43999051233399,
+							"y": 244.65591397849463
+						},
+						{
+							"x": 405.4104206198608,
+							"y": 329.88440860215055
+						},
+						{
+							"x": 444.51525932953828,
+							"y": 334.89784946236559
+						},
+						{
+							"x": 456.5475173940544,
+							"y": 247.66397849462366
+						}
+					],
+					"type": "poly",
+					"closed": true,
+					"highlight": false,
+					"color": "#00ff00"
+				},
+				"id": "a7f54a73-49ca-4011-8aa9-f87f3058512c",
+				"name": "Ones",
+				"index": 2
+			}
+		],
+		"states": [
+			{
+				"shape": {
+					"x": 171.78407653383935,
+					"y": 255.68548387096775,
+					"r1": 11.978494623655906,
+					"r2": 15.989247311827939,
+					"type": "ellipse",
+					"closed": true,
+					"highlight": false,
+					"color": "#ffffff"
+				},
+				"id": "084ec5d0-6679-49e8-a940-e24c3700ea96",
+				"name": "Cool",
+				"properties": {},
+				"index": 1
+			},
+			{
+				"shape": {
+					"x": 170.78138836179634,
+					"y": 290.7795698924731,
+					"r1": 11.978494623655906,
+					"r2": 13.98387096774195,
+					"type": "ellipse",
+					"closed": true,
+					"highlight": false,
+					"color": "#ffffff"
+				},
+				"id": "5d5b9dbe-037e-414b-a40e-b67accdcc412",
+				"name": "Energy Saver",
+				"properties": {},
+				"index": 2
+			},
+			{
+				"shape": {
+					"x": 170.78138836179634,
+					"y": 328.8817204301075,
+					"r1": 12.981182795698914,
+					"r2": 12.981182795698942,
+					"type": "ellipse",
+					"closed": true,
+					"highlight": false,
+					"color": "#ffffff"
+				},
+				"id": "18574a03-8e2a-4ad7-9a91-cfced98c686c",
+				"name": "Fan",
+				"properties": {},
+				"index": 3
+			},
+			{
+				"shape": {
+					"x": 170.78138836179634,
+					"y": 370.994623655914,
+					"r1": 12.981182795698914,
+					"r2": 14.986559139784959,
+					"type": "ellipse",
+					"closed": true,
+					"highlight": false,
+					"color": "#ffffff"
+				},
+				"id": "23ac81d1-10de-47a7-8105-8b6a1cffaead",
+				"name": "Dry",
+				"properties": {},
+				"index": 4
+			},
+			{
+				"shape": {
+					"x": 223.92386148007589,
+					"y": 392.0510752688172,
+					"r1": 12.981182795698914,
+					"r2": 15.989247311827967,
+					"type": "ellipse",
+					"closed": true,
+					"highlight": false,
+					"color": "#ffffff"
+				},
+				"id": "874854fb-f63d-4bf7-92db-f96cb27b6619",
+				"name": "Timer",
+				"properties": {},
+				"index": 5
+			}
+		],
+		"rotate": 0
+	}
+}

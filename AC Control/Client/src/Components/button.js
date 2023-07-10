@@ -14,7 +14,6 @@ class Button extends React.Component {
         this.showRemove = this.props.showRemove == null ? true : this.props.showRemove
         this.showColor = this.props.showColor == null ? true : this.props.showColor
         this.showAction = this.props.showAction == null ? true : this.props.showAction
-        this.showSampler = this.props.showSampler == null ? false : this.props.showSampler
     }
 
     render() {
@@ -29,16 +28,12 @@ class Button extends React.Component {
                 { this.showColor || this.showAction ?
                     <div className='body'>
                         { this.showColor ? <input className="color" value={this.state.color} onInput={this.setColor} type="color"/> : null }
-                        { this.showSampler ? <button className="sample" onClick={this.sampleColor}><i className="fa-solid fa-eye-dropper"></i></button> : null }
                         { this.showAction ? <input value={this.state.action} onChange={this.setAction} placeholder='IR data'/> : null }
                     </div> : null
                 }
+                {this.props.children}
             </div>
         );
-    }
-
-    sampleColor = () => {
-
     }
 
     getName = () => {

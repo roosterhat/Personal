@@ -124,6 +124,9 @@ def background(filename):
 @app.route('/api/frame/<id>')
 def frame(id = None):
     try:        
+        image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
+        data = image.read()
+        return data, 200, {'Content-Type':'image/png'} 
         camera = cv2.VideoCapture(0)
         camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not camera:
@@ -167,7 +170,8 @@ def frame(id = None):
         print(ex)
         return "Failed", 500
     finally: 
-       camera.release()
+        image.close()
+       #camera.release()
 
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):

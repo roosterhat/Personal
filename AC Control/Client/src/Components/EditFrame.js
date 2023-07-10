@@ -79,7 +79,14 @@ class EditFrame extends React.Component {
                                     remove={() => this.removeButton(button, this.Config.frame.states)}
                                     showAction={false}
                                     showSampler={true}
-                                />
+                                >
+                                    <div className="state-properties">
+                                        <div className="sample">
+                                            <div className="sample-color" style={{background: button.properties.activeColor}}></div>
+                                            <button onClick={() => this.sampleColor(button)}><i className="fa-solid fa-eye-dropper"></i></button>
+                                        </div>
+                                    </div>
+                                </Button>
                             ) : null
                         }
                     </div>
@@ -124,6 +131,13 @@ class EditFrame extends React.Component {
         }
     }
 
+    sampleColor = (button) => {
+        this.Engine.UserSampleColor().then(x => {
+            button.properties.activeColor = x;
+            this.setConfig(this.Config)
+        })
+    }
+
     cancel = () => { this.Cancel(); }
 
     complete = () => {
@@ -160,6 +174,7 @@ class EditFrame extends React.Component {
             shape: shape,
             id: uuidv4(),
             name: '', 
+            properties: {},
             index: this.Config.frame.states.length + 1
         });
         this.Engine.shapes.push(shape);
@@ -180,6 +195,7 @@ class EditFrame extends React.Component {
             shape: shape,
             id: uuidv4(),
             name: '', 
+            properties: {},
             index: this.Config.frame.digits.length + 1
         });
         this.Engine.shapes.push(shape);
