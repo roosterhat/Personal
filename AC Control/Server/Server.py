@@ -20,6 +20,11 @@ app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
+camera = cv2.VideoCapture(0)
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+if not camera:
+    print("No camera detected")
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -124,15 +129,22 @@ def background(filename):
 @app.route('/api/frame/<id>')
 def frame(id = None):
     try:        
-        image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
-        data = image.read()
-        return data, 200, {'Content-Type':'image/png'} 
-        camera = cv2.VideoCapture(0)
-        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        #image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
+        #data = image.read()
+        #return data, 200, {'Content-Type':'image/png'} 
         if not camera:
-            return "No camera detected", 500
+            print("Camera not initialized, attempting to connect")
+            camera = cv2.VideoCapture(0)
+            camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            if not camera:
+                return "Failed to connect camera", 500
+            
         if not camera.isOpened():
-            return "Cannot open camera", 500
+            print("Camera not open, attempting to open")
+            camera.open()
+            if not camera.isOpened():
+                return "Failed open camera", 500
+            
         success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
@@ -196,5 +208,9 @@ def triggerIR(config, action):
     system(f"irsend SEND_ONCE {config} {action}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3001)        
+    try:
+        app.run(host='0.0.0.0', port=3001)     
+    finally:
+        if camera:
+            camera.release()   
 
