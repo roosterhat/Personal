@@ -197,8 +197,8 @@ class CanvasEngine {
 
         if(this.magnify) {
             var m = this.Rotate(canvasMouse, this.center, this.imageEffects && this.imageEffects.rotate ? -this.imageEffects.rotate : 0)
-            var magnified = this.CreateMagnifyingEffect(canvasMouse, 60, 2, 1, [0,0,0,255]);
-            this.context.putImageData(magnified, canvasMouse.x - magnified.width / 2, canvasMouse.y - magnified.height / 2);
+            var magnified = this.CreateMagnifyingEffect(m, 60, 2, 1, [0,0,0,255]);
+            this.context.putImageData(magnified, m.x - magnified.width / 2, m.y - magnified.height / 2);
         }
 
         this.canvas.style.cursor = this.pointing ? "pointer" : (this.currentShape ? "crosshair" : (this.dragging ? "grabbing" : (this.canDrag ? "grab" :  (this.magnify ? "crosshair" : "default"))));      
