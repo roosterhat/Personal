@@ -196,6 +196,7 @@ class CanvasEngine {
         }
 
         if(this.magnify) {
+            var m = this.Rotate(canvasMouse, this.center, this.imageEffects && this.imageEffects.rotate ? -this.imageEffects.rotate : 0)
             var magnified = this.CreateMagnifyingEffect(canvasMouse, 60, 2, 1, [0,0,0,255]);
             this.context.putImageData(magnified, canvasMouse.x - magnified.width / 2, canvasMouse.y - magnified.height / 2);
         }
