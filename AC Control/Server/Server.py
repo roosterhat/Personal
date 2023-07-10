@@ -181,8 +181,8 @@ def frame(id = None):
     except Exception as ex:
         print(ex)
         return "Failed", 500
-    finally: 
-        image.close()
+    #finally: 
+        #image.close()
        #camera.release()
 
 @app.route('/api/trigger/<config>/<id>')
