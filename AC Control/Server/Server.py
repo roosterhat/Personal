@@ -21,9 +21,11 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 camera = cv2.VideoCapture(0)
-camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 if not camera:
     print("No camera detected")
+if camera.isOpened():
+    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -132,6 +134,7 @@ def frame(id = None):
         #image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
         #data = image.read()
         #return data, 200, {'Content-Type':'image/png'} 
+        global camera
         if not camera:
             print("Camera not initialized, attempting to connect")
             camera = cv2.VideoCapture(0)
@@ -140,10 +143,7 @@ def frame(id = None):
                 return "Failed to connect camera", 500
             
         if not camera.isOpened():
-            print("Camera not open, attempting to open")
-            camera.open()
-            if not camera.isOpened():
-                return "Failed open camera", 500
+            return "Failed open camera", 500
             
         success, frame = camera.read()
         if not success:
