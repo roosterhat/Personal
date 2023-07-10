@@ -139,6 +139,11 @@ body {
         display: flex;
         align-items: center;
         justify-content: center;
+        cursor: pointer;       
+    }
+
+    .sample {
+        margin-left: 5px;
         cursor: pointer;
     }
 }

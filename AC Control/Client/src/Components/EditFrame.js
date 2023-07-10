@@ -78,6 +78,7 @@ class EditFrame extends React.Component {
                                     update={() => this.Engine.Update()}
                                     remove={() => this.removeButton(button, this.Config.frame.states)}
                                     showAction={false}
+                                    showSampler={true}
                                 />
                             ) : null
                         }

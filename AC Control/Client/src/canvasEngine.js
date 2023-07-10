@@ -17,6 +17,7 @@ class CanvasEngine {
     backgroundPosition = null;
     imageEffects = null;
     center = null;
+    magnify = false;
 
     Init() {
         console.log("Init")
@@ -87,6 +88,7 @@ class CanvasEngine {
         });
     
         document.addEventListener("keydown", event => {
+            console.log(event)
             if(event.key === "Escape" && this.currentShape) {
                 this.shapes.pop()
                 this.Reset();
@@ -97,6 +99,10 @@ class CanvasEngine {
                     this.currentShape.vertices.pop();
                     this.Update();
                 }
+            }
+            else if (event.key === "m") {
+                this.magnify = !this.magnify;
+                this.Update();
             }
         })
 
@@ -177,8 +183,39 @@ class CanvasEngine {
             }
         }  
 
-        this.canvas.style.cursor = this.pointing ? "pointer" : (this.currentShape ? "crosshair" : (this.dragging ? "grabbing" : (this.canDrag ? "grab" : "default")));      
+        if(this.magnify) {
+            var p = this.OriginalBackgroundToCanvasCoordinates(mouse);
+            var magnified = this.CreateMagnifyingEffect(p, 60, 2, 1, [0,0,0,255]);
+            this.context.putImageData(magnified, p.x - magnified.width / 2, p.y - magnified.height / 2);
+        }
+
+        this.canvas.style.cursor = this.pointing ? "pointer" : (this.currentShape ? "crosshair" : (this.dragging ? "grabbing" : (this.canDrag ? "grab" :  (this.magnify ? "crosshair" : "default"))));      
     }
+
+    CreateMagnifyingEffect(point, radius, scale, borderThickness, borderColor) {
+        var imageData = this.context.getImageData(point.x - radius, point.y - radius, radius * 2, radius * 2)
+        var result = this.context.createImageData(imageData.width, imageData.height);
+        var center = {x: result.width / 2, y: result.height / 2};
+        for (var row = 0; row < result.height; row++) {
+            for (var col = 0; col < result.width; col++) {
+                var d = this.Dist({x: col, y: row}, center);
+                var index = (row * result.height + col) * 4;
+                if(d > radius - borderThickness && d <= radius) {
+                    result.data.set(borderColor, index)
+                }
+                else if(d > radius) {
+                    result.data.set(imageData.data.subarray(index, index + 4), index)
+                }
+                else {
+                    var sourceIndex = (Math.floor(radius - (radius - row) / scale) * imageData.height + Math.floor(radius - (radius - col) / scale)) * 4;
+                    var sourcePixel = imageData.data.subarray(sourceIndex, sourceIndex + 4);
+                    result.data.set(sourcePixel, index)
+                }
+            }
+        }
+    
+        return result;
+    } 
 
     DrawEllipse(shape, mouse){
         this.context.strokeStyle = shape.color;
@@ -454,6 +491,7 @@ class CanvasEngine {
         }
         else if(Object.prototype.toString.call(file) === "[object String]") {
             this.background.src = file
+            this.background.crossOrigin = "Anonymous"
         }   
         else {
             this.backgroundLoaded = true;
