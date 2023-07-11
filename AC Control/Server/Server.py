@@ -149,6 +149,8 @@ def frame(id = None):
         if not success:
             return "Can't receive frame", 500
         
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
         config = {}
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
@@ -182,8 +184,7 @@ def frame(id = None):
         print(ex)
         return "Failed", 500
     #finally: 
-        #image.close()
-       #camera.release()
+    #    image.close()
 
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
