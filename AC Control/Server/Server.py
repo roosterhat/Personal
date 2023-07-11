@@ -19,7 +19,7 @@ contentTypeMap = { 'js': 'text/javascript', 'ico': 'image/x-icon', 'css': 'text/
 app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-
+camera = None
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
