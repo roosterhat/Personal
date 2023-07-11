@@ -20,12 +20,6 @@ app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-camera = cv2.VideoCapture(0)
-if not camera:
-    print("No camera detected")
-if camera.isOpened():
-    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -137,8 +131,7 @@ def frame(id = None):
         global camera
         if not camera:
             print("Camera not initialized, attempting to connect")
-            camera = cv2.VideoCapture(0)
-            camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            setupCamera()
             if not camera:
                 return "Failed to connect camera", 500
             
@@ -149,7 +142,7 @@ def frame(id = None):
         if not success:
             return "Can't receive frame", 500
         
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
         config = {}
         if id is not None:
@@ -207,6 +200,15 @@ def trigger(config, id):
 def triggerIR(config, action):
     print(f"Trigger: [{config}] [{action}]")
     system(f"irsend SEND_ONCE {config} {action}")
+
+def setupCamera():
+    global camera
+    camera = cv2.VideoCapture(0)
+    if not camera:
+        print("No camera detected")
+    if camera.isOpened():
+        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        camera.set(cv2.CAP_PROP_EXPOSURE, -4)
 
 if __name__ == '__main__':
     try:
