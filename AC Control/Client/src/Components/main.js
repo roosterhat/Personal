@@ -193,7 +193,7 @@ class Main extends React.Component {
         try {
             const response = await fetch(`http://${window.location.hostname}:3001/api/settings`);
             if(response.status == 200)
-                this.Settings = response.json();
+                this.Settings = await response.json();
         }
         catch(ex) {
             console.error(ex);
