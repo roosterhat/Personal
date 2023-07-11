@@ -10,6 +10,7 @@ import '../Styles/styles.scss'
 class Main extends React.Component {
     Engine = new CanvasEngine();
     Config = null;
+    Settings = null;
     UpdateQueue = []
 
     constructor(props) {
@@ -27,13 +28,13 @@ class Main extends React.Component {
         console.log("Main")
     }
 
-    componentDidMount () {
+    async componentDidMount () {
         console.log("componentDidMount")
         this.Engine.Init();
-        this.load("default").then(async () => {
-            if(await this.checkHasWebcam())
-                this.UpdateQueue.push(this.refreshFrame)
-        })
+        await this.getSettings();
+        await this.load("default")
+        if(await this.checkHasWebcam())
+            this.UpdateQueue.push(this.refreshFrame)
     }
 
     componentDidUpdate () {
@@ -188,14 +189,34 @@ class Main extends React.Component {
         }
     }
 
-    setConfig = (name) => {
-        this.state.EditConfig.ir_config = name;
-        this.setState({EditConfig: this.state.EditConfig})
+    getSettings = async() => {
+        try {
+            const response = await fetch(`http://${window.location.hostname}:3001/api/settings`);
+            if(response.status == 200)
+                this.Settings = response.json();
+        }
+        catch(ex) {
+            console.error(ex);
+        }
+    }
+
+    saveSettings = async() => {
+        try {
+            const response = await fetch(`http://${window.location.hostname}:3001/api/settings`,{
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(this.Settings)
+            })
+        }
+        catch(ex) {
+            console.error(ex);
+        }
     }
 
     triggerIr = async (id) => {
         try {
             const response = await fetch(`http://${window.location.hostname}:3001/api/trigger/${this.Config.id}/${id}`)
+            await new Promise(resolve => setTimeout(resolve, this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100));
             this.refreshFrame();
         }
         catch(ex) {

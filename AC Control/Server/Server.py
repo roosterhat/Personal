@@ -20,6 +20,7 @@ app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 camera = None
+settings = None
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -30,7 +31,7 @@ def serve(path):
         return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/api/list')
-def list():
+def listConfigs():
     try:
         names = []
         for file in ([f for f in listdir('./Data/Configs') if Path.isfile(Path.join('./Data/Configs', f))]):
@@ -49,7 +50,7 @@ def list():
         return "Failed", 500
 
 @app.route('/api/save', methods=["POST"])
-def save():
+def saveConfig():
     body = request.get_json(force = True, silent = True)
     if body is None:
         return 'No config data', 400
@@ -70,7 +71,7 @@ def save():
         f.close()
     
 @app.route('/api/retrieve/<id>')
-def retrieve(id):
+def retrieveConfig(id):
     try:
         if id == 'default':
             f = open("./Data/default", 'r')
@@ -83,6 +84,36 @@ def retrieve(id):
             f.write(id)
             f.close()
         f = open(f"./Data/Configs/{id}", 'rb')
+        data = f.read()
+        return data, 200, {'Content-Type':'application/json'} 
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    finally:
+        f.close()
+
+@app.route('/api/settings', methods=["POST"])
+def saveSettings():
+    global settings
+    body = request.get_json(force = True, silent = True)
+    if body is None:
+        return 'No settings data', 400
+    
+    try:        
+        f = open(f"./Data/settings", 'w')
+        f.write(json.dumps(body))
+        settings = body
+        return "Success", 200
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    finally:
+        f.close()
+
+@app.route('/api/settings', methods=["GET"])
+def retrieveSettings():
+    try:
+        f = open(f"./Data/settings", 'rb')
         data = f.read()
         return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
@@ -138,6 +169,9 @@ def frame(id = None):
         if not camera.isOpened():
             return "Failed open camera", 500
             
+        if "cameraExposure" in settings:
+            camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+
         success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
@@ -208,10 +242,15 @@ def setupCamera():
         print("No camera detected")
     if camera.isOpened():
         camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        camera.set(cv2.CAP_PROP_EXPOSURE, -4)
+        if "cameraExposure" in settings:
+            camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
 if __name__ == '__main__':
     try:
+        f = open(f"./Data/settings", 'rb')
+        settings = json.loads(f.read())
+        f.close()
+        setupCamera()
         app.run(host='0.0.0.0', port=3001)     
     finally:
         if camera:
