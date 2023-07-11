@@ -175,9 +175,7 @@ def frame(id = None):
         success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
-        
-        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
+                
         config = {}
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
@@ -194,6 +192,7 @@ def frame(id = None):
             transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
             out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
             out = np.rot90(out, -config["frame"]["rotate"] / 90)
+            out = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
             buffer = io.BytesIO()
             image = Image.fromarray(out)
             scale = max(max(255 / image.width, 1), max(150 / image.height, 1))
