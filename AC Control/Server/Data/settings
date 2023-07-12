@@ -1,4 +1,4 @@
 {
-	"frameRefreshDelay": 500,
+	"frameRefreshDelay": 100,
 	"cameraExposure": -8
 }

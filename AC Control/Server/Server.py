@@ -173,6 +173,7 @@ def frame(id = None):
         if "cameraExposure" in settings:
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
+        camera.read()
         success, frame = camera.read()
         if not success:
             return "Can't receive frame", 500
