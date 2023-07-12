@@ -152,6 +152,8 @@ body {
         justify-content: center;
         cursor: pointer;
         flex-shrink: 0;
+        border: solid 1px #000;
+        border-radius: 3px;
 
         &.cancel {
             background: #ffd1d1;
@@ -352,6 +354,7 @@ body {
 .file-upload {
     width: 100%;
     height: 100%;
+    cursor: pointer;
 
     label {
         width: 100%;
