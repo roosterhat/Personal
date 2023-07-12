@@ -26,7 +26,8 @@ class Main extends React.Component {
             error: null,
             loadingFrame: false,
             hasFrame: false,
-            loggedIn: false
+            loggedIn: false,
+            checkingLogin: true
         }
     }
 
@@ -34,6 +35,9 @@ class Main extends React.Component {
         var token = getCookie("ac_token")
         if(token && await this.checkAuthorized()){
             this.init()
+        }
+        else {
+            this.setState({checkingLogin: false})
         }
     }
 
@@ -43,8 +47,14 @@ class Main extends React.Component {
     }
 
     render () {
-        if(this.state.loggedIn){
-
+        if(this.state.checkingLogin) {
+            return (
+                <div className="loading-container">
+                    <LoadingSpinner id="spinner"/>
+                </div>
+            );
+        }
+        else if(this.state.loggedIn){
             return (
                 <div className="container">
                     <div className="content-container">
@@ -92,7 +102,7 @@ class Main extends React.Component {
     }    
 
     init = async () => {
-        this.setState({loggedIn: true})     
+        this.setState({loggedIn: true, checkingLogin: false})     
         this.UpdateQueue.push(async () => {   
             this.Engine.Init();
             await this.getSettings();
@@ -280,8 +290,13 @@ class Main extends React.Component {
     }
 
     checkAuthorized = async() => {
-        const response = await fetchWithToken(`api/test/authorize`)
-        return response.status == 200
+        try{
+            const response = await fetchWithToken(`api/test/authorize`)
+            return response.status == 200
+        }
+        catch {
+            return false;
+        }
     }
 }
 
