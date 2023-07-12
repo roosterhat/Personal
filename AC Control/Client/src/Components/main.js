@@ -145,8 +145,9 @@ class Main extends React.Component {
 
     completeSettings = async (settings) => {
         this.Settings = settings
-        this.setState({editSettings: false, EditSetting: null})
         await this.saveSettings();
+        this.setState({editSettings: false, EditSetting: null})
+        this.switchToMainView();
     }
 
     newButtons = () => {

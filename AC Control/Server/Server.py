@@ -13,7 +13,6 @@ import time
 from threading import Thread
 import hashlib
 
-#https://www.digikey.com/en/maker/blogs/2021/how-to-send-and-receive-ir-signals-with-a-raspberry-pi#:~:text=The%20Raspberry%20Pi%20can%20receive,of%20the%20Arduino's%20PWM%20pins.
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileExtPattern = re.compile(r'\.(?P<ext>js|ico|css|png|jpg|html)$')
@@ -289,8 +288,8 @@ def triggerIR(config, action):
     system(f"irsend SEND_ONCE {config} {action}")
 
 def setupCamera():
-    global camera
-    camera = cv2.VideoCapture(0)
+    global camera, settings
+    camera = cv2.VideoCapture(settings["cameraIndex"])
     if not camera:
         print("No camera detected")
     if camera.isOpened():

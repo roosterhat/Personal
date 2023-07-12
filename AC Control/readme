@@ -1,0 +1,17 @@
+Setup IR Blaster
+    https://www.digikey.com/en/maker/blogs/2021/how-to-send-and-receive-ir-signals-with-a-raspberry-pi#:~:text=The%20Raspberry%20Pi%20can%20receive,of%20the%20Arduino's%20PWM%20pins.
+
+Create Certificates
+    (In Server dir)
+    openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
+
+Build
+    (In Client dir)
+    npm install
+    npm run build
+
+    (In Server dir)
+    sudo pip install -r requirements.txt
+
+Run    
+    sudo python Server.py
