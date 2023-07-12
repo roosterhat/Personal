@@ -24,6 +24,18 @@ body {
             position: absolute;
             inset: 0px;
         }
+
+        .editframe-refresh {
+            position: absolute;
+            z-index: 2;
+            left: 0;
+            top: 0;
+
+            .refresh {
+                position: relative;
+                background: #777777de;
+            }
+        }
     }
 
     .frame-container {
@@ -39,31 +51,32 @@ body {
         #frame {
             height: 100%;
         }
-
-        .refresh {
-            position: absolute;
-            top: 0;
-            right: 0;
-            cursor: pointer;
-            border-radius: 50%;
-            background: #77777700;
-            padding: 4px;
-
-            i {
-                color: #fff;
-            }
-
-            &.loading {
-                animation: rotate 1s linear infinite;
-            }
-
-            &:hover {
-                background: #77777788;
-                transition: all 0.2s ease;
-            }
-        }
     }
 }
+
+.refresh {
+    position: absolute;
+    top: 0;
+    right: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    background: #77777700;
+    padding: 4px;
+
+    i {
+        color: #fff;
+    }
+
+    &.loading {
+        animation: rotate 1s linear infinite;
+    }
+
+    &:hover {
+        background: #77777788;
+        transition: all 0.2s ease;
+    }
+}
+
 
 .menu-container {
     width: 70px;

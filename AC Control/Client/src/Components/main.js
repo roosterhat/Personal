@@ -72,6 +72,11 @@ class Main extends React.Component {
                             null
                         }
                         <div className="canvas-container" id="canvas-container">
+                            { this.state.editFrame ? 
+                                <div className="editframe-refresh">
+                                    <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshEditFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
+                                </div> : null 
+                            }
                             <LoadingSpinner id="spinner" style={{display: 'none'}}/>
                             <canvas id="canvas"></canvas>
                         </div>  
@@ -128,6 +133,21 @@ class Main extends React.Component {
         this.setState({editFrame: true, EditConfig: config})
         this.Engine.SetEdit(true);
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
+    }
+
+    refreshEditFrame = async () => {
+        try{
+            this.setState({loadingFrame: true})
+            var response = await fetchWithToken(`api/frame?${new Date().getTime()}`);
+            if(response.status == 200){
+                var blob = await response.blob()
+                var background = URL.createObjectURL(blob);
+                await this.Engine.LoadBackground(background, this.Config.frame.position)
+            }            
+        }
+        finally {
+            this.setState({loadingFrame: false})
+        }
     }
 
     editButtons = () => {
