@@ -200,57 +200,57 @@ def frame(id = None):
     if not verifyToken():
         return "Unauthorized", 403
     try:        
-        image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
-        data = image.read()
-        image.close()
-        return data, 200, {'Content-Type':'image/png'} 
-        # global camera
-        # if not camera:
-        #     print("Camera not initialized, attempting to connect")
-        #     setupCamera()
-        #     if not camera:
-        #         return "Failed to connect camera", 500
+        # image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
+        # data = image.read()
+        # image.close()
+        # return data, 200, {'Content-Type':'image/png'} 
+        global camera
+        if not camera:
+            print("Camera not initialized, attempting to connect")
+            setupCamera()
+            if not camera:
+                return "Failed to connect camera", 500
             
-        # if not camera.isOpened():
-        #     return "Failed open camera", 500
+        if not camera.isOpened():
+            return "Failed open camera", 500
             
-        # if "cameraExposure" in settings:
-        #     camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+        if "cameraExposure" in settings:
+            camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
-        # camera.read()
-        # success, frame = camera.read()
-        # if not success:
-        #     return "Can't receive frame", 500
+        camera.read()
+        success, frame = camera.read()
+        if not success:
+            return "Can't receive frame", 500
                 
-        # config = {}
-        # if id is not None:
-        #     f = open(f"./Data/Configs/{id}", 'rb')
-        #     config = json.loads(f.read())
-        #     f.close()
+        config = {}
+        if id is not None:
+            f = open(f"./Data/Configs/{id}", 'rb')
+            config = json.loads(f.read())
+            f.close()
 
-        # if "frame" in config and "position" in config["frame"] and "crop" in config["frame"]:
-        #     scale = config["frame"]["position"]["scale"]
-        #     points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
-        #     (_,_), (width, height), a = cv2.minAreaRect(points)
-        #     if a > 45:
-        #         width, height = height, width
-        #     dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
-        #     transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
-        #     out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
-        #     out = np.rot90(out, -config["frame"]["rotate"] / 90)
-        #     out = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
-        #     buffer = io.BytesIO()
-        #     image = Image.fromarray(out)
-        #     scale = max(max(255 / image.width, 1), max(150 / image.height, 1))
-        #     image = image.resize((int(image.width * scale), int(image.height * scale)))
-        #     image.save(buffer, "png")
-        #     buffer.seek(0)
-        #     return buffer, 200, {'Content-Type':'image/png'} 
-        # else:
-        #     success, buffer = cv2.imencode(".png", frame)
-        #     if not success:
-        #        return "Error processing image", 500
-        #     return bytes(buffer), 200, {'Content-Type':'image/png'}
+        if "frame" in config and "position" in config["frame"] and "crop" in config["frame"]:
+            scale = config["frame"]["position"]["scale"]
+            points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
+            (_,_), (width, height), a = cv2.minAreaRect(points)
+            if a > 45:
+                width, height = height, width
+            dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
+            transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
+            out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
+            out = np.rot90(out, -config["frame"]["rotate"] / 90)
+            out = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
+            buffer = io.BytesIO()
+            image = Image.fromarray(out)
+            scale = max(max(255 / image.width, 1), max(150 / image.height, 1))
+            image = image.resize((int(image.width * scale), int(image.height * scale)))
+            image.save(buffer, "png")
+            buffer.seek(0)
+            return buffer, 200, {'Content-Type':'image/png'} 
+        else:
+            success, buffer = cv2.imencode(".png", frame)
+            if not success:
+               return "Error processing image", 500
+            return bytes(buffer), 200, {'Content-Type':'image/png'}
         
     except Exception as ex:
         print(ex)
