@@ -4,8 +4,10 @@ import LoadingSpinner from './Spinners/loading1';
 import CanvasEngine from '../canvasEngine';
 import EditBackground from './EditBackground';
 import EditFrame from './EditFrame';
-import { uuidv4 } from '../Utility';
+import Login from './Login';
+import { uuidv4, fetchWithToken, getCookie } from '../Utility';
 import '../Styles/styles.scss'
+
 
 class Main extends React.Component {
     Engine = new CanvasEngine();
@@ -23,18 +25,16 @@ class Main extends React.Component {
             EditConfig: null,
             error: null,
             loadingFrame: false,
-            hasFrame: false
+            hasFrame: false,
+            loggedIn: false
         }
-        console.log("Main")
     }
 
     async componentDidMount () {
-        console.log("componentDidMount")
-        this.Engine.Init();
-        await this.getSettings();
-        await this.load("default")
-        if(await this.checkHasWebcam())
-            this.UpdateQueue.push(this.refreshFrame)
+        var token = getCookie("ac_token")
+        if(token && await this.checkAuthorized()){
+            this.init()
+        }
     }
 
     componentDidUpdate () {
@@ -43,47 +43,64 @@ class Main extends React.Component {
     }
 
     render () {
-        return (
-            <div className="container">
-                <div className="content-container">
-                    { this.state.hasFrame && !this.state.editingFrame && !this.state.editing ? 
-                        <div className="frame-container">
-                            <div className="inner-frame">
-                                <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
-                                <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
+        if(this.state.loggedIn){
+
+            return (
+                <div className="container">
+                    <div className="content-container">
+                        { this.state.hasFrame && !this.state.editingFrame && !this.state.editing ? 
+                            <div className="frame-container">
+                                <div className="inner-frame">
+                                    <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
+                                    <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
+                                </div>
                             </div>
-                        </div>
+                            :
+                            null
+                        }
+                        <div className="canvas-container" id="canvas-container">
+                            <LoadingSpinner id="spinner" style={{display: 'none'}}/>
+                            <canvas id="canvas"></canvas>
+                        </div>  
+                    </div>                       
+                    <div className='controls'>
+                    {this.state.editing ?
+                        <EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>  
                         :
-                        null
-                    }
-                    <div className="canvas-container" id="canvas-container">
-                        <LoadingSpinner id="spinner" style={{display: 'none'}}/>
-                        <canvas id="canvas"></canvas>
-                    </div>  
-                </div>                       
-                <div className='controls'>
-                {this.state.editing ?
-                    <EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>  
-                    :
-                (this.state.editingFrame ?
-                    <EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>
-                    :
-                    (
-                        <div className="btn-container" id="normal">
-                            { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-pen-to-square"></i></button> : null }
-                            { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
-                            <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
-                            <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
-                            <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
-                        </div>   
-                    )
-                    )
-                }       
-                {this.state.showConfigSelect ? <ConfigLoader select={(config) => this.load(config)} close={() => this.setState({showConfigSelect: false})}/> : null}  
-                </div>   
-            </div>
-        );
+                    (this.state.editingFrame ?
+                        <EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>
+                        :
+                        (
+                            <div className="btn-container" id="normal">
+                                { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-pen-to-square"></i></button> : null }
+                                { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
+                                <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
+                                <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
+                                <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
+                            </div>   
+                        )
+                        )
+                    }       
+                    {this.state.showConfigSelect ? <ConfigLoader select={(config) => this.load(config)} close={() => this.setState({showConfigSelect: false})}/> : null}  
+                    </div>   
+                </div>
+            );
+        }
+        else {
+            return (<Login onLoginSuccess={this.init} />);
+        }
     }    
+
+    init = async () => {
+        this.setState({loggedIn: true})     
+        this.UpdateQueue.push(async () => {   
+            this.Engine.Init();
+            await this.getSettings();
+            await this.load("default")
+            if(await this.checkHasWebcam())
+                this.UpdateQueue.push(this.refreshFrame)
+        })
+    }
 
     editFrame = () => {
         var config = JSON.parse(JSON.stringify(this.Config));
@@ -143,19 +160,11 @@ class Main extends React.Component {
             this.state.EditConfig.name = name
         try{
             if(Object.prototype.toString.call(this.state.EditConfig.background.file) === "[object File]"){
-                const response = await fetch(`http://${window.location.hostname}:3001/api/upload`,{
-                    method: "POST",
-                    headers: { "Content-Type": "image" },
-                    body: this.state.EditConfig.background.file
-                })
+                const response = await fetchWithToken("api/upload", "POST", this.state.EditConfig.background.file, { "Content-Type": "image" })
                 if(response.status == 200)
                     this.state.EditConfig.background.file = await response.text()
             }
-            const response = await fetch(`http://${window.location.hostname}:3001/api/save`,{
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(this.state.EditConfig)
-            })
+            const response = await fetchWithToken(`api/save`, "POST", JSON.stringify(this.state.EditConfig), { "Content-Type": "application/json" });
             if(response.status == 200){
                 this.setState({showNameInput: false})
                 this.Config = JSON.parse(JSON.stringify(this.state.EditConfig))
@@ -169,7 +178,7 @@ class Main extends React.Component {
     load = async (name) => {
         try{
             this.setState({showConfigSelect: false})
-            const response = await fetch(`http://${window.location.hostname}:3001/api/retrieve/${name}`)
+            const response = await fetchWithToken(`api/retrieve/${name}`)
             if(response.status == 200){
                 this.Config = await response.json();
                 this.switchToMainView();               
@@ -191,7 +200,7 @@ class Main extends React.Component {
 
     getSettings = async() => {
         try {
-            const response = await fetch(`http://${window.location.hostname}:3001/api/settings`);
+            const response = await fetchWithToken(`api/settings`);
             if(response.status == 200)
                 this.Settings = await response.json();
         }
@@ -202,11 +211,7 @@ class Main extends React.Component {
 
     saveSettings = async() => {
         try {
-            const response = await fetch(`http://${window.location.hostname}:3001/api/settings`,{
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(this.Settings)
-            })
+            const response = await fetchWithToken(`api/settings`, "POST", JSON.stringify(this.Settings), { "Content-Type": "application/json" });
         }
         catch(ex) {
             console.error(ex);
@@ -215,7 +220,7 @@ class Main extends React.Component {
 
     triggerIr = async (id) => {
         try {
-            const response = await fetch(`http://${window.location.hostname}:3001/api/trigger/${this.Config.id}/${id}`)
+            const response = await fetchWithToken(`api/trigger/${this.Config.id}/${id}`)
             await new Promise(resolve => setTimeout(resolve, this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100));
             this.refreshFrame();
         }
@@ -224,16 +229,22 @@ class Main extends React.Component {
         } 
     }
 
-    refreshFrame = () => {
+    refreshFrame = async () => {
         this.setState({loadingFrame: true});
         var elem = document.getElementById("frame");
-        if(elem)
-            elem.src = `http://${window.location.hostname}:3001/api/frame/${this.Config ? this.Config.id : ""}?${new Date().getTime()}`;
+        if(elem){
+            var response = await fetchWithToken(`api/frame/${this.Config ? this.Config.id : ""}?${new Date().getTime()}`)
+            if(response.status == 200){
+                var blob = await response.blob()
+                elem.src = URL.createObjectURL(blob)
+            }
+        }
+        //elem.src = `https://${window.location.hostname}:3001/api/frame/${this.Config ? this.Config.id : ""}?${new Date().getTime()}`;
     }
 
     checkHasWebcam = async () => {
         try {
-            const response = await fetch(`http://${window.location.hostname}:3001/api/frame`)
+            const response = await fetchWithToken(`api/frame`)
             this.setState({hasFrame: response.status == 200})
             return response.status == 200;
         }
@@ -253,10 +264,24 @@ class Main extends React.Component {
             x.shape['function'] = () => this.triggerIr(x.id);
             return x.shape
         });
-        if(background)
-            this.Engine.LoadBackground(`http://${window.location.hostname}:3001/api/background/${background.file}`, background.position).then(() => this.UpdateQueue.push(() => this.Engine.RefreshDimensions()))
+        if(background) {
+            this.Engine.StartBackgroundLoad();
+            fetchWithToken(`api/background/${background.file}`).then(async response => {
+                if(response.status == 200){
+                    var blob = await response.blob()
+                    await this.Engine.LoadBackground(URL.createObjectURL(blob), background.position)
+                    this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
+                }
+            })
+        }
+        //this.Engine.LoadBackground(`https://${window.location.hostname}:3001/api/background/${background.file}`, background.position).then(() => this.UpdateQueue.push(() => this.Engine.RefreshDimensions()))
         if(this.state.hasFrame)
             this.UpdateQueue.push(this.refreshFrame)
+    }
+
+    checkAuthorized = async() => {
+        const response = await fetchWithToken(`api/test/authorize`)
+        return response.status == 200
     }
 }
 

@@ -25,7 +25,7 @@ body {
             inset: 0px;
         }
     }
-    
+
     .frame-container {
         width: 100%;
         max-height: 150px;
@@ -39,16 +39,16 @@ body {
         #frame {
             height: 100%;
         }
-    
+
         .refresh {
             position: absolute;
             top: 0;
             right: 0;
-            cursor: pointer; 
+            cursor: pointer;
             border-radius: 50%;
             background: #77777700;
             padding: 4px;
-            
+
             i {
                 color: #fff;
             }
@@ -58,15 +58,15 @@ body {
             }
 
             &:hover {
-                background: #77777788;                
+                background: #77777788;
                 transition: all 0.2s ease;
             }
         }
     }
-    
+
 }
 
-.btn-container { 
+.btn-container {
     display: flex;
 
     .btn {
@@ -111,11 +111,12 @@ body {
     border: solid 1px #000;
 }
 
-.main-crop, .item-crop {
+.main-crop,
+.item-crop {
     border: solid 1px #000;
     border-radius: 5px;
     margin: 0px 5px 10px;
-    overflow: hidden;    
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 
@@ -130,7 +131,7 @@ body {
         flex-shrink: 0;
     }
 
-    .items { 
+    .items {
         overflow: auto;
         padding: 5px 5px 0px;
     }
@@ -139,7 +140,7 @@ body {
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;       
+        cursor: pointer;
     }
 
     .state-properties {
@@ -159,7 +160,7 @@ body {
                 margin-right: 5px;
             }
         }
-    }    
+    }
 }
 
 .item-crop {
@@ -185,7 +186,7 @@ body {
         height: 25px;
         margin-bottom: 5px;
         display: flex;
-        
+
         input {
             height: 100%;
             width: 100%;
@@ -216,7 +217,7 @@ body {
     border: solid 1px #000;
     padding: 5px;
     height: max-content;
-    overflow: auto;    
+    overflow: auto;
 }
 
 .config {
@@ -224,7 +225,7 @@ body {
     margin-bottom: 5px;
     border: solid 1px #000;
 
-    .name { 
+    .name {
         width: 100%;
         display: flex;
         align-items: center;
@@ -348,11 +349,11 @@ body {
 
                 &:hover {
                     background: #e8f4ff
-                }                
+                }
             }
         }
 
-        .action-container{
+        .action-container {
             width: 100%;
             height: 30px;
             display: flex;
@@ -375,10 +376,53 @@ body {
     display: block;
 }
 
+.login {
+    width: 250px;
+    height: 38px;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    border: solid 1px #000;
+    border-radius: 10px;
+    padding: 15px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+
+    .field-container {
+        display: flex;
+        height: 30px;
+
+        input {
+            height: 100%;
+            margin-right: 10px;
+            padding: 5px;
+        }
+
+        button {
+            width: 50px;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            .lds-ring {
+                transform: scale(75%)
+            }
+        }
+    }
+
+    .error {
+        color: #ff5151;
+    }
+}
+
 @media only screen and (max-width: 920px) {
     .btn-container:not(.editing) {
         flex-direction: column;
-    }    
+    }
 }
 
 @media only screen and (max-device-width: 920px) {
@@ -386,6 +430,52 @@ body {
         display: none !important;
     }
 }
+
+.loader-blink,
+.loader-blink:before,
+.loader-blink:after {
+    border-radius: 50%;
+    width: 2.5em;
+    height: 2.5em;
+    animation-fill-mode: both;
+    animation: bblFadInOut 1.8s infinite ease-in-out;
+}
+
+.loader-blink {
+    color: #3841c5;
+    font-size: 7px;
+    position: relative;
+    text-indent: -9999em;
+    transform: translateZ(0);
+    animation-delay: -0.16s;
+}
+
+.loader-blink:before,
+.loader-blink:after {
+    content: '';
+    position: absolute;
+    top: 0;
+}
+
+.loader-blink:before {
+    left: -3.5em;
+    animation-delay: -0.32s;
+}
+
+.loader-blink:after {
+    left: 3.5em;
+}
+
+@keyframes bblFadInOut {
+    0%, 80%, 100% {
+        box-shadow: 0 2.5em 0 -1.3em
+    }
+
+    40% {
+        box-shadow: 0 2.5em 0 0
+    }
+}
+
 
 .lds-ring {
     position: absolute;

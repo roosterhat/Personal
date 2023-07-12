@@ -8,6 +8,10 @@ import io
 import cv2
 import numpy as np
 from PIL import Image
+from datetime import datetime, timedelta
+import time
+from threading import Thread
+import hashlib
 
 #https://www.digikey.com/en/maker/blogs/2021/how-to-send-and-receive-ir-signals-with-a-raspberry-pi#:~:text=The%20Raspberry%20Pi%20can%20receive,of%20the%20Arduino's%20PWM%20pins.
 
@@ -21,6 +25,7 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 camera = None
 settings = None
+sessions = []
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -30,8 +35,30 @@ def serve(path):
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
+@app.route('/api/login', methods=["POST"])
+def login():
+    global settings
+    body = request.get_json(force = True, silent = True)
+    if body is None or "password" not in body:
+        return 'Bad login', 400
+    
+    try:        
+        if hashlib.sha512((body["password"] + settings["salt"]).encode('utf-8')).hexdigest() == settings["password"]:
+            token = str(uuid.uuid4())
+            sessions.append({"token": token, "lastActivity": datetime.now()})
+            return token, 200
+        else:
+            return 'Bad login', 400
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    finally:
+        f.close()
+
 @app.route('/api/list')
 def listConfigs():
+    if not verifyToken():
+        return "Unauthorized", 403
     try:
         names = []
         for file in ([f for f in listdir('./Data/Configs') if Path.isfile(Path.join('./Data/Configs', f))]):
@@ -51,6 +78,8 @@ def listConfigs():
 
 @app.route('/api/save', methods=["POST"])
 def saveConfig():
+    if not verifyToken():
+        return "Unauthorized", 403
     body = request.get_json(force = True, silent = True)
     if body is None:
         return 'No config data', 400
@@ -72,6 +101,8 @@ def saveConfig():
     
 @app.route('/api/retrieve/<id>')
 def retrieveConfig(id):
+    if not verifyToken():
+        return "Unauthorized", 403
     try:
         if id == 'default':
             f = open("./Data/default", 'r')
@@ -94,6 +125,8 @@ def retrieveConfig(id):
 
 @app.route('/api/settings', methods=["POST"])
 def saveSettings():
+    if not verifyToken():
+        return "Unauthorized", 403
     global settings
     body = request.get_json(force = True, silent = True)
     if body is None:
@@ -112,6 +145,8 @@ def saveSettings():
 
 @app.route('/api/settings', methods=["GET"])
 def retrieveSettings():
+    if not verifyToken():
+        return "Unauthorized", 403
     try:
         f = open(f"./Data/settings", 'rb')
         data = f.read()
@@ -124,6 +159,8 @@ def retrieveSettings():
 
 @app.route('/api/upload', methods=["POST"])
 def upload():
+    if not verifyToken():
+        return "Unauthorized", 403
     file = request.get_data()
     if file is None or not any(file):
         return 'No file data', 400
@@ -140,6 +177,8 @@ def upload():
 
 @app.route('/api/background/<filename>')
 def background(filename):
+    if not verifyToken():
+        return "Unauthorized", 403
     if not Path.isfile('./Data/Backgrounds/'+filename):
         return 'File does not exists', 400
     try:
@@ -155,11 +194,13 @@ def background(filename):
 @app.route('/api/frame')
 @app.route('/api/frame/<id>')
 def frame(id = None):
+    if not verifyToken():
+        return "Unauthorized", 403
     try:        
-        #image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
-        #data = image.read()
-        #image.close()
-        #return data, 200, {'Content-Type':'image/png'} 
+        # image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
+        # data = image.read()
+        # image.close()
+        # return data, 200, {'Content-Type':'image/png'} 
         global camera
         if not camera:
             print("Camera not initialized, attempting to connect")
@@ -214,6 +255,8 @@ def frame(id = None):
 
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
+    if not verifyToken():
+        return "Unauthorized", 403
     if not Path.isfile('./Data/Configs/'+config):
         return 'Config does not exists', 400
     try:
@@ -230,6 +273,13 @@ def trigger(config, id):
     finally:
         f.close()
 
+@app.route('/api/test/authorize')
+def testAuthorize():
+    if not verifyToken():
+        return "Unauthorized", 403
+    else:
+        return "Success", 200
+
 def triggerIR(config, action):
     print(f"Trigger: [{config}] [{action}]")
     system(f"irsend SEND_ONCE {config} {action}")
@@ -244,13 +294,33 @@ def setupCamera():
         if "cameraExposure" in settings:
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
+def verifyToken():
+    if "token" in request.headers:
+        for session in sessions:
+            if session["token"] == request.headers["token"] and session["lastActivity"] + timedelta(minutes=60) > datetime.now():
+                session["lastActivity"] = datetime.now()
+                return True
+    return False
+
+def manageSessions():
+    while True:
+        expiredSessions = []
+        for session in sessions:
+            if session["lastActivity"] + timedelta(minutes=60) < datetime.now():
+                expiredSessions.append(session)
+        for session in expiredSessions:
+            sessions.remove(session)
+        time.sleep(60)
+
+
 if __name__ == '__main__':
     try:
+        Thread(target=manageSessions)
         f = open(f"./Data/settings", 'rb')
         settings = json.loads(f.read())
         f.close()
         setupCamera()
-        app.run(host='0.0.0.0', port=3001)     
+        app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     finally:
         if camera:
             camera.release()   

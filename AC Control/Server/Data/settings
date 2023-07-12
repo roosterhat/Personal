@@ -1,4 +1,6 @@
 {
 	"frameRefreshDelay": 100,
-	"cameraExposure": -8
+	"cameraExposure": -8,
+	"password": "test",
+	"salt": "8ad9b467476f4f3da7a2418d4733f2d7"
 }

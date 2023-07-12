@@ -505,6 +505,12 @@ class CanvasEngine {
         return "#"+Array.from(this.context.getImageData(point.x, point.y, 1, 1).data).map(x => x.toString(16).padStart(2,'0')).join('');
     }
 
+    StartBackgroundLoad() {
+        this.backgroundLoaded = false;
+        document.getElementById('spinner').style.display = "block";
+        this.background = new Image();
+    }
+
     async LoadBackground(file, position) {
         this.backgroundLoaded = false;
         document.getElementById('spinner').style.display = "block";
@@ -529,12 +535,7 @@ class CanvasEngine {
             return;
         }
         
-        await new Promise(resolve => {
-            this.background.onload = () => { 
-                console.log("load")
-                resolve();
-            }
-        });        
+        await new Promise(resolve => { this.background.onload = resolve });     
 
         if(position){
             this.backgroundOriginalPosition = position

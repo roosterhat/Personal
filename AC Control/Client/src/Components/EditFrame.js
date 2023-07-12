@@ -1,7 +1,7 @@
 import React from 'react'
 import LoadingSpinner from './Spinners/loading1';
 import Button from './button';
-import { uuidv4 } from '../Utility';
+import { fetchWithToken, uuidv4 } from '../Utility';
 
 class EditFrame extends React.Component {
     constructor(props) {
@@ -95,39 +95,44 @@ class EditFrame extends React.Component {
         )
     }
 
-    init = () => {
+    init = async () => {
         this.Engine.shapes = []
         this.Engine.imageEffects.rotate = this.Config.frame.rotate
-        var url = `http://${window.location.hostname}:3001/api/frame?${new Date().getTime()}`;
+        //var url = `http://${window.location.hostname}:3001/api/frame?${new Date().getTime()}`;
+        var background = null;
+        this.Engine.StartBackgroundLoad();
+        var response = await fetchWithToken(`api/frame?${new Date().getTime()}`);
+        if(response.status == 200){
+            var blob = await response.blob()
+            background = URL.createObjectURL(blob);
+        }
         if(this.Config.frame.position){
-            this.Engine.LoadBackground(url, this.Config.frame.position).then(() => {
-                this.Engine.shapes.push(...this.Config.frame.digits.map(x => x.shape))
-                this.Engine.shapes.push(...this.Config.frame.states.map(x => x.shape))
-                this.Engine.shapes.push(this.Config.frame.crop.shape);
-                this.Engine.Update()
-            })
+            await this.Engine.LoadBackground(background, this.Config.frame.position)
+            this.Engine.shapes.push(...this.Config.frame.digits.map(x => x.shape))
+            this.Engine.shapes.push(...this.Config.frame.states.map(x => x.shape))
+            this.Engine.shapes.push(this.Config.frame.crop.shape);
+            this.Engine.Update()
         }
         else {
-            this.Engine.LoadBackground(url).then(position => {
-                var s = this.Engine.backgroundPosition.scale;
-                var shape = { 'vertices': [
-                    {x: 0, y: 0, index: 0}, 
-                    {x: this.Engine.background.width * s, y: 0, index: 1},
-                    {x: this.Engine.background.width * s, y: this.Engine.background.height * s, index: 2},
-                    {x: 0, y: this.Engine.background.height * s, index: 3}
-                ], 'type': 'poly', 'closed': true, 'highlight': false, 'color': '#000000'  };
+            var position = await this.Engine.LoadBackground(background)
+            var s = this.Engine.backgroundPosition.scale;
+            var shape = { 'vertices': [
+                {x: 0, y: 0, index: 0}, 
+                {x: this.Engine.background.width * s, y: 0, index: 1},
+                {x: this.Engine.background.width * s, y: this.Engine.background.height * s, index: 2},
+                {x: 0, y: this.Engine.background.height * s, index: 3}
+            ], 'type': 'poly', 'closed': true, 'highlight': false, 'color': '#000000'  };
 
-                this.Config.frame = {
-                    position: position,
-                    crop: { shape: shape, id: uuidv4() },
-                    digits: [],
-                    states: [],
-                    rotate: 0
-                };
-                this.Engine.shapes.push(shape);
-                this.Engine.Update();
-                this.setConfig(this.Config);
-            });
+            this.Config.frame = {
+                position: position,
+                crop: { shape: shape, id: uuidv4() },
+                digits: [],
+                states: [],
+                rotate: 0
+            };
+            this.Engine.shapes.push(shape);
+            this.Engine.Update();
+            this.setConfig(this.Config);
         }
     }
 
