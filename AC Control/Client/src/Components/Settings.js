@@ -25,15 +25,15 @@ class Settings extends React.Component {
                     <div className="settings">
                         <div className="setting">
                             <div className="setting-title">Camera Index</div>
-                            <input type="number" min="0" value={this.state.settings["cameraIndex"]} onChange={e => this.updateSettings("cameraIndex", e.target.value)}/>
+                            <input type="number" min="0" value={this.state.settings["cameraIndex"]} onChange={e => this.updateSettings("cameraIndex", Number(e.target.value))}/>
                         </div>
                         <div className="setting">
                             <div className="setting-title">Camera Exposure Setting</div>
-                            <input type="number" max="0" min="-13" value={this.state.settings["cameraExposure"]} onChange={e => this.updateSettings("cameraExposure", e.target.value)}/>
+                            <input type="number" max="0" min="-13" value={this.state.settings["cameraExposure"]} onChange={e => this.updateSettings("cameraExposure", Number(e.target.value))}/>
                         </div>
                         <div className="setting">
                             <div className="setting-title">Frame Refresh Delay</div>
-                            <input type="number" min="0" value={this.state.settings["frameRefreshDelay"]} onChange={e => this.updateSettings("frameRefreshDelay", e.target.value)}/>
+                            <input type="number" min="0" value={this.state.settings["frameRefreshDelay"]} onChange={e => this.updateSettings("frameRefreshDelay", Number(e.target.value))}/>
                         </div>
                     </div>
                 </div>
