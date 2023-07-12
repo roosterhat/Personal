@@ -26,6 +26,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 camera = None
 settings = None
 sessions = []
+lastLoginAttempt = datetime.now()
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -37,6 +38,10 @@ def serve(path):
 
 @app.route('/api/login', methods=["POST"])
 def login():
+    if lastLoginAttempt + timedelta(seconds=5) > datetime.now():
+        time.sleep((datetime.now() - lastLoginAttempt).seconds)
+
+    lastLoginAttempt = datetime.now()
     global settings
     body = request.get_json(force = True, silent = True)
     if body is None or "password" not in body:
@@ -52,8 +57,6 @@ def login():
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
-    finally:
-        f.close()
 
 @app.route('/api/list')
 def listConfigs():
