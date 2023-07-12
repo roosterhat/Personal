@@ -1,5 +1,6 @@
 import React from 'react'
 import LoadingSpinner from './Spinners/loading1';
+import { fetchWithToken } from '../Utility';
 
 class ConfigLoader extends React.Component {
     constructor(props){
@@ -43,7 +44,7 @@ class ConfigLoader extends React.Component {
     list = async () => {
         try {
             this.setState({loading: true})
-            const response = await fetch(`http://${window.location.hostname}:3001/api/list`)
+            const response = await fetchWithToken(`api/list`)
             if(response.status == 200)
                 this.setState({configs: await response.json()})
         }
