@@ -5,6 +5,7 @@ import CanvasEngine from '../canvasEngine';
 import EditBackground from './EditBackground';
 import EditFrame from './EditFrame';
 import Login from './Login';
+import Settings from './Settings';
 import { uuidv4, fetchWithToken, getCookie } from '../Utility';
 import '../Styles/styles.scss'
 
@@ -18,11 +19,13 @@ class Main extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            editing: false,
-            editingFrame: false,
+            editRemote: false,
+            editFrame: false,
+            editSettings: false,
             uploading: false,
             showConfigSelect: false,
             EditConfig: null,
+            EditSetting: null,
             error: null,
             loadingFrame: false,
             hasFrame: false,
@@ -58,7 +61,7 @@ class Main extends React.Component {
             return (
                 <div className="container">
                     <div className="content-container">
-                        { this.state.hasFrame && !this.state.editingFrame && !this.state.editing ? 
+                        { this.state.hasFrame && !this.state.editFrame && !this.state.editRemote ? 
                             <div className="frame-container">
                                 <div className="inner-frame">
                                     <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
@@ -74,23 +77,7 @@ class Main extends React.Component {
                         </div>  
                     </div>                       
                     <div className='controls'>
-                    {this.state.editing ?
-                        <EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>  
-                        :
-                    (this.state.editingFrame ?
-                        <EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>
-                        :
-                        (
-                            <div className="btn-container" id="normal">
-                                { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-pen-to-square"></i></button> : null }
-                                { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
-                                <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
-                                <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
-                                <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
-                            </div>   
-                        )
-                        )
-                    }       
+                    {this.renderMenus()}       
                     {this.state.showConfigSelect ? <ConfigLoader select={(config) => this.load(config)} close={() => this.setState({showConfigSelect: false})}/> : null}  
                     </div>   
                 </div>
@@ -100,6 +87,30 @@ class Main extends React.Component {
             return (<Login onLoginSuccess={this.init} />);
         }
     }    
+
+    renderMenus = () => {
+        if(this.state.editRemote) {
+            return (<EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>);
+        }
+        else if (this.state.editFrame) {
+            return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>);
+        }
+        else if (this.state.editSettings) {
+            return (<Settings Settings={this.state.EditSetting} complete={this.completeSettings} cancel={this.cancelEdit}></Settings>)
+        }
+        else {
+            return (
+                <div className="btn-container vertical" id="normal">
+                    { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-pen-to-square"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
+                    <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
+                    <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
+                    <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
+                    <button className="btn" onClick={this.editSettings}><i class="fa-solid fa-gear"></i></button>
+                </div>
+            )
+        }
+    }
 
     init = async () => {
         this.setState({loggedIn: true, checkingLogin: false})     
@@ -114,21 +125,32 @@ class Main extends React.Component {
 
     editFrame = () => {
         var config = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editingFrame: true, EditConfig: config})
+        this.setState({editFrame: true, EditConfig: config})
         this.Engine.SetEdit(true);
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
 
     editButtons = () => {
         var editConfig = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editing: true, EditConfig: editConfig})
+        this.setState({editRemote: true, EditConfig: editConfig})
         this.Engine.shapes = editConfig.buttons.map(x => x.shape);
         this.Engine.SetEdit(true);
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
 
+    editSettings = () => {
+        var settings = JSON.parse(JSON.stringify(this.Settings))
+        this.setState({editSettings: true, EditSetting: settings})
+    }
+
+    completeSettings = async (settings) => {
+        this.Settings = settings
+        this.setState({editSettings: false, EditSetting: null})
+        await this.saveSettings();
+    }
+
     newButtons = () => {
-        this.setState({editing: true, EditConfig: {
+        this.setState({editRemote: true, EditConfig: {
             'name': null,
             'buttons': [],
             'frame': {},
@@ -143,7 +165,7 @@ class Main extends React.Component {
     }
 
     cancelEdit = () => {
-        this.setState({editing: false, editingFrame: false, EditConfig: null, error: null})
+        this.setState({editRemote: false, editFrame: false, EditConfig: null, error: null, editSettings: false, EditSetting: null})
         this.switchToMainView();
     }
     
@@ -160,7 +182,7 @@ class Main extends React.Component {
             this.Engine.Reset()
             this.setState({saving: true, error: false}) 
             await this.save()
-            this.setState({saving: false, editing: false, editingFrame: false}) 
+            this.setState({saving: false, editRemote: false, editFrame: false}) 
             this.switchToMainView();            
         }
     }
@@ -276,13 +298,16 @@ class Main extends React.Component {
         });
         if(background) {
             this.Engine.StartBackgroundLoad();
-            fetchWithToken(`api/background/${background.file}`).then(async response => {
-                if(response.status == 200){
-                    var blob = await response.blob()
-                    await this.Engine.LoadBackground(URL.createObjectURL(blob), background.position)
-                    this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
-                }
-            })
+            try{
+                fetchWithToken(`api/background/${background.file}`).then(async response => {
+                    if(response.status == 200){
+                        var blob = await response.blob()
+                        await this.Engine.LoadBackground(URL.createObjectURL(blob), background.position)
+                        this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
+                    }
+                })
+            }
+            catch {}
         }
         //this.Engine.LoadBackground(`https://${window.location.hostname}:3001/api/background/${background.file}`, background.position).then(() => this.UpdateQueue.push(() => this.Engine.RefreshDimensions()))
         if(this.state.hasFrame)

@@ -63,22 +63,103 @@ body {
             }
         }
     }
+}
 
+.menu-container {
+    width: 70px;
+}
+
+.menu {
+    display: flex;
+    position: fixed;
+    right: 0;
+    height: 100%;
+    transition: transform 0.5s ease;
+    max-width: calc(100vw - 40px);
+
+    .expand {
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        position: absolute;
+        left: 0;
+        transform: translateX(-100%);
+
+        i {
+            transition: all 0.2s ease;
+        }
+    }
+
+    .menu-content {
+        background: #ffffffeb;
+        padding: 5px;
+    }
+
+    &.closed {
+        transform: translateX(100%);
+
+        .expand i {
+            transform: rotate(180deg)
+        }
+    }
+}
+
+.settings {
+    width: 300px;
+    height: 100%;
+    border: solid 1px #000;
+    padding: 5px;
+    border-radius: 5px;
+
+    .setting {
+        margin-bottom: 20px;
+        width: 100%;
+
+        .setting-title {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+        }
+    }
 }
 
 .btn-container {
     display: flex;
 
+    &.vertical {
+        flex-direction: column;
+    }
+
+    .title {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36;
+    }
+
     .btn {
         width: 50px;
         height: 50px;
-        margin: 10px;
+        margin: calc(min(max(100vw - 250px, 0px) / 360, 1px) * 10);
         padding: 0;
         position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        flex-shrink: 0;
+
+        &.cancel {
+            background: #ffd1d1;
+        }
+
+        &.confirm {
+            background: #afffaf;
+        }
 
         .lds-ring {
             width: 80%;

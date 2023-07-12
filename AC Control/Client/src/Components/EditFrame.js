@@ -2,6 +2,7 @@ import React from 'react'
 import LoadingSpinner from './Spinners/loading1';
 import Button from './button';
 import { fetchWithToken, uuidv4 } from '../Utility';
+import Menu from './Menu';
 
 class EditFrame extends React.Component {
     constructor(props) {
@@ -21,77 +22,79 @@ class EditFrame extends React.Component {
 
     render = () => {
         return (
-            <div className="edit">
-                <div className="btn-container editing">
-                    <button className="btn" onClick={() => this.rotateImage(-90)}><i className="fa-solid fa-rotate-left"></i></button>
-                    <button className="btn" onClick={() => this.rotateImage(90)}><i className="fa-solid fa-rotate-right"></i></button>                                
-                    <button className="btn" onClick={this.reset}><i className="fa-solid fa-eraser"></i></button>                                
-                    <div className='divider'></div>
-                    <button className='btn' onClick={this.cancel}><i className="fa-solid fa-xmark"></i></button>
-                    <button className="btn" onClick={this.complete}>{this.state.saving ? <LoadingSpinner /> : <i className="fa-solid fa-check"></i>}</button>
-                </div>
-                <div className="main-crop">
-                    <div className="crop-header">Main Crop</div>
-                    <div className="items">
-                        {this.Config.frame.crop ? 
-                            <Button 
-                                key={this.Config.frame.crop.id} 
-                                button={this.Config.frame.crop} 
-                                update={() => this.Engine.Update()}
-                                showName={false}
-                                showRemove={false}
-                                showAction={false}
-                            /> : null 
-                        }
+            <Menu>
+                <div className="edit">
+                    <div className="btn-container editing">
+                        <button className="btn" onClick={() => this.rotateImage(-90)}><i className="fa-solid fa-rotate-left"></i></button>
+                        <button className="btn" onClick={() => this.rotateImage(90)}><i className="fa-solid fa-rotate-right"></i></button>                                
+                        <button className="btn" onClick={this.reset}><i className="fa-solid fa-eraser"></i></button>                                
+                        <div className='divider'></div>
+                        <button className='btn cancel' onClick={this.cancel}><i className="fa-solid fa-xmark"></i></button>
+                        <button className="btn confirm" onClick={this.complete}>{this.state.saving ? <LoadingSpinner /> : <i className="fa-solid fa-check"></i>}</button>
                     </div>
-                </div>
-                <div className="item-crop">
-                    <div className="crop-header">
-                        <span>Digits</span>
-                        <button className="btn" onClick={this.addDigit}><i className="fa-solid fa-plus"></i></button>
-                    </div>
-                    <div className="items">
-                        {
-                            this.Config.frame.digits ? this.Config.frame.digits.map(button => 
+                    <div className="main-crop">
+                        <div className="crop-header">Main Crop</div>
+                        <div className="items">
+                            {this.Config.frame.crop ? 
                                 <Button 
-                                    key={button.id} 
-                                    button={button} 
+                                    key={this.Config.frame.crop.id} 
+                                    button={this.Config.frame.crop} 
                                     update={() => this.Engine.Update()}
-                                    remove={() => this.removeButton(button, this.Config.frame.digits)}
+                                    showName={false}
+                                    showRemove={false}
                                     showAction={false}
-                                />
-                            ) : null
-                        }
+                                /> : null 
+                            }
+                        </div>
                     </div>
-                </div>
-                <div className="item-crop">
-                    <div className="crop-header">
-                        <span>State Indicators</span>
-                        <button className="btn" onClick={this.addState}><i className="fa-solid fa-plus"></i></button>
+                    <div className="item-crop">
+                        <div className="crop-header">
+                            <span>Digits</span>
+                            <button className="btn" onClick={this.addDigit}><i className="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div className="items">
+                            {
+                                this.Config.frame.digits ? this.Config.frame.digits.map(button => 
+                                    <Button 
+                                        key={button.id} 
+                                        button={button} 
+                                        update={() => this.Engine.Update()}
+                                        remove={() => this.removeButton(button, this.Config.frame.digits)}
+                                        showAction={false}
+                                    />
+                                ) : null
+                            }
+                        </div>
                     </div>
-                    <div className="items">
-                        {
-                            this.Config.frame.digits ? this.Config.frame.states.map(button => 
-                                <Button 
-                                    key={button.id} 
-                                    button={button} 
-                                    update={() => this.Engine.Update()}
-                                    remove={() => this.removeButton(button, this.Config.frame.states)}
-                                    showAction={false}
-                                    showSampler={true}
-                                >
-                                    <div className="state-properties">
-                                        <div className="sample">
-                                            <div className="sample-color" style={{background: button.properties.activeColor}}></div>
-                                            <button onClick={() => this.sampleColor(button)}><i className="fa-solid fa-eye-dropper"></i></button>
+                    <div className="item-crop">
+                        <div className="crop-header">
+                            <span>State Indicators</span>
+                            <button className="btn" onClick={this.addState}><i className="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div className="items">
+                            {
+                                this.Config.frame.digits ? this.Config.frame.states.map(button => 
+                                    <Button 
+                                        key={button.id} 
+                                        button={button} 
+                                        update={() => this.Engine.Update()}
+                                        remove={() => this.removeButton(button, this.Config.frame.states)}
+                                        showAction={false}
+                                        showSampler={true}
+                                    >
+                                        <div className="state-properties">
+                                            <div className="sample">
+                                                <div className="sample-color" style={{background: button.properties.activeColor}}></div>
+                                                <button onClick={() => this.sampleColor(button)}><i className="fa-solid fa-eye-dropper"></i></button>
+                                            </div>
                                         </div>
-                                    </div>
-                                </Button>
-                            ) : null
-                        }
+                                    </Button>
+                                ) : null
+                            }
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Menu>
         )
     }
 

@@ -1,6 +1,7 @@
 {
 	"frameRefreshDelay": 100,
 	"cameraExposure": -8,
+	"cameraIndex": 0,
 	"password": "9b63e144af4782f1f710488d3630edc847953a6daf9980f9b0aeb79e4f50f1a48be4d9b1fed51e08c0232c85883f4a2f797b2ab9204d2a1f0d5f11a92d816a7b",
 	"salt": "8ad9b467476f4f3da7a2418d4733f2d7"
 }
