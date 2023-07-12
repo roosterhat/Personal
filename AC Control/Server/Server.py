@@ -38,6 +38,7 @@ def serve(path):
 
 @app.route('/api/login', methods=["POST"])
 def login():
+    global lastLoginAttempt
     if lastLoginAttempt + timedelta(seconds=5) > datetime.now():
         time.sleep((datetime.now() - lastLoginAttempt).seconds)
 
