@@ -51,7 +51,7 @@ class Settings extends React.Component {
                             <div className="setting-title">Debug State</div>
                             <div className="debug-container">
                                 <div className="debug-header">
-                                    <select name="buttons" id="toggle-select">
+                                    <select name="buttons" id="toggle-select" onSelect={() => this.setState({debugState: null})}>
                                         {this.state.config.frame.states.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                                     </select>
                                     <div>
@@ -86,10 +86,7 @@ class Settings extends React.Component {
                                                         value={this.state.selectedState.properties.stateActivationThreshold}
                                                         onChange={e => this.updateStateProperty("stateActivationThreshold", Number(e.target.value))}/>
                                                 </div>
-                                                <div className="debug-active-color">
-                                                    <div className='color' style={{background: this.state.selectedState.properties.activeColor}}></div>
-                                                    <div>Active color</div>
-                                                </div>
+                                                <div className="debug-active-color" style={{background: this.state.selectedState.properties.activeColor}}></div>
                                             </div>
                                             <button className="debug-test" onClick={() => this.debugState(this.state.selectedState)}>{this.state.loadDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
                                         </div>
