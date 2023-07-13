@@ -138,6 +138,105 @@ body {
             width: 100%;
         }
     }
+
+    .debug-container {
+        border: solid 1px #000;
+        border-radius: 5px;
+        padding: 5px;
+
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+    
+            & > div {
+                display: flex;
+                
+                .debug {
+                    width: 55px;
+                    height: 27px;
+                    margin-right: 5px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+    
+                    .lds-ring {
+                        transform: scale(50%)
+                    }
+                }
+            }
+        }
+    
+        .debug-canvas-container {
+            display: flex;
+            margin-top: 5px;
+    
+            .canvas-container {
+                width: 100%;
+                position: relative;
+                flex-direction: column;    
+                
+                &:not(:last-child) {
+                    margin-right: 5px;
+                }
+    
+                canvas {
+                    width: 100%;
+                    border: solid 1px #000;
+                    position: relative;
+                    inset: auto;                    
+                }
+            }
+        }
+
+        .debug-status {
+            .active {
+                color: green;
+            }
+
+            .inactive {
+                color: red;
+            }
+        }
+
+        .debug-properties-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+
+            & > div {
+                display: flex;
+            }
+
+            .debug-property {
+                &:not(:last-child) {
+                    margin-right: 10px;
+                }
+            }
+
+            .debug-test {
+                width: 55px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+
+                .lds-ring {
+                    transform: scale(50%)
+                }
+            }
+
+            .debug-active-color {
+                display: flex;
+                align-items: center;
+
+                .color {
+                    background: rgb(9, 170, 11);
+                    height: 50%;
+                    aspect-ratio: 1;
+                    margin-right: 5px;
+                }
+            }
+        }
+    }    
 }
 
 .btn-container {

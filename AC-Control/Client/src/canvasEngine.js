@@ -213,7 +213,7 @@ class CanvasEngine {
         for (var row = 0; row < result.height; row++) {
             for (var col = 0; col < result.width; col++) {
                 var d = this.Dist({x: col, y: row}, center);
-                var index = (row * result.height + col) * 4;
+                var index = (row * result.width + col) * 4;
                 if(d > radius - borderThickness && d <= radius) {
                     result.data.set(borderColor, index)
                 }
