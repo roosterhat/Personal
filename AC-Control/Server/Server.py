@@ -221,6 +221,29 @@ def sampleFrameEllipse(frame, state, config):
     activation = count / ((y2-y1) * (x2-x1)) * 100
     threshold = state["properties"]["stateActivationThreshold"] if "stateActivationThreshold" in state["properties"] else 5
     return activation >= threshold
+
+def debugSampleFrameEllipse(frame, state, config):
+    shape = state["shape"]
+    scale = config["position"]["scale"]
+    x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
+    x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
+    y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
+    y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
+    mask = np.ndarray((y2-y1, x2-x1), np.uint8)
+    cx = int(shape["x"] / scale)
+    cy = int(shape["y"] / scale)
+    r1 = int(shape["r1"] / scale)
+    r2 = int(shape["r2"] / scale)
+    activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
+    threshold = state["properties"]["colorDistanceThreshold"] if "colorDistanceThreshold" in state["properties"] else 20
+    for y in range(y1, y2):
+        for x in range(x1, x2):
+            if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0 and colorDistance(activeColor, frame[y][x]) <= threshold:
+                mask[y - y1][x - x1] = 255 if colorDistance(activeColor, frame[y][x]) <= threshold else 0
+            else:
+                mask[y - y1][x - x1] = 0
+
+    return Image.fromarray(mask, "L")
  
 @app.route('/api/state/<id>')
 def getState(id):
@@ -250,6 +273,31 @@ def getState(id):
         #         digit["value"] = None
 
         return currentState, 200, {'Content-Type':'image'} 
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    
+@app.route('/api/state/debug/<id>/<stateId>')
+def getStateDebug(id, stateId):
+    if not verifyToken():
+        return "Unauthorized", 401
+    try:
+        f = open(f"./Data/Configs/{id}", 'rb')
+        config = json.loads(f.read())
+        f.close()
+        if "frame" not in config:
+            return "No frame data", 400
+        
+        result, status = getCameraFrame()
+        if status != 200:
+            return result, status
+        frame = result
+
+        state = next((x for x in config["frame"]["states"] if x.id == stateId), None)
+        if state:
+            return debugSampleFrameEllipse(frame, state, config["frame"]), 200, {'Content-Type':'image'} 
+        else:
+            return "No state found", 404
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
