@@ -7,11 +7,12 @@ import uuid
 import io
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageColor
 from datetime import datetime, timedelta
 import time
 from threading import Thread
 import hashlib
+import math
 
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
@@ -193,10 +194,47 @@ def background(filename):
     finally:
         f.close()
 
-def sampleFrameEllipse(frame, shape):
-    patch = frame[(shape["x"] - shape["r1"])::(shape["x"] + shape["r1"]), (shape["y"] - shape["r2"])::(shape["y"] + shape["r2"])]
-    image = Image.fromarray(patch)
-    image.save("test.png", ".png")
+def colorDistance(c1, c2):
+    rBar = 0.5 * (c1[0] + c2[0])
+    dC = pow((2 + rBar / 256) * (c1[0] - c2[0]) + 4 * pow(c1[1] - c2[1], 2) + (2 + (255 - rBar) / 256) * (c1[2] - c2[2]), 1/2)
+    return 300 if math.isnan(dC) else dC
+
+def sampleFrameEllipse(frame, state, config):
+    shape = state["shape"]
+    scale = config["position"]["scale"]
+    x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
+    x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
+    y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
+    y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
+    # patch = np.ndarray((y2-y1, x2-x1, 3), np.uint8)
+    # mask = np.ndarray((y2-y1, x2-x1), np.uint8)
+    cx = int(shape["x"] / scale)
+    cy = int(shape["y"] / scale)
+    r1 = int(shape["r1"] / scale)
+    r2 = int(shape["r2"] / scale)
+    activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
+    threshold = state["properties"]["colorDistanceThreshold"] if "colorDistanceThreshold" in state["properties"] else 20
+    print(activeColor, threshold)
+    count = 0
+    for y in range(y1, y2):
+        for x in range(x1, x2):
+            if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0 and colorDistance(activeColor, frame[y][x]) <= threshold:
+                count += 1
+                #print(frame[y][x], colorDistance(activeColor, frame[y][x]))
+            #     mask[y - y1][x - x1] = 255 if colorDistance(activeColor, frame[y][x]) <= threshold else 0
+            #     patch[y - y1][x - x1] = frame[y][x]
+            # else:
+            #     mask[y - y1][x - x1] = 0
+            #     patch[y - y1][x - x1] = [0,0,0]
+
+    activation = count / ((y2-y1) * (x2-x1)) * 100
+    print(activation)
+    threshold = state["properties"]["colorActivationThreshold"] if "colorActivationThreshold" in state["properties"] else 5
+    return activation >= threshold
+    # image = Image.fromarray(patch)
+    # image.save(state["id"]+"_patch.png")
+    # image = Image.fromarray(mask, "L")
+    # image.save(state["id"]+"_mask.png")
  
 @app.route('/api/state/<id>')
 def getState(id):
@@ -216,13 +254,9 @@ def getState(id):
         frame = result
 
         if "states" in config["frame"]:
-            sampleFrameEllipse(frame, config["frame"]["states"][0]["shape"])
-
-        # 
-        #     currentState["states"] = config["frame"]["states"]
-        #     for state in currentState["states"]:
-        #         if state:
-        #             state["active"] = True
+            currentState["states"] = config["frame"]["states"]
+            for state in config["frame"]["states"]:
+                state["active"] = sampleFrameEllipse(frame, state, config["frame"])
 
         # if "digits" in config["frame"]:
         #     currentState["digits"] = config["frame"]["digits"]
