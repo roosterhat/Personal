@@ -254,8 +254,8 @@ def debugSampleFrameEllipse(frame, state, config):
  
 @app.route('/api/state/<id>')
 def getState(id):
-    #if not verifyToken():
-    #    return "Unauthorized", 401
+    if not verifyToken():
+        return "Unauthorized", 401
     try:
         currentState = {}
         f = open(f"./Data/Configs/{id}", 'rb')
@@ -286,8 +286,8 @@ def getState(id):
     
 @app.route('/api/state/debug/<id>/<stateId>', methods=['POST', 'GET'])
 def getStateDebug(id, stateId):
-    #if not verifyToken():
-    #    return "Unauthorized", 401
+    if not verifyToken():
+        return "Unauthorized", 401
     try:        
         f = open(f"./Data/Configs/{id}", 'rb')
         config = json.loads(f.read())
