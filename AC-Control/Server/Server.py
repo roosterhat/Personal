@@ -296,7 +296,10 @@ def getStateDebug(id, stateId):
         state = next((x for x in config["frame"]["states"] if x["id"] == stateId), None)
         if state:
             image = debugSampleFrameEllipse(frame, state, config["frame"])
-            return bytes(image), 200, {'Content-Type':'image'} 
+            buffer = io.BytesIO()
+            image.save(buffer, "png")
+            buffer.seek(0)
+            return buffer, 200, {'Content-Type':'image'} 
         else:
             return "No state found", 404
     except Exception as ex:
