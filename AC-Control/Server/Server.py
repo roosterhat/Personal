@@ -243,8 +243,8 @@ def debugSampleFrameEllipse(frame, state, config):
             else:
                 mask[y - y1][x - x1] = 0
 
-    return Image.fromarray(mask, "L")
- 
+    return mask
+
 @app.route('/api/state/<id>')
 def getState(id):
     #if not verifyToken():
@@ -293,7 +293,7 @@ def getStateDebug(id, stateId):
             return result, status
         frame = result
 
-        state = next((x for x in config["frame"]["states"] if x.id == stateId), None)
+        state = next((x for x in config["frame"]["states"] if x["id"] == stateId), None)
         if state:
             return debugSampleFrameEllipse(frame, state, config["frame"]), 200, {'Content-Type':'image'} 
         else:
