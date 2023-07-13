@@ -197,7 +197,7 @@ def sampleFrameEllipse(frame, shape):
     patch = frame[(shape["x"] - shape["r1"])::(shape["x"] + shape["r1"]), (shape["y"] - shape["r2"])::(shape["y"] + shape["r2"])]
     image = Image.fromarray(patch)
     image.save("test.png", ".png")
-
+ 
 @app.route('/api/state/<id>')
 def getState(id):
     #if not verifyToken():
