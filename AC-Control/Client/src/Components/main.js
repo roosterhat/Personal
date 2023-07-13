@@ -14,6 +14,7 @@ class Main extends React.Component {
     Engine = new CanvasEngine();
     Config = null;
     Settings = null;
+    State = null;
     UpdateQueue = []
 
     constructor(props) {
@@ -28,6 +29,7 @@ class Main extends React.Component {
             EditSetting: null,
             error: null,
             loadingFrame: false,
+            loadingState: false,
             hasFrame: false,
             loggedIn: false,
             checkingLogin: true
@@ -65,7 +67,7 @@ class Main extends React.Component {
                             <div className="frame-container">
                                 <div className="inner-frame">
                                     <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
-                                    <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
+                                    <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrameAndState}><i className="fa-solid fa-arrows-rotate"></i></div>
                                 </div>
                             </div>
                             :
@@ -98,7 +100,7 @@ class Main extends React.Component {
             return (<EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>);
         }
         else if (this.state.editFrame) {
-            return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>);
+            return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit} refresh={this.refreshEditFrame}/>);
         }
         else if (this.state.editSettings) {
             return (<Settings Settings={this.state.EditSetting} complete={this.completeSettings} cancel={this.cancelEdit}></Settings>)
@@ -123,8 +125,10 @@ class Main extends React.Component {
             this.Engine.Init();
             await this.getSettings();
             await this.load("default")
-            if(await this.checkHasWebcam())
-                this.UpdateQueue.push(this.refreshFrame)
+            if(await this.checkHasWebcam()) {
+                this.UpdateQueue.push(this.refreshFrame)       
+                this.refreshState();     
+            }
         })
     }
 
@@ -275,24 +279,45 @@ class Main extends React.Component {
         try {
             const response = await fetchWithToken(`api/trigger/${this.Config.id}/${id}`)
             await new Promise(resolve => setTimeout(resolve, this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100));
-            this.refreshFrame();
+            this.refreshFrameAndState();
         }
         catch(ex) {
             console.error(ex);
         } 
     }
 
+    refreshFrameAndState = () => {
+        this.refreshFrame();
+        this.refreshState();
+    }
+
     refreshFrame = async () => {
         this.setState({loadingFrame: true});
         var elem = document.getElementById("frame");
         if(elem){
-            var response = await fetchWithToken(`api/frame/${this.Config ? this.Config.id : ""}?${new Date().getTime()}`)
+            try{
+                var response = await fetchWithToken(`api/frame/${this.Config ? this.Config.id : ""}?${new Date().getTime()}`)
+                if(response.status == 200){
+                    var blob = await response.blob()
+                    elem.src = URL.createObjectURL(blob)
+                }
+            }
+            catch {}
+        }
+    }
+
+    refreshState = async () => {
+        if(!(this.Config.frame && this.Config.frame.states && this.Config.frame.states.length > 0)) return;
+        try {
+            this.setState({loadingState: true});
+            var response = await fetchWithToken(`api/state/${this.Config.id}`)
             if(response.status == 200){
-                var blob = await response.blob()
-                elem.src = URL.createObjectURL(blob)
+                this.State = await response.json()
             }
         }
-        //elem.src = `https://${window.location.hostname}:3001/api/frame/${this.Config ? this.Config.id : ""}?${new Date().getTime()}`;
+        finally {
+            this.setState({loadingState: false});
+        }
     }
 
     checkHasWebcam = async () => {
@@ -332,7 +357,7 @@ class Main extends React.Component {
         }
         //this.Engine.LoadBackground(`https://${window.location.hostname}:3001/api/background/${background.file}`, background.position).then(() => this.UpdateQueue.push(() => this.Engine.RefreshDimensions()))
         if(this.state.hasFrame)
-            this.UpdateQueue.push(this.refreshFrame)
+            this.UpdateQueue.push(this.refreshFrameAndState)
     }
 
     checkAuthorized = async() => {

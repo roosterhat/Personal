@@ -9,7 +9,8 @@ class EditFrame extends React.Component {
         super(props);
 
         this.state = {
-            saving: false
+            saving: false,
+            toggle: false
         }
 
         this.Config = props.Config;
@@ -47,10 +48,12 @@ class EditFrame extends React.Component {
                             }
                         </div>
                     </div>
-                    <div className="item-crop">
+                    <div className="item-crop minimal">
                         <div className="crop-header">
-                            <span>Digits</span>
-                            <button className="btn" onClick={this.addDigit}><i className="fa-solid fa-plus"></i></button>
+                            <div className="header-title">
+                                <span>Digits</span>
+                                <button className="btn" onClick={this.addDigit}><i className="fa-solid fa-plus"></i></button>
+                            </div>                            
                         </div>
                         <div className="items">
                             {
@@ -68,12 +71,20 @@ class EditFrame extends React.Component {
                     </div>
                     <div className="item-crop">
                         <div className="crop-header">
-                            <span>State Indicators</span>
-                            <button className="btn" onClick={this.addState}><i className="fa-solid fa-plus"></i></button>
+                            <div className="header-title">
+                                <span>State Indicators</span>
+                                <button className="btn" onClick={this.addState}><i className="fa-solid fa-plus"></i></button>
+                            </div>
+                            <div className="header-action">
+                                <select name="buttons" id="toggle-select">
+                                    {this.Config.buttons.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                                </select>
+                                <button onClick={this.toggleState}>{this.state.toggle ? <LoadingSpinner id="spinner" /> : "Trigger"}</button>
+                            </div>
                         </div>
                         <div className="items">
                             {
-                                this.Config.frame.digits ? this.Config.frame.states.map(button => 
+                                this.Config.frame.states ? this.Config.frame.states.map(button => 
                                     <Button 
                                         key={button.id} 
                                         button={button} 
@@ -83,9 +94,24 @@ class EditFrame extends React.Component {
                                         showSampler={true}
                                     >
                                         <div className="state-properties">
-                                            <div className="sample">
-                                                <div className="sample-color" style={{background: button.properties.activeColor}}></div>
-                                                <button onClick={() => this.sampleColor(button)}><i className="fa-solid fa-eye-dropper"></i></button>
+                                            <div>
+                                                <div>CDT</div>
+                                                <input type="number" min="0" max="50" 
+                                                    value={button.properties.colorDistanceThreshold} 
+                                                    onChange={e => this.updateStateProperty(button, "colorDistanceThreshold", Number(e.target.value))}/>
+                                            </div>
+                                            <div>
+                                                <div>SAT</div>
+                                                <input type="number" min="1" max="100" 
+                                                    value={button.properties.stateActivationThreshold}
+                                                    onChange={e => this.updateStateProperty(button, "stateActivationThreshold", Number(e.target.value))}/>
+                                            </div>
+                                            <div>
+                                                <div>Active Color</div>
+                                                <div className="sample">
+                                                    <div className="sample-color" style={{background: button.properties.activeColor}}></div>
+                                                    <button onClick={() => this.sampleColor(button)}><i className="fa-solid fa-eye-dropper"></i></button>
+                                                </div>
                                             </div>
                                         </div>
                                     </Button>
@@ -101,7 +127,6 @@ class EditFrame extends React.Component {
     init = async () => {
         this.Engine.shapes = []
         this.Engine.imageEffects.rotate = this.Config.frame.rotate
-        //var url = `http://${window.location.hostname}:3001/api/frame?${new Date().getTime()}`;
         var background = null;
         this.Engine.StartBackgroundLoad();
         var response = await fetchWithToken(`api/frame?${new Date().getTime()}`);
@@ -178,15 +203,23 @@ class EditFrame extends React.Component {
         var r = 20;
         var shape = { 'x': 0, 'y': 0, r1: r, r2: r, 'type': 'ellipse', 'closed': true, 'highlight': false, 'color': this.Config.frame.crop.shape.color };
 
-        this.Config.frame.states.push({
+        var state = {
             shape: shape,
             id: uuidv4(),
             name: '', 
-            properties: {},
-            index: this.Config.frame.states.length + 1
-        });
+            properties: { "colorDistanceThreshold": 20, "stateActivationThreshold": 5, "activeColor": null },
+            index: this.Config.frame.states.length + 1            
+        }
+
         this.Engine.shapes.push(shape);
+        this.Engine.currentDrag = {
+            "item": shape, 
+            "type": "ellipse", 
+            "onDragStop": (e) => {state.properties.activeColor = this.Engine.SampleBackgroundColor(e); this.setConfig(this.Config);}
+        };
+        this.Engine.dragging = true
         this.Engine.Update();
+        this.Config.frame.states.push(state);
         this.setConfig(this.Config);
     }
 
@@ -207,8 +240,36 @@ class EditFrame extends React.Component {
             index: this.Config.frame.digits.length + 1
         });
         this.Engine.shapes.push(shape);
+        this.Engine.currentDrag = {"item": shape, "type": "poly"};
+        this.Engine.dragging = true
+        this.Engine.lastMouse = {x: s/2, y: s/2};
         this.Engine.Update();
         this.setConfig(this.Config);
+    }
+
+    updateStateProperty(state, key, value) {
+        state.properties[key] = value;
+        this.setConfig(this.Config);
+    }
+
+    toggleState = () => {
+        var elem = document.getElementById("toggle-select")
+        if(elem){
+            var id = elem.value;
+            if(id)
+                this.triggerIr(id)
+        }
+    }
+
+    triggerIr = async (id) => {
+        try {
+            const response = await fetchWithToken(`api/trigger/${this.Config.id}/${id}`)
+            await new Promise(resolve => setTimeout(resolve, this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100));
+            this.props.refresh();
+        }
+        catch(ex) {
+            console.error(ex);
+        } 
     }
 }
 

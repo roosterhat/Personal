@@ -206,35 +206,21 @@ def sampleFrameEllipse(frame, state, config):
     x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
     y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
     y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
-    # patch = np.ndarray((y2-y1, x2-x1, 3), np.uint8)
-    # mask = np.ndarray((y2-y1, x2-x1), np.uint8)
     cx = int(shape["x"] / scale)
     cy = int(shape["y"] / scale)
     r1 = int(shape["r1"] / scale)
     r2 = int(shape["r2"] / scale)
     activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
     threshold = state["properties"]["colorDistanceThreshold"] if "colorDistanceThreshold" in state["properties"] else 20
-    print(activeColor, threshold)
     count = 0
     for y in range(y1, y2):
         for x in range(x1, x2):
             if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0 and colorDistance(activeColor, frame[y][x]) <= threshold:
                 count += 1
-                #print(frame[y][x], colorDistance(activeColor, frame[y][x]))
-            #     mask[y - y1][x - x1] = 255 if colorDistance(activeColor, frame[y][x]) <= threshold else 0
-            #     patch[y - y1][x - x1] = frame[y][x]
-            # else:
-            #     mask[y - y1][x - x1] = 0
-            #     patch[y - y1][x - x1] = [0,0,0]
 
     activation = count / ((y2-y1) * (x2-x1)) * 100
-    print(activation)
-    threshold = state["properties"]["colorActivationThreshold"] if "colorActivationThreshold" in state["properties"] else 5
+    threshold = state["properties"]["stateActivationThreshold"] if "stateActivationThreshold" in state["properties"] else 5
     return activation >= threshold
-    # image = Image.fromarray(patch)
-    # image.save(state["id"]+"_patch.png")
-    # image = Image.fromarray(mask, "L")
-    # image.save(state["id"]+"_mask.png")
  
 @app.route('/api/state/<id>')
 def getState(id):
@@ -274,12 +260,7 @@ def getState(id):
 def frame(id = None):
     if not verifyToken():
         return "Unauthorized", 401
-    try:        
-        # image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
-        # data = image.read()
-        # image.close()
-        # return data, 200, {'Content-Type':'image/png'}                 
-        
+    try:                
         result, status = getCameraFrame()
         if status != 200:
             return result, status
@@ -361,6 +342,9 @@ def setupCamera():
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
 def getCameraFrame():
+    # data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
+    # data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
+    # return data, 200
     global camera
     if not camera:
         print("Camera not initialized, attempting to connect")

@@ -78,6 +78,8 @@ class CanvasEngine {
         })
     
         this.canvas.addEventListener("mousedown", (event) => {
+            if(this.dragging && this.currentDrag.onDragStop)
+                this.currentDrag.onDragStop(event)
             this.dragging = this.editing && !this.currentShape && this.canDrag;
             var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
             this.Update(mouse);
@@ -251,6 +253,7 @@ class CanvasEngine {
         var r = 2;
         var p = {};
         var d = 0;
+        var reach = this.magnify ? 5 : 10;
         var coord = this.OriginalBackgroundToCanvasCoordinates(shape);
         var scale = this.BackgroundScaleRatio();
 
@@ -258,8 +261,8 @@ class CanvasEngine {
         p = {x: coord.x + shape.r1 * scale, y: coord.y};
         d = this.Dist(p, mouse) * scale;
         this.context.moveTo(p.x, p.y);
-        this.context.ellipse(p.x, p.y, r, r, 0, 0, 2 * Math.PI)
-        if(!this.currentShape && !this.dragging && d <= 15) {
+        this.context.ellipse(p.x, p.y, r, r, 0, 0, 2 * Math.PI)        
+        if(!this.currentShape && !this.dragging && d <= reach) {
             this.canDrag = true
             this.currentDrag = {'item': shape, 'type': 'radius-h'}
         }
@@ -270,7 +273,7 @@ class CanvasEngine {
         d = this.Dist(p, mouse) * scale;
         this.context.moveTo(p.x, p.y);
         this.context.ellipse(p.x, p.y, r, r, 0, 0, 2 * Math.PI)
-        if(!this.currentShape && !this.dragging && d <= 15) {
+        if(!this.currentShape && !this.dragging && d <= reach) {
             this.canDrag = true
             this.currentDrag = {'item': shape, 'type': 'radius-v'}
         }  
@@ -303,6 +306,7 @@ class CanvasEngine {
     }
 
     DrawVerticies(shape, mouse) {
+        var reach = this.magnify ? 5 : 10;
         for(var vertex of shape.vertices) {
             this.context.beginPath();
             var coord = this.OriginalBackgroundToCanvasCoordinates(vertex);
@@ -311,7 +315,7 @@ class CanvasEngine {
             var d = this.Dist(coord, mouse) * scale;
             var r = shape === this.currentShape && vertex.index == 0 && shape.vertices.length > 2  ? Math.max(Math.min(100 / d, 10), 2) : 2;
             this.context.ellipse(coord.x, coord.y, r, r, 0, 0, 2 * Math.PI)
-            if(!this.currentShape && !this.dragging && d <= 15) {
+            if(!this.currentShape && !this.dragging && d <= reach) {
                 this.canDrag = true
                 this.currentDrag = {'item': vertex, 'type': 'vertex'}
             }
@@ -321,6 +325,9 @@ class CanvasEngine {
 
     DrawCenter(shape, mouse) {
         if(shape.closed){
+            var reach = this.magnify ? 5 : 15;
+            var expand = this.magnify ? 20 : 100;
+            var expandRadius = this.magnify ? 3 : 5;
             this.context.beginPath();
             if(shape.type == 'poly') {
                 var center = this.Center(shape);
@@ -328,9 +335,9 @@ class CanvasEngine {
                 var scale = this.BackgroundScaleRatio();
                 this.context.moveTo(coord.x, coord.y);
                 var d = this.Dist(coord, mouse) * scale;
-                var r = !this.currentShape && !(this.dragging && this.currentDrag.item !== shape) ? Math.max(Math.min(100 / d, 5), 2) : 2;
+                var r = !this.currentShape && !(this.dragging && this.currentDrag.item !== shape) ? Math.max(Math.min(expand / d, expandRadius), 2) : 2;
                 this.context.ellipse(coord.x, coord.y, r, r, 0, 0, 2 * Math.PI)
-                if(!this.currentShape && !this.dragging && d <= 15) {
+                if(!this.currentShape && !this.dragging && d <= reach) {
                     this.canDrag = true
                     this.currentDrag = {'item': shape, 'type': 'poly'}
                 }            
@@ -340,9 +347,9 @@ class CanvasEngine {
                 var scale = this.BackgroundScaleRatio();
                 this.context.moveTo(coord.x, coord.y);
                 var d = this.Dist(coord, mouse) * scale;
-                var r = !this.currentShape && !(this.dragging && this.currentDrag.item === shape && this.currentDrag.type !== 'ellipse') ? Math.max(Math.min(100 / d, 5), 2) : 2;
+                var r = !this.currentShape && !(this.dragging && this.currentDrag.item === shape && this.currentDrag.type !== 'ellipse') ? Math.max(Math.min(expand / d, expandRadius), 2) : 2;
                 this.context.ellipse(coord.x, coord.y, r, r, 0, 0, 2 * Math.PI)
-                if(!this.currentShape && !this.dragging && d <= 15) {
+                if(!this.currentShape && !this.dragging && d <= reach) {
                     this.canDrag = true
                     this.currentDrag = {'item': shape, 'type': 'ellipse'}
                 }
@@ -499,6 +506,29 @@ class CanvasEngine {
         this.magnify = true;
         this.Update();
         return promise;
+    }
+
+    SampleBackgroundColor(point) {
+        var context = this.canvas.getContext("2d");
+        var elem = document.getElementById("canvas-container")
+        var dims = elem.getBoundingClientRect();
+        context.canvas.width = dims.width;
+        context.canvas.height = dims.height;
+        if(this.backgroundLoaded){
+            context.translate(context.canvas.width/2, context.canvas.height/2);
+            if(this.imageEffects){
+                if(this.imageEffects.rotate){                    
+                    context.rotate(this.imageEffects.rotate * Math.PI / 180);
+                }
+            }
+            var scale = Math.min(context.canvas.width / this.background.width, context.canvas.height / this.background.height);
+            var x =  - (this.background.width / 2) * scale;
+            var y =  - (this.background.height / 2) * scale;
+            context.drawImage(this.background, x, y, this.background.width * scale, this.background.height * scale);
+            this.backgroundPosition = {'scale': scale, 'x': (context.canvas.width / 2) + x, 'y': (context.canvas.height / 2) + y};
+            context.translate(-context.canvas.width/2, -context.canvas.height/2);
+        }
+        return "#"+Array.from(context.getImageData(point.x, point.y, 1, 1).data).map(x => x.toString(16).padStart(2,'0')).join('');
     }
 
     SampleColor(point) {
