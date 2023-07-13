@@ -37,12 +37,11 @@ def serve(path):
 
 @app.route('/api/login', methods=["POST"])
 def login():
-    global lastLoginAttempt
+    global lastLoginAttempt, settings
     if lastLoginAttempt + timedelta(seconds=5) > datetime.now():
         time.sleep((datetime.now() - lastLoginAttempt).seconds)
 
     lastLoginAttempt = datetime.now()
-    global settings
     body = request.get_json(force = True, silent = True)
     if body is None or "password" not in body:
         return 'Bad login', 400
@@ -61,7 +60,7 @@ def login():
 @app.route('/api/list')
 def listConfigs():
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     try:
         names = []
         for file in ([f for f in listdir('./Data/Configs') if Path.isfile(Path.join('./Data/Configs', f))]):
@@ -82,7 +81,7 @@ def listConfigs():
 @app.route('/api/save', methods=["POST"])
 def saveConfig():
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     body = request.get_json(force = True, silent = True)
     if body is None:
         return 'No config data', 400
@@ -105,7 +104,7 @@ def saveConfig():
 @app.route('/api/retrieve/<id>')
 def retrieveConfig(id):
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     try:
         if id == 'default':
             f = open("./Data/default", 'r')
@@ -129,7 +128,7 @@ def retrieveConfig(id):
 @app.route('/api/settings', methods=["POST"])
 def saveSettings():
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     global settings
     body = request.get_json(force = True, silent = True)
     if body is None:
@@ -149,7 +148,7 @@ def saveSettings():
 @app.route('/api/settings', methods=["GET"])
 def retrieveSettings():
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     try:
         f = open(f"./Data/settings", 'rb')
         data = f.read()
@@ -163,7 +162,7 @@ def retrieveSettings():
 @app.route('/api/upload', methods=["POST"])
 def upload():
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     file = request.get_data()
     if file is None or not any(file):
         return 'No file data', 400
@@ -181,7 +180,7 @@ def upload():
 @app.route('/api/background/<filename>')
 def background(filename):
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     if not Path.isfile('./Data/Backgrounds/'+filename):
         return 'File does not exists', 400
     try:
@@ -194,34 +193,64 @@ def background(filename):
     finally:
         f.close()
 
+def sampleFrameEllipse(frame, shape):
+    patch = frame[(shape["x"] - shape["r1"])::(shape["x"] + shape["r1"]), (shape["y"] - shape["r2"])::(shape["y"] + shape["r2"])]
+    image = Image.fromarray(patch)
+    image.save("test.png", ".png")
+
+@app.route('/api/state/<id>')
+def getState(id):
+    #if not verifyToken():
+    #    return "Unauthorized", 401
+    try:
+        currentState = {}
+        f = open(f"./Data/Configs/{id}", 'rb')
+        config = json.loads(f.read())
+        f.close()
+        if "frame" not in config:
+            return "No frame data", 400
+        
+        result, status = getCameraFrame()
+        if status != 200:
+            return result, status
+        frame = result
+
+        if "states" in config["frame"]:
+            sampleFrameEllipse(frame, config["frame"]["states"][0]["shape"])
+
+        # 
+        #     currentState["states"] = config["frame"]["states"]
+        #     for state in currentState["states"]:
+        #         if state:
+        #             state["active"] = True
+
+        # if "digits" in config["frame"]:
+        #     currentState["digits"] = config["frame"]["digits"]
+        #     for digit in currentState["digits"]:
+        #         digit["value"] = None
+
+        return currentState, 200, {'Content-Type':'image'} 
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+
+
 @app.route('/api/frame')
 @app.route('/api/frame/<id>')
 def frame(id = None):
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     try:        
         # image = open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg", 'rb')
         # data = image.read()
         # image.close()
-        # return data, 200, {'Content-Type':'image/png'} 
-        global camera
-        if not camera:
-            print("Camera not initialized, attempting to connect")
-            setupCamera()
-            if not camera:
-                return "Failed to connect camera", 500
-            
-        if not camera.isOpened():
-            return "Failed open camera", 500
-            
-        if "cameraExposure" in settings:
-            camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+        # return data, 200, {'Content-Type':'image/png'}                 
+        
+        result, status = getCameraFrame()
+        if status != 200:
+            return result, status
+        frame = result
 
-        camera.read()
-        success, frame = camera.read()
-        if not success:
-            return "Can't receive frame", 500
-                
         config = {}
         if id is not None:
             f = open(f"./Data/Configs/{id}", 'rb')
@@ -259,7 +288,7 @@ def frame(id = None):
 @app.route('/api/trigger/<config>/<id>')
 def trigger(config, id):
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     if not Path.isfile('./Data/Configs/'+config):
         return 'Config does not exists', 400
     try:
@@ -279,7 +308,7 @@ def trigger(config, id):
 @app.route('/api/test/authorize')
 def testAuthorize():
     if not verifyToken():
-        return "Unauthorized", 403
+        return "Unauthorized", 401
     else:
         return "Success", 200
 
@@ -296,6 +325,27 @@ def setupCamera():
         camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if "cameraExposure" in settings:
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+
+def getCameraFrame():
+    global camera
+    if not camera:
+        print("Camera not initialized, attempting to connect")
+        setupCamera()
+        if not camera:
+            return "Failed to connect camera", 500
+        
+    if not camera.isOpened():
+        return "Failed open camera", 500
+        
+    if "cameraExposure" in settings:
+        camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+
+    camera.read()
+    success, frame = camera.read()
+    if not success:
+        return "Can't receive frame", 500
+    
+    return frame, 200
 
 def verifyToken():
     if "token" in request.headers:

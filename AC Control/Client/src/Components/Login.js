@@ -15,17 +15,18 @@ class Login extends React.Component {
     render = () => {
         return (
             <div className="login">
-                <div className="field-container">
+                <form className="field-container" onSubmit={this.login}>
                     <input id="password" type="password" placeholder="Password"/>
-                    <button onClick={this.login}>{this.state.loggingIn ? <LoadingSpinner id="spinner" /> : "Login"}</button>
-                </div>
+                    <button type="submit">{this.state.loggingIn ? <LoadingSpinner id="spinner" /> : "Login"}</button>
+                </form>
                 <div className="error">{this.state.errorMessage}</div>
             </div>
         );
     }
 
-    login = async () => {
+    login = async (e) => {
         try{
+            e.preventDefault()
             this.setState({loggingIn: true, errorMessage: null})
             var elem = document.getElementById("password")
             if(elem) {

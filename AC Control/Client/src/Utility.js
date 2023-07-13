@@ -17,15 +17,21 @@ function setCookie(name, value) {
     document.cookie = name + "=" + (value || "")  + expires + "; path=/";
 }
 
-function fetchWithToken(endpoint, method = "GET", body = null, headers = {}) {
+function fetchWithToken(endpoint, method = "GET", body = null, headers = {}, allowUnauthorized = false) {
     var token = getCookie("ac_token");
     if(!token) throw new Error("No token found");
     headers["token"] = token;
-    return fetch(`https://${window.location.hostname}:3001/${endpoint}`, {
-        method: method,
-        headers: headers,
-        body: body
-    })
+    return new Promise(async resolve => {
+        var response = await fetch(`https://${window.location.hostname}:3001/${endpoint}`, {
+            method: method,
+            headers: headers,
+            body: body
+        });
+        if(!allowUnauthorized && response.status == 401)
+            window.location.reload();
+        else
+            resolve(response);
+    });
 }
 
 export { uuidv4, fetchWithToken, getCookie, setCookie }

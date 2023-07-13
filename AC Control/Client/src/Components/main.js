@@ -111,7 +111,7 @@ class Main extends React.Component {
                     <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
-                    <button className="btn" onClick={this.editSettings}><i class="fa-solid fa-gear"></i></button>
+                    <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button>
                 </div>
             )
         }
@@ -337,7 +337,7 @@ class Main extends React.Component {
 
     checkAuthorized = async() => {
         try{
-            const response = await fetchWithToken(`api/test/authorize`)
+            const response = await fetchWithToken(`api/test/authorize`, "GET", null, {}, true)
             return response.status == 200
         }
         catch {
