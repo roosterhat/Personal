@@ -408,7 +408,7 @@ class CanvasEngine {
     }
 
     BackgroundScaleRatio() {
-        if(!((this.backgroundPosition.x && this.backgroundPosition.y) && (this.backgroundOriginalPosition &&this.backgroundOriginalPosition.x && this.backgroundOriginalPosition.y))) return 1;
+        if(!((this.backgroundPosition && this.backgroundPosition.x && this.backgroundPosition.y) && (this.backgroundOriginalPosition &&this.backgroundOriginalPosition.x && this.backgroundOriginalPosition.y))) return 1;
         return this.backgroundPosition.scale / this.backgroundOriginalPosition.scale;
     }
 
