@@ -205,7 +205,6 @@ class CanvasEngine {
             this.context.putImageData(magnified, m.x - magnified.width / 2, m.y - magnified.height / 2);
         }
 
-        console.log("Update", this.shapes)
         this.canvas.style.cursor = this.pointing ? "pointer" : (this.currentShape ? "crosshair" : (this.dragging ? "grabbing" : (this.canDrag ? "grab" :  (this.magnify ? "crosshair" : "default"))));      
     }
 

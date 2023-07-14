@@ -305,6 +305,10 @@ body {
             background: #afffaf;
         }
 
+        i {
+            font-size: 20px;
+        }
+
         .lds-ring {
             width: 80%;
             height: 80%;
@@ -680,6 +684,140 @@ body {
 
     .error {
         color: #ff5151;
+    }
+}
+
+.actions {
+    width: calc(min(500px, (100vw - 40px)));
+    overflow: auto;
+
+    .section {
+        border: solid 1px #000;
+        border-radius: 5px;
+        
+        .section-header {
+            font-size: 20px;
+            padding: 5px;
+            border-bottom: solid 1px #000;
+            margin-bottom: 5px;
+
+            .header-group {
+                display: flex;
+                justify-content: space-between;
+            }
+        }
+
+        .section-body {
+            padding: 5px;
+
+            .pairing-container {
+                display: flex;
+                justify-content: space-between;
+                padding: 3px 5px;
+                border: solid 1px #000;
+                border-radius: 3px;
+
+                .name {
+                    margin-right: 5px;
+                }
+
+                .trigger {
+                    width: 58px;
+                    height: 25px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+    
+                    .lds-ring {
+                        transform: scale(50%)
+                    }
+                }
+
+                &:not(:last-child) {
+                    margin-bottom: 5px;
+                }
+
+                .equation-container {
+                    width: 100%;
+
+                    .equation-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+
+                    .name {
+                        font-size: 18px;
+                        margin-bottom: 7px;
+                    }
+
+                    .operations, .equation {
+                        display: flex;
+                        flex-wrap: wrap;
+                        margin-bottom: 5px;
+
+                        & > button:not(:last-child) {
+                            margin-right: 5px;
+                        }                        
+                    }
+
+                    .divider {
+                        margin: 0px 5px;
+                        border-left: solid 1px #000;
+                    }
+
+                    .equation {
+                        min-height: 50px;
+                        border: solid 1px #000;
+                        border-radius: 3px;
+                        padding: 5px;
+                        align-content: flex-start;
+
+                        .operation {
+                            margin-bottom: 3px;
+                        }
+                    }
+
+                    .operation {
+                        min-width: 25px;
+                        height: 25px;
+                        border-radius: 15px;
+                        cursor: pointer;
+                    }           
+                    
+                    .test-equation {
+                        display: flex;
+                        align-items: center;
+
+                        .test {
+                            margin-right: 10px;
+                            width: 40px;
+
+                            .lds-ring {
+                                transform: scale(25%)
+                            }
+                        }
+
+                        .power {
+                            &.on {
+                                color: green;
+                            }
+
+                            &.off {
+                                color: red;
+                            }
+                        }
+                        .error {
+                            color: red;
+                        }
+                    }
+                }
+            }
+        }
+
+        &:not(:last-child) {
+            margin-bottom: 5px;
+        }
     }
 }
 

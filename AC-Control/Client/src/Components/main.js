@@ -6,6 +6,7 @@ import EditBackground from './EditBackground';
 import EditFrame from './EditFrame';
 import Login from './Login';
 import Settings from './Settings';
+import EditActions from './EditActions';
 import { uuidv4, fetchWithToken, getCookie } from '../Utility';
 import '../Styles/styles.scss'
 
@@ -22,6 +23,7 @@ class Main extends React.Component {
             editRemote: false,
             editFrame: false,
             editSettings: false,
+            editActions: false,
             uploading: false,
             showConfigSelect: false,
             EditConfig: null,
@@ -120,8 +122,11 @@ class Main extends React.Component {
         else if (this.state.editFrame) {
             return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit} refresh={this.refreshEditFrame}/>);
         }
+        else if (this.state.editActions) {
+            return (<EditActions Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeActions} cancel={this.cancelEdit}/>)
+        }
         else if (this.state.editSettings) {
-            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} complete={this.completeSettings} cancel={this.cancelEdit}></Settings>)
+            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} complete={this.completeSettings} cancel={this.cancelEdit} />)
         }
         else {
             return (
@@ -129,7 +134,7 @@ class Main extends React.Component {
                     <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
                     { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-gamepad"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
-                    { this.Config ? <button className="btn" onClick={() => {}}><i className="fa-solid fa-screwdriver-wrench"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={this.editActions}><i className="fa-solid fa-shapes"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button> : null }
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
@@ -149,6 +154,17 @@ class Main extends React.Component {
                 this.refreshState();     
             }
         })
+    }
+
+    editActions = () => {
+        var config = JSON.parse(JSON.stringify(this.Config));
+        this.setState({editActions: true, EditConfig: config})
+    }
+
+    completeActions = async () => {
+        await this.save();
+        this.setState({editActions: false, EditSetting: null})
+        this.switchToMainView();
     }
 
     editFrame = () => {
@@ -200,6 +216,7 @@ class Main extends React.Component {
             'name': null,
             'buttons': [],
             'frame': {},
+            'actions': {},
             'background': {},
             'ir_config': null,
             'id': uuidv4()

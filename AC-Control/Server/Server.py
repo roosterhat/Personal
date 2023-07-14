@@ -222,38 +222,6 @@ def sampleFrameEllipse(frame, state, config):
     threshold = state["properties"]["stateActivationPercentage"] if "stateActivationPercentage" in state["properties"] else 5
     return activation >= threshold
 
-def debugSampleFrameEllipse(frame, state, config):
-    shape = state["shape"]
-    scale = config["position"]["scale"]
-    x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
-    x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
-    y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
-    y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
-    patch = np.ndarray((y2-y1, x2-x1, 3), np.uint8)
-    mask = np.ndarray((y2-y1, x2-x1), np.uint8)
-    cx = int(shape["x"] / scale)
-    cy = int(shape["y"] / scale)
-    r1 = int(shape["r1"] / scale)
-    r2 = int(shape["r2"] / scale)
-    activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
-    threshold = state["properties"]["colorDistanceThreshold"] if "colorDistanceThreshold" in state["properties"] else 20
-    count = 0 
-    total = 0
-    for y in range(y1, y2):
-        for x in range(x1, x2):
-            if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
-                active = colorDistance(activeColor, frame[y][x]) <= threshold
-                count += 1 if active else 0
-                total += 1
-                mask[y - y1][x - x1] = 255 if active else 0
-                patch[y - y1][x - x1] = frame[y][x]       
-            else:
-                mask[y - y1][x - x1] = 50
-                patch[y - y1][x - x1] = [50,50,50]
-
-    activation = count / total * 100
-    return mask, patch, activation 
- 
 @app.route('/api/state/<id>')
 def getState(id):
     if not verifyToken():
@@ -285,40 +253,115 @@ def getState(id):
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
+
+def debugSampleFrameEllipse(frame, state, config):
+    shape = state["shape"]
+    scale = config["position"]["scale"]
+    x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
+    x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
+    y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
+    y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
+    patch = np.ndarray((y2-y1, x2-x1, 3), np.uint8)
+    mask = np.ndarray((y2-y1, x2-x1), np.uint8)
+    cx = int(shape["x"] / scale)
+    cy = int(shape["y"] / scale)
+    r1 = int(shape["r1"] / scale)
+    r2 = int(shape["r2"] / scale)
+    activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
+    threshold = state["properties"]["colorDistanceThreshold"] if "colorDistanceThreshold" in state["properties"] else 20
+    count = 0 
+    total = 0
+    for y in range(y1, y2):
+        for x in range(x1, x2):
+            if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
+                active = colorDistance(activeColor, frame[y][x]) <= threshold
+                count += 1 if active else 0
+                total += 1
+                mask[y - y1][x - x1] = 255 if active else 0
+                patch[y - y1][x - x1] = frame[y][x]       
+            else:
+                mask[y - y1][x - x1] = 50
+                patch[y - y1][x - x1] = [50,50,50]
+
+    activation = count / total * 100
+    return mask, patch, activation 
     
-@app.route('/api/state/debug/<id>/<stateId>', methods=['POST', 'GET'])
-def getStateDebug(id, stateId):
+def debugState(config, stateId):
+    if "frame" not in config:
+        return "No frame data", 400
+    
+    result, status = getCameraFrame()
+    if status != 200:
+        return result, status
+    frame = result
+
+    if request.method == 'POST':
+        body = request.get_json(force = True, silent = True)
+        if body is None:
+            return 'No config data', 400
+        state = body
+    else:
+        state = next((x for x in config["frame"]["states"] if x["id"] == stateId), None)
+        
+    if state:
+        mask, patch, act = debugSampleFrameEllipse(frame, state, config["frame"])
+        return {"mask": mask.tolist(), "patch": patch.tolist(), "activation": act}, 200, {'Content-Type':'application/json'} 
+    else:
+        return "No state found", 404
+
+def debugPower(config):
+    if request.method != 'POST':
+        return 'No config data', 400
+    body = request.get_json(force = True, silent = True)
+    if body is None:
+        return 'No config data', 400
+    
+    response, status, _ = getState(config["id"])
+    if status != 200:
+        return response, status
+    state = response
+    equation = ""
+    for element in body["stateEquation"]:
+        if element["type"] == "operator":
+            if element["name"] not in "()notandor":
+                return "Invalid operator", 400
+            equation += f"{element['name']} "
+        else:
+            value = next((s["active"] for s in state["states"] if s["id"] == element["id"]), None)
+            if value is None:
+                return f"No state value found for {element['name']}", 400
+            equation += f"{value} "
+    
+    print(equation)
+    testResult = {}
+    try:
+        result = eval(equation)
+        testResult = {"success": True, "active": result}
+    except Exception as ex:
+        print(ex)
+        testResult = {"success": False, "error": str(ex)}
+    return json.dumps(testResult), 200, {"Content-Type": "application/json"}     
+
+
+@app.route('/api/debug/<type>/<id>', methods=['POST', 'GET'])
+@app.route('/api/debug/<type>/<id>/<targetId>', methods=['POST', 'GET'])
+def getStateDebug(type, id, targetId = None):
     if not verifyToken():
         return "Unauthorized", 401
     try:        
         f = open(f"./Data/Configs/{id}", 'rb')
         config = json.loads(f.read())
         f.close()
-        if "frame" not in config:
-            return "No frame data", 400
-        
-        result, status = getCameraFrame()
-        if status != 200:
-            return result, status
-        frame = result
 
-        if request.method == 'POST':
-            body = request.get_json(force = True, silent = True)
-            if body is None:
-                return 'No config data', 400
-            state = body
+        if type == "state":
+            return debugState(config, targetId)
+        elif type == "power":
+            return debugPower(config)
         else:
-            state = next((x for x in config["frame"]["states"] if x["id"] == stateId), None)
-            
-        if state:
-            mask, patch, act = debugSampleFrameEllipse(frame, state, config["frame"])
-            return {"mask": mask.tolist(), "patch": patch.tolist(), "activation": act}, 200, {'Content-Type':'application/json'} 
-        else:
-            return "No state found", 404
+            return 'Bad debug type', 400 
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
-
 
 @app.route('/api/frame')
 @app.route('/api/frame/<id>')
@@ -407,28 +450,28 @@ def setupCamera():
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
 def getCameraFrame():
-    # data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
-    # data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
-    # return data, 200
-    global camera
-    if not camera:
-        print("Camera not initialized, attempting to connect")
-        setupCamera()
-        if not camera:
-            return "Failed to connect camera", 500
+    data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
+    data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
+    return data, 200
+    # global camera
+    # if not camera:
+    #     print("Camera not initialized, attempting to connect")
+    #     setupCamera()
+    #     if not camera:
+    #         return "Failed to connect camera", 500
         
-    if not camera.isOpened():
-        return "Failed open camera", 500
+    # if not camera.isOpened():
+    #     return "Failed open camera", 500
         
-    if "cameraExposure" in settings:
-        camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+    # if "cameraExposure" in settings:
+    #     camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
-    camera.read()
-    success, frame = camera.read()
-    if not success:
-        return "Can't receive frame", 500
+    # camera.read()
+    # success, frame = camera.read()
+    # if not success:
+    #     return "Can't receive frame", 500
     
-    return frame, 200
+    # return frame, 200
 
 def verifyToken():
     if "token" in request.headers:

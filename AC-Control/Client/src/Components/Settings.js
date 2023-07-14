@@ -130,7 +130,7 @@ class Settings extends React.Component {
             this.setState({loadDebug: true})
             if(config) {
                 var body = JSON.stringify(this.state.selectedState)
-                var response = await fetchWithToken(`api/state/debug/${this.state.config.id}/${this.state.selectedState.id}`, "POST", body, {"Content-Type": "application/json"})
+                var response = await fetchWithToken(`api/debug/state/${this.state.config.id}/${this.state.selectedState.id}`, "POST", body, {"Content-Type": "application/json"})
                 if(response.status == 200){
                     this.setState({debugState: await response.json()})
                 }                        
@@ -141,7 +141,7 @@ class Settings extends React.Component {
                     var id = elem.value;
                     if(id){
                         this.setState({selectedState: this.state.config.frame.states.find(x => x.id == id)})
-                        var response = await fetchWithToken(`api/state/debug/${this.state.config.id}/${id}`)
+                        var response = await fetchWithToken(`api/debug/state/${this.state.config.id}/${id}`)
                         if(response.status == 200){
                             this.setState({debugState: await response.json()})
                         }
