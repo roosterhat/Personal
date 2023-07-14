@@ -51,7 +51,7 @@ class Settings extends React.Component {
                             <div className="setting-title">Debug State</div>
                             <div className="debug-container">
                                 <div className="debug-header">
-                                    <select name="buttons" id="toggle-select" onSelect={() => this.setState({debugState: null})}>
+                                    <select name="buttons" id="toggle-select" onChange={() => this.setState({debugState: null})}>
                                         {this.state.config.frame.states.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                                     </select>
                                     <div>
@@ -151,7 +151,6 @@ class Settings extends React.Component {
         canvas.width = dims.width;
         canvas.height = dims.height;
         var context = canvas.getContext("2d");
-        context.clearRect(0, 0, canvas.width, canvas.height);
         context.clearRect(0, 0, canvas.width, canvas.height);
 
         var scale = Math.min(context.canvas.width / data[0].length, context.canvas.height / data.length);

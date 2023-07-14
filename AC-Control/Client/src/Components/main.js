@@ -103,7 +103,7 @@ class Main extends React.Component {
             return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit} refresh={this.refreshEditFrame}/>);
         }
         else if (this.state.editSettings) {
-            return (<Settings Settings={this.state.EditSetting} Config={this.Config} complete={this.completeSettings} cancel={this.cancelEdit}></Settings>)
+            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} complete={this.completeSettings} cancel={this.cancelEdit}></Settings>)
         }
         else {
             return (
@@ -163,13 +163,15 @@ class Main extends React.Component {
     }
 
     editSettings = () => {
-        var settings = JSON.parse(JSON.stringify(this.Settings))
-        this.setState({editSettings: true, EditSetting: settings})
+        var settings = JSON.parse(JSON.stringify(this.Settings));
+        var editConfig = JSON.parse(JSON.stringify(this.Config));
+        this.setState({editSettings: true, EditSetting: settings, EditConfig: editConfig});
     }
 
     completeSettings = async (settings) => {
         this.Settings = settings
         await this.saveSettings();
+        await this.save();
         this.setState({editSettings: false, EditSetting: null})
         this.switchToMainView();
     }
