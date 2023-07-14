@@ -73,7 +73,7 @@ class Main extends React.Component {
                                 </div>
                                 : null
                             }
-                            { this.state.currentState ?
+                            { this.state.currentState && !this.state.editFrame && !this.state.editRemote ?
                                 <div className="state-container">
                                     {this.state.currentState.states.map(x => 
                                         <div className="state">
