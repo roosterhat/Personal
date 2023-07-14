@@ -108,12 +108,12 @@ class Main extends React.Component {
         else {
             return (
                 <div className="btn-container vertical" id="normal">
+                    <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
                     { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-pen-to-square"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
-                    <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
-                    <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
-                    <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button>
+                    <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
+                    { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
                 </div>
             )
         }
@@ -240,7 +240,8 @@ class Main extends React.Component {
             const response = await fetchWithToken(`api/retrieve/${name}`)
             if(response.status == 200){
                 this.Config = await response.json();
-                this.switchToMainView();               
+                if(!this.state.editRemote)
+                    this.switchToMainView();               
             }
         }
         catch(ex) {
@@ -348,7 +349,7 @@ class Main extends React.Component {
             this.Engine.StartBackgroundLoad();
             try{
                 fetchWithToken(`api/background/${background.file}`).then(async response => {
-                    if(response.status == 200){
+                    if(response.status == 200 && !this.state.editRemote){
                         var blob = await response.blob()
                         await this.Engine.LoadBackground(URL.createObjectURL(blob), background.position)
                         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
@@ -357,7 +358,6 @@ class Main extends React.Component {
             }
             catch {}
         }
-        //this.Engine.LoadBackground(`https://${window.location.hostname}:3001/api/background/${background.file}`, background.position).then(() => this.UpdateQueue.push(() => this.Engine.RefreshDimensions()))
         if(this.state.hasFrame)
             this.UpdateQueue.push(this.refreshFrameAndState)
     }

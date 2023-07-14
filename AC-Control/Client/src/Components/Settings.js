@@ -47,58 +47,72 @@ class Settings extends React.Component {
                             <div className="setting-title">Frame Refresh Delay</div>
                             <input type="number" min="0" value={this.state.settings["frameRefreshDelay"]} onChange={e => this.updateSettings("frameRefreshDelay", Number(e.target.value))}/>
                         </div>
-                        <div className="setting">
-                            <div className="setting-title">Debug State</div>
-                            <div className="debug-container">
-                                <div className="debug-header">
-                                    <select name="buttons" id="toggle-select" onChange={() => this.setState({debugState: null})}>
-                                        {this.state.config.frame.states.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
-                                    </select>
-                                    <div>
-                                        <button className="debug" onClick={() => this.debugState()}>{this.state.loadDebug ? <LoadingSpinner id="spinner" /> : "Debug"}</button>
-                                        <button onClick={() => this.setState({debugState: null})}>Clear</button>
-                                    </div>
-                                </div>
-                                {this.state.debugState ? 
-                                    <div>
-                                        <div className="debug-canvas-container">
-                                            <div className="canvas-container">
-                                                <div>{`Activated (${Math.round(this.state.debugState.activation * 100) / 100}%)`}</div>
-                                                <canvas id="debug-canvas-mask"></canvas>
-                                            </div>
-                                            <div className="canvas-container">
-                                                <div>Mask</div>
-                                                <canvas id="debug-canvas-patch"></canvas>
-                                            </div>                                    
-                                        </div>
-                                        <div className="debug-status">{"Status: "}<span className={(this.state.selectedState.properties.stateActivationThreshold < this.state.debugState.activation ? "active" : "inactive")}>{(this.state.selectedState.properties.stateActivationThreshold < this.state.debugState.activation ? "Active" : "Inactive")}</span></div>
-                                        <div className="debug-properties-container">
-                                            <div>
-                                                <div className="debug-property">
-                                                    <div>CDT</div>
-                                                    <input type="number" min="0" max="200" 
-                                                        value={this.state.selectedState.properties.colorDistanceThreshold} 
-                                                        onChange={e => this.updateStateProperty("colorDistanceThreshold", Number(e.target.value))}/>
-                                                </div>
-                                                <div className="debug-property">
-                                                    <div>SAT</div>
-                                                    <input type="number" min="1" max="100" 
-                                                        value={this.state.selectedState.properties.stateActivationThreshold}
-                                                        onChange={e => this.updateStateProperty("stateActivationThreshold", Number(e.target.value))}/>
-                                                </div>
-                                                <div className="debug-active-color" style={{background: this.state.selectedState.properties.activeColor}}></div>
-                                            </div>
-                                            <button className="debug-test" onClick={() => this.debugState(this.state.selectedState)}>{this.state.loadDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
-                                        </div>
-                                    </div>
-                                    : null
-                                }
-                            </div>                            
-                        </div>
+                        {this.renderDebug()}
                     </div>
                 </div>
             </Menu>
         )
+    }
+
+    renderDebug = () => {
+        if(this.state.config) {
+            return (
+                <div className="setting">
+                    <div className="setting-title">Debug State</div>
+                    <div className="debug-container">
+                        <div className="debug-header">
+                            <select name="buttons" id="toggle-select" onChange={() => this.setState({debugState: null})}>
+                                {this.state.config.frame.states.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                            </select>
+                            <div>
+                                <button className="debug" onClick={() => this.debugState()}>{this.state.loadDebug ? <LoadingSpinner id="spinner" /> : "Debug"}</button>
+                                <button onClick={() => this.setState({debugState: null})}>Clear</button>
+                            </div>
+                        </div>
+                        {this.state.debugState ? 
+                            <div>
+                                <div className="debug-canvas-container">
+                                    <div className="canvas-container">
+                                        <div>{`Activation (${Math.round(this.state.debugState.activation * 100) / 100}%)`}</div>
+                                        <canvas id="debug-canvas-mask"></canvas>
+                                    </div>
+                                    <div className="canvas-container">
+                                        <div>View</div>
+                                        <canvas id="debug-canvas-patch"></canvas>
+                                    </div>                                    
+                                </div>
+                                <div className="debug-status">{"Status: "}
+                                    <span className={(this.state.selectedState.properties.stateActivationPercentage < this.state.debugState.activation ? "active" : "inactive")}>
+                                        {(this.state.selectedState.properties.stateActivationPercentage < this.state.debugState.activation ? "Active" : "Inactive")}
+                                    </span>
+                                </div>
+                                <div className="debug-properties-container">
+                                    <div>
+                                        <div className="debug-property">
+                                            <div>CDT</div>
+                                            <input type="number" min="0" max="200" 
+                                                value={this.state.selectedState.properties.colorDistanceThreshold} 
+                                                onChange={e => this.updateStateProperty("colorDistanceThreshold", Number(e.target.value))}/>
+                                        </div>
+                                        <div className="debug-property">
+                                            <div>SAP</div>
+                                            <input type="number" min="1" max="100" 
+                                                value={this.state.selectedState.properties.stateActivationPercentage}
+                                                onChange={e => this.updateStateProperty("stateActivationPercentage", Number(e.target.value))}/>
+                                        </div>
+                                        <div className="debug-active-color" style={{background: this.state.selectedState.properties.activeColor}}></div>
+                                    </div>
+                                    <button className="debug-test" onClick={() => this.debugState(this.state.selectedState)}>{this.state.loadDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
+                                </div>
+                            </div>
+                            : null
+                        }
+                    </div>                            
+                </div>
+            );
+        }
+        else 
+            return null;
     }
 
     updateSettings = (key, value) => {

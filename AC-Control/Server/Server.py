@@ -219,7 +219,7 @@ def sampleFrameEllipse(frame, state, config):
                 count += 1
 
     activation = count / ((y2-y1) * (x2-x1)) * 100
-    threshold = state["properties"]["stateActivationThreshold"] if "stateActivationThreshold" in state["properties"] else 5
+    threshold = state["properties"]["stateActivationPercentage"] if "stateActivationPercentage" in state["properties"] else 5
     return activation >= threshold
 
 def debugSampleFrameEllipse(frame, state, config):
@@ -247,7 +247,7 @@ def debugSampleFrameEllipse(frame, state, config):
                 patch[y - y1][x - x1] = frame[y][x]       
             else:
                 mask[y - y1][x - x1] = 0
-                patch[y - y1][x - x1] = frame[y][x]
+                patch[y - y1][x - x1] = [0,0,0]
 
     activation = count / ((y2-y1) * (x2-x1)) * 100
     return mask, patch, activation 

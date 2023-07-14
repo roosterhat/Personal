@@ -43,18 +43,21 @@ class EditBackground extends React.Component {
                     {this.state.error ? <div className='error-message'>{this.state.error}</div> : null}
                     <input className='config-name' value={this.Config.name} onChange={e => this.setConfigName(e.target.value)} placeholder='Display name'/>
                     <input className='config-name' value={this.Config.ir_config} onChange={e => this.setIRConfig(e.target.value)} placeholder='Config remote name'/>
-                    <div className="buttons">
-                    {
-                        this.Config.buttons.map(button => 
-                            <Button 
-                                key={button.id} 
-                                button={button} 
-                                update={() => this.Engine.Update()}
-                                remove={() => this.removeButton(button)}
-                            />
-                        )
+                    { this.Config.buttons.length > 0 ?
+                        <div className="buttons">
+                        {
+                            this.Config.buttons.map(button => 
+                                <Button 
+                                    key={button.id} 
+                                    button={button} 
+                                    update={() => this.Engine.Update()}
+                                    remove={() => this.removeButton(button)}
+                                />
+                            )
+                        }
+                        </div>
+                        : null
                     }
-                    </div>
                 </div>
             </Menu>
         )
@@ -81,17 +84,19 @@ class EditBackground extends React.Component {
             this.Engine.currentShape = { 'vertices': [], 'type': 'poly', 'closed': false, 'highlight': false, 'color': '#000000'  };
         else if(type === "ellipse")
             this.Engine.currentShape = { 'x': 0, 'y': 0, r1: 10, r2: 10, 'type': 'ellipse', 'closed': false, 'highlight': false, 'color': '#000000' };
-
-        this.Engine.currentShape['function'] = () => {this.triggerIr(id)};
-
-        this.Engine.shapes.push(this.Engine.currentShape)
-        this.Config.buttons.push({ 
+        
+        var button ={ 
             'id': id, 
             'shape': this.Engine.currentShape, 
             'name': '', 
             'action': '',
             'index': this.Config.buttons.length
-        })
+        }
+
+        this.Config.buttons.push(button);
+        this.Engine.currentShape['function'] = () => this.triggerIr(id);
+        this.Engine.currentShape['remove'] = () => this.removeButton(button);
+        this.Engine.shapes.push(this.Engine.currentShape)
         this.setConfig(this.Config)
     }
     

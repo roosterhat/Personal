@@ -98,6 +98,8 @@ class CanvasEngine {
         document.addEventListener("keydown", event => {
             if(event.key === "Escape") {
                 if(this.currentShape) {
+                    if(this.currentShape.remove)
+                        this.currentShape.remove()
                     this.shapes.pop()
                     this.Reset();
                     this.Update();
@@ -203,6 +205,7 @@ class CanvasEngine {
             this.context.putImageData(magnified, m.x - magnified.width / 2, m.y - magnified.height / 2);
         }
 
+        console.log("Update", this.shapes)
         this.canvas.style.cursor = this.pointing ? "pointer" : (this.currentShape ? "crosshair" : (this.dragging ? "grabbing" : (this.canDrag ? "grab" :  (this.magnify ? "crosshair" : "default"))));      
     }
 
@@ -389,7 +392,7 @@ class CanvasEngine {
     }
 
     PageToOriginalBackgroundCoordinates(coordinates) {
-        if(!this.backgroundPosition) return coordinates;
+        if(!(this.backgroundPosition && this.backgroundPosition.x && this.backgroundPosition.y)) return coordinates;
         var scale = this.BackgroundScaleRatio();
         var pos = this.canvas.getBoundingClientRect();
         return {
@@ -399,13 +402,13 @@ class CanvasEngine {
     }
 
     OriginalBackgroundToCanvasCoordinates(coordinates) {
-        if(!this.backgroundOriginalPosition) return coordinates;
+        if(!(this.backgroundPosition && this.backgroundPosition.x && this.backgroundPosition.y)) return coordinates;
         var scale = this.BackgroundScaleRatio();
         return {x: this.backgroundPosition.x + coordinates.x * scale, y: this.backgroundPosition.y + coordinates.y * scale};
     }
 
     BackgroundScaleRatio() {
-        if(!(this.backgroundPosition && this.backgroundOriginalPosition)) return 1;
+        if(!((this.backgroundPosition.x && this.backgroundPosition.y) && (this.backgroundOriginalPosition &&this.backgroundOriginalPosition.x && this.backgroundOriginalPosition.y))) return 1;
         return this.backgroundPosition.scale / this.backgroundOriginalPosition.scale;
     }
 

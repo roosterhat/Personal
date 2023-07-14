@@ -101,10 +101,10 @@ class EditFrame extends React.Component {
                                                     onChange={e => this.updateStateProperty(button, "colorDistanceThreshold", Number(e.target.value))}/>
                                             </div>
                                             <div>
-                                                <div>SAT</div>
+                                                <div>SAP</div>
                                                 <input type="number" min="1" max="100" 
-                                                    value={button.properties.stateActivationThreshold}
-                                                    onChange={e => this.updateStateProperty(button, "stateActivationThreshold", Number(e.target.value))}/>
+                                                    value={button.properties.stateActivationPercentage}
+                                                    onChange={e => this.updateStateProperty(button, "stateActivationPercentage", Number(e.target.value))}/>
                                             </div>
                                             <div>
                                                 <div>Active Color</div>
@@ -207,7 +207,7 @@ class EditFrame extends React.Component {
             shape: shape,
             id: uuidv4(),
             name: '', 
-            properties: { "colorDistanceThreshold": 20, "stateActivationThreshold": 5, "activeColor": null },
+            properties: { "colorDistanceThreshold": 20, "stateActivationPercentage": 5, "activeColor": null },
             index: this.Config.frame.states.length + 1            
         }
 
