@@ -14,7 +14,6 @@ class Main extends React.Component {
     Engine = new CanvasEngine();
     Config = null;
     Settings = null;
-    State = null;
     UpdateQueue = []
 
     constructor(props) {
@@ -32,7 +31,8 @@ class Main extends React.Component {
             loadingState: false,
             hasFrame: false,
             loggedIn: false,
-            checkingLogin: true
+            checkingLogin: true,
+            currentState: null
         }
     }
 
@@ -63,16 +63,28 @@ class Main extends React.Component {
             return (
                 <div className="container">
                     <div className="content-container">
-                        { this.state.hasFrame && !this.state.editFrame && !this.state.editRemote ? 
-                            <div className="frame-container">
-                                <div className="inner-frame">
-                                    <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
-                                    <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrameAndState}><i className="fa-solid fa-arrows-rotate"></i></div>
+                        <div className="content-header">
+                            { this.state.hasFrame && !this.state.editFrame && !this.state.editRemote ? 
+                                <div className="frame-container">
+                                    <div className="inner-frame">
+                                        <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
+                                        <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrameAndState}><i className="fa-solid fa-arrows-rotate"></i></div>
+                                    </div>
                                 </div>
-                            </div>
-                            :
-                            null
-                        }
+                                : null
+                            }
+                            { this.state.currentState ?
+                                <div className="state-container">
+                                    {this.state.currentState.states.map(x => 
+                                        <div className="state">
+                                            <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
+                                            <div className="name">{x.name}</div>
+                                        </div>
+                                    )}
+                                </div>
+                                : null
+                            }
+                        </div>
                         <div className="canvas-container" id="canvas-container">
                             { this.state.editFrame ? 
                                 <div className="editframe-refresh">
@@ -109,9 +121,10 @@ class Main extends React.Component {
             return (
                 <div className="btn-container vertical" id="normal">
                     <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
-                    { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-pen-to-square"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-gamepad"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
-                    <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button>
+                    { this.Config ? <button className="btn" onClick={() => {}}><i className="fa-solid fa-screwdriver-wrench"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button> : null }
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
                 </div>
@@ -315,7 +328,7 @@ class Main extends React.Component {
             this.setState({loadingState: true});
             var response = await fetchWithToken(`api/state/${this.Config.id}`)
             if(response.status == 200){
-                this.State = await response.json()
+                this.setState({currentState: await response.json()})
             }
         }
         finally {

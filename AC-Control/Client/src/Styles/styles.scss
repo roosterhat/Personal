@@ -38,9 +38,14 @@ body {
         }
     }
 
+    .content-header {
+        height: 150px;
+        display: flex;
+        justify-content: center;
+    }
+
     .frame-container {
-        width: 100%;
-        max-height: 150px;
+        height: 100%;
         display: flex;
         justify-content: center;
 
@@ -50,6 +55,23 @@ body {
 
         #frame {
             height: 100%;
+        }
+    }
+
+    .state-container {
+        .state {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+
+            .active-color {
+                background: rgb(9, 170, 11);
+                width: 15px;
+                border-radius: 50%;
+                aspect-ratio: 1;
+                margin-right: 5px;
+                border: solid 1px #000;
+            }
         }
     }
 }
