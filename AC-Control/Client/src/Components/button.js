@@ -22,6 +22,13 @@ class Button extends React.Component {
                 { this.showName || this.showRemove ?
                     <div className='header'>
                         { this.showName ? <input value={this.state.name} onChange={this.setName} onBlur={() => this.setState({name: this.getName()})}/> : null }
+                        { this.props.Reorder ? 
+                            <div className="reorder-container">
+                                {this.props.Reorder.index < this.props.Reorder.max - 1 ? <button className="btn reorder down" onClick={() => this.props.Reorder.onReorder(1)}><i class="fa-solid fa-sort-up"></i></button> : <div className="reorder-blank"/>}
+                                {this.props.Reorder.index > 0 ? <button className="btn reorder up" onClick={() => this.props.Reorder.onReorder(-1)}><i class="fa-solid fa-sort-up"></i></button> : <div className="reorder-blank"/>}                
+                            </div> 
+                            : null 
+                        }
                         { this.showRemove ? <button className='close' onClick={this.props.remove}><i className="fa-solid fa-xmark"></i></button> : null }
                     </div> : null
                 }

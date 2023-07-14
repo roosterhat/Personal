@@ -84,7 +84,7 @@ class EditFrame extends React.Component {
                         </div>
                         <div className="items">
                             {
-                                this.Config.frame.states ? this.Config.frame.states.map(button => 
+                                this.Config.frame.states ? this.Config.frame.states.map((button, index) => 
                                     <Button 
                                         key={button.id} 
                                         button={button} 
@@ -92,6 +92,7 @@ class EditFrame extends React.Component {
                                         remove={() => this.removeButton(button, this.Config.frame.states)}
                                         showAction={false}
                                         showSampler={true}
+                                        Reorder={{index: index, max: this.Config.frame.states.length, onReorder: dir => this.reorder(index, dir)}}
                                     >
                                         <div className="state-properties">
                                             <div>
@@ -162,6 +163,13 @@ class EditFrame extends React.Component {
             this.Engine.Update();
             this.setConfig(this.Config);
         }
+    }
+
+    reorder = (index, dir) => {
+        var temp = this.Config.frame.states[index + dir];
+        this.Config.frame.states[index + dir] = this.Config.frame.states[index]
+        this.Config.frame.states[index] = temp
+        this.setConfig(this.Config)
     }
 
     sampleColor = (button) => {

@@ -63,28 +63,36 @@ class Main extends React.Component {
             return (
                 <div className="container">
                     <div className="content-container">
-                        <div className="content-header">
-                            { this.state.hasFrame && !this.state.editFrame && !this.state.editRemote ? 
-                                <div className="frame-container">
-                                    <div className="inner-frame">
-                                        <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
-                                        <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrameAndState}><i className="fa-solid fa-arrows-rotate"></i></div>
-                                    </div>
-                                </div>
-                                : null
-                            }
-                            { this.state.currentState && !this.state.editFrame && !this.state.editRemote ?
-                                <div className="state-container">
-                                    {this.state.currentState.states.map(x => 
-                                        <div className="state">
-                                            <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
-                                            <div className="name">{x.name}</div>
+                        { !this.state.editFrame && !this.state.editRemote ?
+                            <div className="content-header">
+                                { this.state.hasFrame ? 
+                                    <div className="frame-container">
+                                        <div className="inner-frame">
+                                            <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
+                                            <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrameAndState}><i className="fa-solid fa-arrows-rotate"></i></div>
                                         </div>
-                                    )}
-                                </div>
-                                : null
-                            }
-                        </div>
+                                    </div>
+                                    : null
+                                }
+                                { this.state.currentState ?
+                                    <div className="state-container">
+                                        { this.state.loadingState ?
+                                            <LoadingSpinner id="spinner"/>
+                                            :
+                                            this.state.currentState.states.map(x => 
+                                                <div className="state">
+                                                    <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
+                                                    <div className="name">{x.name}</div>
+                                                </div>
+                                            )
+                                        }
+                                    </div>
+                                    : null
+                                }
+                            </div>  
+                            : null
+                        }
+                        
                         <div className="canvas-container" id="canvas-container">
                             { this.state.editFrame ? 
                                 <div className="editframe-refresh">
@@ -94,7 +102,7 @@ class Main extends React.Component {
                             <LoadingSpinner id="spinner" style={{display: 'none'}}/>
                             <canvas id="canvas"></canvas>
                         </div>  
-                    </div>                       
+                    </div>                     
                     <div className='controls'>
                     {this.renderMenus()}       
                     {this.state.showConfigSelect ? <ConfigLoader select={(config) => this.load(config)} close={() => this.setState({showConfigSelect: false})}/> : null}  
