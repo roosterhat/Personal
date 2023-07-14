@@ -67,10 +67,8 @@ class Main extends React.Component {
                             <div className="content-header">
                                 { this.state.hasFrame ? 
                                     <div className="frame-container">
-                                        <div className="inner-frame">
-                                            <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
-                                            <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrameAndState}><i className="fa-solid fa-arrows-rotate"></i></div>
-                                        </div>
+                                        <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
+                                        <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshFrameAndState}><i className="fa-solid fa-arrows-rotate"></i></div>
                                     </div>
                                     : null
                                 }
