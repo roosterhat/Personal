@@ -248,8 +248,8 @@ def debugSampleFrameEllipse(frame, state, config):
                 mask[y - y1][x - x1] = 255 if active else 0
                 patch[y - y1][x - x1] = frame[y][x]       
             else:
-                mask[y - y1][x - x1] = 0
-                patch[y - y1][x - x1] = [0,0,0]
+                mask[y - y1][x - x1] = 50
+                patch[y - y1][x - x1] = [50,50,50]
 
     activation = count / total * 100
     return mask, patch, activation 
