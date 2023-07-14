@@ -392,7 +392,7 @@ class CanvasEngine {
     }
 
     PageToOriginalBackgroundCoordinates(coordinates) {
-        if(!(this.backgroundPosition && this.backgroundPosition.x && this.backgroundPosition.y)) return coordinates;
+        if(!(this.backgroundPosition && this.backgroundPosition.x != null && this.backgroundPosition.y != null)) return coordinates;
         var scale = this.BackgroundScaleRatio();
         var pos = this.canvas.getBoundingClientRect();
         return {
@@ -402,13 +402,13 @@ class CanvasEngine {
     }
 
     OriginalBackgroundToCanvasCoordinates(coordinates) {
-        if(!(this.backgroundPosition && this.backgroundPosition.x && this.backgroundPosition.y)) return coordinates;
+        if(!(this.backgroundPosition && this.backgroundPosition.x != null && this.backgroundPosition.y != null)) return coordinates;
         var scale = this.BackgroundScaleRatio();
         return {x: this.backgroundPosition.x + coordinates.x * scale, y: this.backgroundPosition.y + coordinates.y * scale};
     }
 
     BackgroundScaleRatio() {
-        if(!((this.backgroundPosition && this.backgroundPosition.x && this.backgroundPosition.y) && (this.backgroundOriginalPosition &&this.backgroundOriginalPosition.x && this.backgroundOriginalPosition.y))) return 1;
+        if(!((this.backgroundPosition && this.backgroundPosition.x != null && this.backgroundPosition.y != null) && (this.backgroundOriginalPosition &&this.backgroundOriginalPosition.x != null && this.backgroundOriginalPosition.y != null))) return 1;
         return this.backgroundPosition.scale / this.backgroundOriginalPosition.scale;
     }
 
