@@ -461,7 +461,7 @@ def stateActive(state, id):
     next((x["active"] for x in state["states"] if x["id"] == id), None)
     
 def attemptSetPower(config, action, target):
-    for i in range(settings["ir_attempts"]):
+    for i in range(settings["triggerAttempts"]):
         triggerIR(config["ir_config"], action)
         state = getState(config)
         if state and state["power"] == target:
@@ -473,7 +473,7 @@ def walkStateGroup(config, group, state, action):
     if oldState and stateActive(oldState["states"], state["id"]):
         return True
     for _ in range(len(group["states"])):
-        for _ in range(settings["ir_attempts"]):
+        for _ in range(settings["triggerAttempts"]):
             triggerIR(config["ir_config"], action)
             newState = getState(config)
             if stateActive(newState["states"], state["id"]):
