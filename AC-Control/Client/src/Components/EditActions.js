@@ -139,7 +139,7 @@ class EditActions extends React.Component {
                                                     <div className="name">States</div>
                                                     <div className="add-state-container">
                                                         <select id={`group${groupIndex}`}>
-                                                            {this.state.config.frame.states.filter(s => !this.state.config.actions.stateGroups.some(x => x.id == s.id)).map(s =>
+                                                            {this.state.config.frame.states.filter(s => !this.state.config.actions.stateGroups.some(sg => sg.states.some(x => x.id == s.id))).map(s =>
                                                                 <option value={s.id}>{s.name}</option>
                                                             )}
                                                         </select>
