@@ -348,6 +348,7 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: #fff;
 
     .crop-header {
         font-size: 20px;
@@ -357,6 +358,7 @@ body {
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
+        background: #f0f0f0;
 
         .header-title, .header-action {
             display: flex;
@@ -695,12 +697,14 @@ body {
         border: solid 1px #000;
         border-radius: 5px;
         background: #fff;
+        overflow: hidden;
         
         .section-header {
             font-size: 20px;
             padding: 5px;
             border-bottom: solid 1px #000;
             margin-bottom: 5px;
+            background: #f0f0f0;
 
             .header-group {
                 display: flex;

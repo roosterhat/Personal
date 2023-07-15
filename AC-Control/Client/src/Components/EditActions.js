@@ -91,9 +91,6 @@ class EditActions extends React.Component {
                                     <div className="equation-container">
                                         <div className="equation-header">
                                             <div className="name">State Equation</div>
-                                            <button className="trigger" onClick={() => this.triggerAction(this.state.config.actions.power)}>
-                                                {this.state.actionTriggers.power ? <LoadingSpinner id="spinner" /> : "Trigger"}
-                                            </button>
                                         </div>                                        
                                         <div className="operations">
                                             {this.Operations.map(x => 
