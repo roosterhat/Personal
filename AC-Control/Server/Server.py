@@ -259,7 +259,8 @@ def getState(config):
     #     for digit in currentState["digits"]:
     #         digit["value"] = None
     
-    currentState["power"] = getPowerState(config, currentState)
+    currentState["power"] = { "active": getPowerState(config, currentState) }
+    return currentState
 
 @app.route('/api/state/<id>')
 def getState_API(id):
@@ -400,6 +401,7 @@ def frame(id = None):
     try:                
         result, status = getCameraFrame()
         if status != 200:
+            print(result)
             return result, status
         frame = result
 
@@ -463,14 +465,14 @@ def stateChanged(newState, oldState):
     except:
         return True
     
-def stateActive(state, id):
-    next((x["active"] for x in state["states"] if x["id"] == id), None)
+def stateActive(states, id):
+    return next((x["active"] for x in states if x["id"] == id), None)
     
 def attemptSetPower(config, action, target):
     for i in range(settings["triggerAttempts"]):
         triggerIR(config["ir_config"], action)
         state = getState(config)
-        if state and state["power"] == target:
+        if state and state["power"]["active"] == target:
             return True
     return False
 
@@ -500,14 +502,14 @@ def setState(config, targetState):
         buttonMap[b["id"]] = b["action"]
     stateMap = {}
     for g in config["actions"]["stateGroups"]:
-        for s in g.states:
+        for s in g["states"]:
             stateMap[s["id"]] = g
 
     powerState = getPowerState(config, state)
     if targetState["power"]["active"]:
         if not powerState:
-            if not attemptSetPower(config, buttonMap[config["action"]["power"]["button"]], True):
-                return f"Failed to set {config['action']['power']['name']} [On]"
+            if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], True):
+                return f"Failed to set {config['actions']['power']['name']} [On]"
         for state in targetState["states"]:
             if state["id"] not in stateMap:
                 return "State not associated with a group"
@@ -517,11 +519,11 @@ def setState(config, targetState):
         #set temperature
     else:
         if powerState:
-            if not attemptSetPower(config, buttonMap[config["action"]["power"]["button"]], False):
-                return f"Failed to set {config['action']['power']['name']} [Off]"
+            if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False):
+                return f"Failed to set {config['actions']['power']['name']} [Off]"
 
 
-@app.route('/api/setState/<config>', methods=["POST"])
+@app.route('/api/setstate/<config>', methods=["POST"])
 def setState_API(config):
     #if not verifyToken():
     #    return "Unauthorized", 401
