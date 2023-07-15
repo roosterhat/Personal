@@ -346,6 +346,9 @@ def debugPower(config):
         return 'No config data', 400
     
     state = getState(config)
+    if not state:
+        return "Failed to get state", 500
+
     equation = ""
     for element in body["stateEquation"]:
         if element["type"] == "operator":
