@@ -370,7 +370,7 @@ def getStateDebug(type, id, targetId = None):
     if not verifyToken():
         return "Unauthorized", 401
     try:        
-        if not Path.isfile('./Data/Configs/'+config):
+        if not Path.isfile('./Data/Configs/'+id):
             return 'Config does not exists', 400
         f = open(f"./Data/Configs/{id}", 'rb')
         config = json.loads(f.read())
