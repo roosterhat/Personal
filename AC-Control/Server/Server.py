@@ -273,8 +273,11 @@ def getState_API(id):
         f.close()
         if "frame" not in config:
             return "No frame data", 400
-
-        return getState(config), 200, {'Content-Type':'image'} 
+        state = getState(config)
+        if state:
+            return state, 200, {'Content-Type':'image'} 
+        else:
+            return "Failed to get state", 500
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
