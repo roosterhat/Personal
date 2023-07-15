@@ -20,6 +20,7 @@ class EditActions extends React.Component {
             testResult: null,
             loadingTest: false,
             saving: false,
+            usedStates: [],
             actionTriggers: {}
         }
 
@@ -139,7 +140,7 @@ class EditActions extends React.Component {
                                                     <div className="name">States</div>
                                                     <div className="add-state-container">
                                                         <select id={`group${groupIndex}`}>
-                                                            {this.state.config.frame.states.filter(s => !group.states.some(gs => gs.id == s.id)).map(s =>
+                                                            {this.state.config.frame.states.filter(s => !group.states.some(gs => gs.id == s.id) && !this.state.usedStates.some(gs => gs.id == s.id)).map(s =>
                                                                 <option value={s.id}>{s.name}</option>
                                                             )}
                                                         </select>
@@ -148,10 +149,10 @@ class EditActions extends React.Component {
                                                 </div>
                                                 { group.states.length > 0 ?
                                                     <div className="states">
-                                                        {group.states.map((s, index) =>
+                                                        {group.states.map(s =>
                                                             <div className="state">
                                                                 <div>{s.name}</div>
-                                                                <button className="close" onClick={() => this.removeState(group, index)}><i className="fa-solid fa-xmark"></i></button>
+                                                                <button className="close" onClick={() => this.removeState(group, s)}><i className="fa-solid fa-xmark"></i></button>
                                                             </div>
                                                         )}
                                                     </div>
@@ -252,15 +253,18 @@ class EditActions extends React.Component {
         if(elem){
             var id = elem.value
             if(id) {
-                group.states.push(this.state.config.frame.states.find(x => x.id == id))
-                this.setState({config: this.state.config})
+                var state = this.state.config.frame.states.find(x => x.id == id)
+                group.states.push(state)
+                this.state.usedStates.push(state)
+                this.setState({config: this.state.config, usedStates: this.state.usedStates})
             }
         }
     }
 
-    removeState = (group, index) => {
-        group.states.splice(index, 1)
-        this.setState({config: this.state.config})
+    removeState = (group, state) => {
+        group.states.splice(group.states.indexOf(state), 1)
+        this.state.usedStates.splice(this.state.usedStates.indexOf(state), 1)
+        this.setState({config: this.state.config, usedStates: this.state.usedStates})
     }
 
     setGroupName = (group, name) => {
