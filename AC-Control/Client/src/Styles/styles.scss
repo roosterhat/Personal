@@ -688,12 +688,13 @@ body {
 }
 
 .actions {
-    width: calc(min(500px, (100vw - 40px)));
+    width: calc(min(500px, (100vw - 50px)));
     overflow: auto;
 
     .section {
         border: solid 1px #000;
         border-radius: 5px;
+        background: #fff;
         
         .section-header {
             font-size: 20px;
@@ -812,6 +813,58 @@ body {
                         }
                     }
                 }
+
+                .group-container {
+                    width: 100%;
+
+                    .group-header {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 10px;
+
+                        input {
+                            width: 100%;
+                            margin-right: 5px;
+                        }
+
+                        .close {
+                            margin-left: 5px;
+                        }
+                    }
+
+                    .group-body {
+                        display: flex;
+                        justify-content: space-between;
+
+                        .add-state-container {
+                            .name {
+                                font-size: 18px;
+                            }
+
+                            .add-state {
+                                margin-left: 5px;
+                            }
+                        }
+                    }
+
+                    .states {
+                        border: solid 1px #000;
+                        border-radius: 5px;
+                        margin-top: 5px;
+                        overflow: hidden;
+
+                        .state {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 5px;
+
+                            &:nth-child(even) {
+                                background: #f8f8f8
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -820,6 +873,7 @@ body {
         }
     }
 }
+
 
 @media only screen and (max-width: 920px) {
     .btn-container:not(.editing) {

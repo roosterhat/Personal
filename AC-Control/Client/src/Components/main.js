@@ -228,7 +228,7 @@ class Main extends React.Component {
     }
 
     cancelEdit = () => {
-        this.setState({editRemote: false, editFrame: false, EditConfig: null, error: null, editSettings: false, EditSetting: null})
+        this.setState({editRemote: false, editFrame: false, editActions: false, editSettings: false, EditConfig: null, error: null, EditSetting: null})
         this.switchToMainView();
     }
     

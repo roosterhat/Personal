@@ -114,6 +114,8 @@ def retrieveConfig(id):
             if not Path.isfile(f"./Data/Configs/{id}"):
                 return "None", 404
         else:
+            if not Path.isfile('./Data/Configs/'+id):
+                return 'Config does not exists', 400
             f = open(f"./Data/default", 'w')
             f.write(id)
             f.close()
@@ -222,34 +224,57 @@ def sampleFrameEllipse(frame, state, config):
     threshold = state["properties"]["stateActivationPercentage"] if "stateActivationPercentage" in state["properties"] else 5
     return activation >= threshold
 
+def getPowerState(config, state):
+    equation = ""
+    for element in config["actions"]["power"]["stateEquation"]:
+        if element["type"] == "operator":
+            if element["name"] not in ")(notandor":
+                return "Invalid operator", 400
+            equation += f"{element['name']} "
+        else:
+            value = next((s["active"] for s in state["states"] if s["id"] == element["id"]), None)
+            if value is None:
+                return f"No state value found for {element['name']}", 400
+            equation += f"{value} "
+    
+    try:
+        return eval(equation)
+    except:
+        return False
+
+def getState(config):
+    currentState = {}
+    result, status = getCameraFrame()
+    if status != 200:
+        return None
+    frame = result
+
+    if "states" in config["frame"]:
+        currentState["states"] = config["frame"]["states"]
+        for state in config["frame"]["states"]:
+            state["active"] = sampleFrameEllipse(frame, state, config["frame"])
+    
+    # if "digits" in config["frame"]:
+    #     currentState["digits"] = config["frame"]["digits"]
+    #     for digit in currentState["digits"]:
+    #         digit["value"] = None
+    
+    currentState["power"] = getPowerState(config, currentState)
+
 @app.route('/api/state/<id>')
-def getState(id):
+def getState_API(id):
     if not verifyToken():
         return "Unauthorized", 401
     try:
-        currentState = {}
+        if not Path.isfile('./Data/Configs/'+id):
+            return 'Config does not exists', 400
         f = open(f"./Data/Configs/{id}", 'rb')
         config = json.loads(f.read())
         f.close()
         if "frame" not in config:
             return "No frame data", 400
-        
-        result, status = getCameraFrame()
-        if status != 200:
-            return result, status
-        frame = result
 
-        if "states" in config["frame"]:
-            currentState["states"] = config["frame"]["states"]
-            for state in config["frame"]["states"]:
-                state["active"] = sampleFrameEllipse(frame, state, config["frame"])
-
-        # if "digits" in config["frame"]:
-        #     currentState["digits"] = config["frame"]["digits"]
-        #     for digit in currentState["digits"]:
-        #         digit["value"] = None
-
-        return currentState, 200, {'Content-Type':'image'} 
+        return getState(config), 200, {'Content-Type':'image'} 
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
@@ -309,6 +334,7 @@ def debugState(config, stateId):
     else:
         return "No state found", 404
 
+
 def debugPower(config):
     if request.method != 'POST':
         return 'No config data', 400
@@ -316,10 +342,7 @@ def debugPower(config):
     if body is None:
         return 'No config data', 400
     
-    response, status, _ = getState(config["id"])
-    if status != 200:
-        return response, status
-    state = response
+    state = getState(config)
     equation = ""
     for element in body["stateEquation"]:
         if element["type"] == "operator":
@@ -332,13 +355,11 @@ def debugPower(config):
                 return f"No state value found for {element['name']}", 400
             equation += f"{value} "
     
-    print(equation)
     testResult = {}
     try:
         result = eval(equation)
         testResult = {"success": True, "active": result}
     except Exception as ex:
-        print(ex)
         testResult = {"success": False, "error": str(ex)}
     return json.dumps(testResult), 200, {"Content-Type": "application/json"}     
 
@@ -349,6 +370,8 @@ def getStateDebug(type, id, targetId = None):
     if not verifyToken():
         return "Unauthorized", 401
     try:        
+        if not Path.isfile('./Data/Configs/'+config):
+            return 'Config does not exists', 400
         f = open(f"./Data/Configs/{id}", 'rb')
         config = json.loads(f.read())
         f.close()
@@ -421,6 +444,90 @@ def trigger(config, id):
         if not any(buttons):
             return 'Button does not exist', 400
         triggerIR(data['ir_config'], buttons[0]['action'])
+        return "Success", 200
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    finally:
+        f.close()
+
+def stateChanged(newState, oldState):
+    try:
+        return any(newState[i]["active"] != oldState[i]["active"] for i in range(len(newState)))
+    except:
+        return True
+    
+def stateActive(state, id):
+    next((x["active"] for x in state["states"] if x["id"] == id), None)
+    
+def attemptSetPower(config, action, target):
+    for i in range(settings["ir_attempts"]):
+        triggerIR(config["ir_config"], action)
+        state = getState(config)
+        if state and state["power"] == target:
+            return True
+    return False
+
+def walkStateGroup(config, group, state, action):
+    oldState = getState(config)
+    if oldState and stateActive(oldState["states"], state["id"]):
+        return True
+    for _ in range(len(group["states"])):
+        for _ in range(settings["ir_attempts"]):
+            triggerIR(config["ir_config"], action)
+            newState = getState(config)
+            if stateActive(newState["states"], state["id"]):
+                return True
+            if stateChanged(newState, oldState):
+                break
+            oldState = newState
+    return False
+            
+
+def setState(config, targetState):
+    state = getState(config)
+    if not state:
+        return "Failed to get state"
+
+    buttonMap = {}
+    for b in config["buttons"]:
+        buttonMap[b["id"]] = b["action"]
+    stateMap = {}
+    for g in config["actions"]["stateGroups"]:
+        for s in g.states:
+            stateMap[s["id"]] = g
+
+    powerState = getPowerState(config, state)
+    if targetState["power"]["active"]:
+        if not powerState:
+            if not attemptSetPower(config, buttonMap[config["action"]["power"]["button"]], True):
+                return f"Failed to set {config['action']['power']['name']} [On]"
+        for state in targetState["states"]:
+            if state["id"] not in stateMap:
+                return "State not associated with a group"
+            group = stateMap[state["id"]]
+            if walkStateGroup(config, group, state, buttonMap[group["button"]]):
+                return f"Failed to set {state['name']} [On]"
+        #set temperature
+    else:
+        if powerState:
+            if not attemptSetPower(config, buttonMap[config["action"]["power"]["button"]], False):
+                return f"Failed to set {config['action']['power']['name']} [Off]"
+
+
+@app.route('/api/setState/<config>', methods=["POST"])
+def setState_API(config):
+    if not verifyToken():
+        return "Unauthorized", 401
+    if not Path.isfile('./Data/Configs/'+config):
+        return 'Config does not exists', 400
+    try:
+        f = open('./Data/Configs/'+config, 'r')
+        config = json.loads(f.read())
+        body = request.get_json(force = True, silent = True)
+        if body is None:
+            return 'No state data', 400
+        setState(config, body)
         return "Success", 200
     except Exception as ex:
         print(ex, flush=True)

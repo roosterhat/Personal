@@ -121,12 +121,51 @@ class EditActions extends React.Component {
                             <div className="section-header">
                                 <div className="header-group">
                                     <span>State Groups</span>
-                                    <button className="btn" ><i className="fa-solid fa-plus"></i></button>
+                                    <button className="add-group" onClick={this.addGroup}><i className="fa-solid fa-plus"></i></button>
                                 </div>                            
                             </div>
-                            <div className="section-body">
-
-                            </div>
+                            {this.state.config.actions.stateGroups.length > 0 ?
+                                <div className="section-body">
+                                    {this.state.config.actions.stateGroups.map((group, groupIndex) => 
+                                        <div className="pairing-container">
+                                            <div className="group-container">
+                                                <div className="group-header">
+                                                    <input value={group.name} placeholder="Group name" onChange={e => this.setGroupName(group, e.target.value)}></input>
+                                                    <select onChange={e => this.setButton(group, e.target.value)}>
+                                                        {this.state.config.buttons.map(b =>
+                                                            <option selected={group.button == b.id} value={b.id}>{b.name}</option>
+                                                        )}
+                                                    </select>
+                                                    <button className="close" onClick={() => this.removeGroup(groupIndex)}><i className="fa-solid fa-xmark"></i></button>
+                                                </div>
+                                                <div className="group-body">
+                                                    <div className="name">States</div>
+                                                    <div className="add-state-container">
+                                                        <select id={`group${groupIndex}`}>
+                                                            {this.state.config.frame.states.filter(s => !group.states.some(gs => gs.id == s.id)).map(s =>
+                                                                <option value={s.id}>{s.name}</option>
+                                                            )}
+                                                        </select>
+                                                        <button className="add-state" onClick={e => this.addState(group, groupIndex)}><i className="fa-solid fa-plus"></i></button>
+                                                    </div>
+                                                </div>
+                                                { group.states.length > 0 ?
+                                                    <div className="states">
+                                                        {group.states.map((s, index) =>
+                                                            <div className="state">
+                                                                <div>{s.name}</div>
+                                                                <button className="close" onClick={() => this.removeState(group, index)}><i className="fa-solid fa-xmark"></i></button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    : null
+                                                }
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                : null
+                            }                            
                         </div>
                     </div>
                 </div>
@@ -137,14 +176,17 @@ class EditActions extends React.Component {
     complete = () => {
         if(this.state.config.buttons.length > 0){
             var defaultId = this.state.config.buttons[0].id;
-            for(var temp in this.state.config.actions.temperatures)
+            this.state.config.actions.temperature.forEach(temp => {
                 if(!temp.button)
                     temp.button = defaultId
+            })
             if(!this.state.config.actions.power.button)
                 this.state.config.actions.power.button = defaultId
-            for(var group in this.state.config.actions.stateGroups)
+            this.state.config.actions.stateGroups.forEach(group => {
                 if(!group.button)
                     group.button = defaultId
+            })
+                
         }
         this.setState({saving: true})
         this.props.onConfigChange(this.state.config)
@@ -153,7 +195,7 @@ class EditActions extends React.Component {
 
     renderTestResult = () => {
         if(this.state.testResult.success){
-            return <div>Parsed successfully: Power: <span className={"power "+(this.state.testResult.active ? "on" : "off")}>{this.state.testResult.active ? "On" : "Off"}</span></div>
+            return <div>Power: <span className={"power "+(this.state.testResult.active ? "on" : "off")}>{this.state.testResult.active ? "On" : "Off"}</span></div>
         }
         else {
             return <div>Error: <span className="error">{this.state.testResult.error}</span></div>
@@ -191,6 +233,41 @@ class EditActions extends React.Component {
 
     removeOperation = (index) => {
         this.state.config.actions.power.stateEquation.splice(index, 1);
+        this.setState({config: this.state.config})
+    }
+
+    addGroup = () => {
+        this.state.config.actions.stateGroups.push({
+            "states": [],
+            "button": null,
+            "name": "Group " + this.state.config.actions.stateGroups.length
+        })
+        this.setState({config: this.state.config})
+    }
+
+    removeGroup = (index) => {
+        this.state.config.actions.stateGroups.splice(index, 1)
+        this.setState({config: this.state.config})
+    }
+
+    addState = (group, index) => {
+        var elem = document.getElementById(`group${index}`)
+        if(elem){
+            var id = elem.value
+            if(id) {
+                group.states.push(this.state.config.frame.states.find(x => x.id == id))
+                this.setState({config: this.state.config})
+            }
+        }
+    }
+
+    removeState = (group, index) => {
+        group.states.splice(index, 1)
+        this.setState({config: this.state.config})
+    }
+
+    setGroupName = (group, name) => {
+        group.name = name
         this.setState({config: this.state.config})
     }
 }
