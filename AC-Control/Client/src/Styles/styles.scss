@@ -938,6 +938,10 @@ body {
                         }
                     }
                 }
+
+                input[type=time] {
+                    width: 100px;
+                }
             }
 
             .schedule-state {
