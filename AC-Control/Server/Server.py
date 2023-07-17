@@ -8,16 +8,18 @@ import io
 import cv2
 import numpy as np
 from PIL import Image, ImageColor
-from datetime import datetime, timedelta
-import time
+from datetime import datetime, timedelta, time
+import time as Time
 from threading import Thread
 import hashlib
 import math
+import sys
 
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileExtPattern = re.compile(r'\.(?P<ext>js|ico|css|png|jpg|html)$')
 fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
+dateTimePattern = re.compile(r'\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2}:\d{2}.\d+')
 contentTypeMap = { 'js': 'text/javascript', 'ico': 'image/x-icon', 'css': 'text/css', 'png': 'image/png', 'jpg': 'image/jpg', 'html': 'text/html' }
 
 app = Flask(__name__, static_folder='../Client/build')
@@ -40,7 +42,7 @@ def serve(path):
 def login():
     global lastLoginAttempt, settings
     if lastLoginAttempt + timedelta(seconds=5) > datetime.now():
-        time.sleep((datetime.now() - lastLoginAttempt).seconds)
+        Time.sleep((datetime.now() - lastLoginAttempt).seconds)
 
     lastLoginAttempt = datetime.now()
     body = request.get_json(force = True, silent = True)
@@ -474,7 +476,7 @@ def attemptSetPower(config, action, target):
         state = getState(config)
         if state and state["power"]["active"] == target:
             return True
-        time.sleep(settings["frameRefreshDelay"] / 100)
+        Time.sleep(settings["frameRefreshDelay"] / 100)
     return False
 
 def walkStateGroup(config, group, state, action):
@@ -483,7 +485,7 @@ def walkStateGroup(config, group, state, action):
         return True
     for _ in range(len(group["states"])):
         for _ in range(settings["triggerAttempts"]):
-            time.sleep(settings["frameRefreshDelay"] / 100)
+            Time.sleep(settings["frameRefreshDelay"] / 100)
             triggerIR(config["ir_config"], action)
             newState = getState(config)
             if stateActive(newState["states"], state["id"]):
@@ -527,8 +529,8 @@ def setState(config, targetState):
 
 @app.route('/api/setstate/<config>', methods=["POST"])
 def setState_API(config):
-    #if not verifyToken():
-    #    return "Unauthorized", 401
+    if not verifyToken():
+        return "Unauthorized", 401
     if not Path.isfile('./Data/Configs/'+config):
         return 'Config does not exists', 400
     try:
@@ -567,28 +569,28 @@ def setupCamera():
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
 def getCameraFrame():
-    # data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
-    # data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
-    # return data, 200
-    global camera
-    if not camera:
-        print("Camera not initialized, attempting to connect")
-        setupCamera()
-        if not camera:
-            return "Failed to connect camera", 500
+    data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
+    data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
+    return data, 200
+    # global camera
+    # if not camera:
+    #     print("Camera not initialized, attempting to connect")
+    #     setupCamera()
+    #     if not camera:
+    #         return "Failed to connect camera", 500
         
-    if not camera.isOpened():
-        return "Failed open camera", 500
+    # if not camera.isOpened():
+    #     return "Failed open camera", 500
         
-    if "cameraExposure" in settings:
-        camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+    # if "cameraExposure" in settings:
+    #     camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
-    camera.read()
-    success, frame = camera.read()
-    if not success:
-        return "Can't receive frame", 500
+    # camera.read()
+    # success, frame = camera.read()
+    # if not success:
+    #     return "Can't receive frame", 500
     
-    return frame, 200
+    # return frame, 200
 
 def verifyToken():
     if "token" in request.headers:
@@ -598,20 +600,83 @@ def verifyToken():
                 return True
     return False
 
+def shouldRun(schedule, runs, checkDateTime):
+    Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    if schedule["id"] in runs:
+        lastRun = runs[schedule["id"]]
+    else:
+        lastRun = checkDateTime
+
+    dow = lastRun.weekday()
+    nextClosestDate = None
+    for day in schedule["days"]:
+        d = Days.index(day)
+        dt = datetime.combine((lastRun + timedelta(days = d - dow)).date(), time.fromisoformat(schedule["time"]))
+        if dt < lastRun:
+            dt += timedelta(days=7)
+        if dt >= lastRun and (nextClosestDate is None or dt < nextClosestDate):
+            nextClosestDate = dt
+
+    return nextClosestDate is not None and nextClosestDate >= checkDateTime and nextClosestDate - timedelta(seconds=31) <= checkDateTime + timedelta(seconds=31)
+
+
 def manageSessions():
     while True:
+        Time.sleep(60)
         expiredSessions = []
         for session in sessions:
             if session["lastActivity"] + timedelta(minutes=60) < datetime.now():
                 expiredSessions.append(session)
         for session in expiredSessions:
             sessions.remove(session)
-        time.sleep(60)
 
+def decodeObject(obj):
+    for key,value in obj.items():
+        obj[key] = datetime.fromisoformat(value)
+    return obj
+
+def manageSchedules():
+    while True:
+        Time.sleep(60)
+        try:
+            f = open("./Data/default", 'r')
+            id = f.read()
+            f.close()
+            if not Path.isfile(f"./Data/Configs/{id}"):
+                continue
+            f = open(f"./Data/Configs/{id}", 'rb')
+            config = json.loads(f.read())
+            f = open("./Data/scheduleRuns", 'rb')
+            runs = json.loads(f.read(), object_hook=decodeObject)
+            f.close()
+
+            updated = False
+            checkDateTime = datetime.now()
+            for schedule in config["schedules"]:
+                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime):
+                    setState(config, schedule["state"])
+                    runs[schedule["id"]] = checkDateTime
+                    updated = True
+
+            activeRuns = {}
+            for id in runs:
+                if any(x for x in config["schedules"] if x["id"] == id):
+                    activeRuns[id] = runs[id]
+                else:
+                    updated = True
+            runs = activeRuns
+
+            if updated:
+                f = open("./Data/scheduleRuns", 'w')
+                f.write(json.dumps(runs, default=str))
+                f.close()
+        except Exception as ex:
+            print(ex)
 
 if __name__ == '__main__':
     try:
-        Thread(target=manageSessions)
+        Thread(target=manageSessions).start()
+        Thread(target=manageSchedules).start()
         f = open(f"./Data/settings", 'rb')
         settings = json.loads(f.read())
         f.close()

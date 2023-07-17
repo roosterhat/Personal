@@ -9,6 +9,7 @@ import Settings from './Settings';
 import EditActions from './EditActions';
 import { uuidv4, fetchWithToken, getCookie } from '../Utility';
 import '../Styles/styles.scss'
+import Schedules from './EditSchedules';
 
 
 class Main extends React.Component {
@@ -24,6 +25,7 @@ class Main extends React.Component {
             editFrame: false,
             editSettings: false,
             editActions: false,
+            editSchedules: false,
             uploading: false,
             showConfigSelect: false,
             EditConfig: null,
@@ -65,7 +67,7 @@ class Main extends React.Component {
             return (
                 <div className="container">
                     <div className="content-container">
-                        { !this.state.editFrame && !this.state.editRemote ?
+                        { !this.state.editFrame && !this.state.editRemote && (this.state.hasFrame || this.state.currentState) ?
                             <div className="content-header">
                                 { this.state.hasFrame ? 
                                     <div className="frame-container">
@@ -125,6 +127,9 @@ class Main extends React.Component {
         else if (this.state.editActions) {
             return (<EditActions Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeActions} cancel={this.cancelEdit}/>)
         }
+        else if (this.state.editSchedules) {
+            return (<Schedules Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={this.cancelEdit}/>)
+        }
         else if (this.state.editSettings) {
             return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} complete={this.completeSettings} cancel={this.cancelEdit} />)
         }
@@ -135,7 +140,7 @@ class Main extends React.Component {
                     { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-gamepad"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editActions}><i className="fa-solid fa-shapes"></i></button> : null }
-                    { this.Config ? <button className="btn" onClick={() => {}}><i className="fa-regular fa-clock"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={this.editSchedules}><i className="fa-regular fa-clock"></i></button> : null }
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
                 </div>
@@ -156,18 +161,32 @@ class Main extends React.Component {
         })
     }
 
+    editSchedules = () => {
+        this.checkAuthorized(false)
+        var config = JSON.parse(JSON.stringify(this.Config));
+        this.setState({editSchedules: true, EditConfig: config})
+    }
+
+    completeSchedules = async () => {
+        await this.save();
+        this.setState({editSchedules: false, EditConfig: null})
+        this.switchToMainView();
+    }
+
     editActions = () => {
+        this.checkAuthorized(false)
         var config = JSON.parse(JSON.stringify(this.Config));
         this.setState({editActions: true, EditConfig: config})
     }
 
     completeActions = async () => {
         await this.save();
-        this.setState({editActions: false, EditSetting: null})
+        this.setState({editActions: false, EditConfig: null})
         this.switchToMainView();
     }
 
     editFrame = () => {
+        this.checkAuthorized(false)
         var config = JSON.parse(JSON.stringify(this.Config));
         this.setState({editFrame: true, EditConfig: config})
         this.Engine.SetEdit(true);
@@ -190,6 +209,7 @@ class Main extends React.Component {
     }
 
     editButtons = () => {
+        this.checkAuthorized(false)
         var editConfig = JSON.parse(JSON.stringify(this.Config));
         this.setState({editRemote: true, EditConfig: editConfig})
         this.Engine.shapes = editConfig.buttons.map(x => x.shape);
@@ -212,11 +232,13 @@ class Main extends React.Component {
     }
 
     newButtons = () => {
+        this.checkAuthorized(false)
         this.setState({editRemote: true, EditConfig: {
             'name': null,
             'buttons': [],
             'frame': {},
             'actions': {},
+            'schedules': [],
             'background': {},
             'ir_config': null,
             'id': uuidv4()
@@ -228,7 +250,7 @@ class Main extends React.Component {
     }
 
     cancelEdit = () => {
-        this.setState({editRemote: false, editFrame: false, editActions: false, editSettings: false, EditConfig: null, error: null, EditSetting: null})
+        this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editSettings: false, EditConfig: null, error: null, EditSetting: null})
         this.switchToMainView();
     }
     
@@ -398,9 +420,9 @@ class Main extends React.Component {
             this.UpdateQueue.push(this.refreshFrameAndState)
     }
 
-    checkAuthorized = async() => {
+    checkAuthorized = async(allowUnauthorized = true) => {
         try{
-            const response = await fetchWithToken(`api/test/authorize`, "GET", null, {}, true)
+            const response = await fetchWithToken(`api/test/authorize`, "GET", null, {}, allowUnauthorized)
             return response.status == 200
         }
         catch {

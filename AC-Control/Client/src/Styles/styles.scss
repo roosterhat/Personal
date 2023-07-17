@@ -878,6 +878,117 @@ body {
     }
 }
 
+.schedules {
+    .schedule {
+        border: solid 1px #000;
+        border-radius: 5px;
+        width: 100%;
+        transition: all 0.2s ease;
+
+        &.disabled {
+            opacity: 0.3;
+            background: #efefef;
+        }
+
+        .schedule-title {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+
+            & > *:not(:last-child) {
+                margin-right: 5px;
+            }
+
+            input[type=text] {
+                width: 100%;
+            }
+
+            input[type=checkbox] {
+                cursor: pointer;
+            }
+        }
+
+        .schedule-body {
+            padding: 5px;
+
+            .datetime-select {
+                display: flex;
+
+                .date-select {
+                    width: 100%;
+                    display: flex;
+                    justify-content: space-evenly;
+
+                    .day {
+                        width: 25px;
+                        height: 25px;
+                        border-radius: 50%;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 700;
+                        background: #a7a7a7;
+                        opacity: 0.4;
+
+                        &.selected {
+                            background: #f0f0f0;
+                            opacity: 1;
+                        }
+                    }
+                }
+            }
+
+            .schedule-state {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 10px;
+                align-items: flex-start;
+
+                .power-state {
+                    display: flex;
+                    height: 25px;
+                    align-items: center;
+
+                    .name {
+                        margin-right: 5px;
+                    }
+
+                    .state {
+                        color: white;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+
+                        &.on {
+                            background: green;
+                        }
+
+                        &.off {
+                            background: red;
+                        }
+                    }
+                }
+
+                .state-groups {
+                    .state-group {
+                        display: flex;
+                        align-items: center;
+
+                        .name {
+                            margin-right: 5px;
+                        }
+                    }
+                }
+            }
+        }
+
+        &:not(:last-child){
+            margin-bottom: 10px;
+        }
+    }
+}
 
 @media only screen and (max-width: 920px) {
     .btn-container:not(.editing) {
