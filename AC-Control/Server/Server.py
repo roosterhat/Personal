@@ -264,6 +264,74 @@ def getState(config):
     currentState["power"] = { "active": getPowerState(config, currentState) }
     return currentState
 
+def stateChanged(newState, oldState):
+    try:
+        return any(newState[i]["active"] != oldState[i]["active"] for i in range(len(newState)))
+    except:
+        return True
+    
+def stateActive(states, id):
+    return next((x["active"] for x in states if x["id"] == id), None)
+    
+def attemptSetPower(config, action, target, settings=None):
+    for i in range(settings["triggerAttempts"]):
+        triggerIR(config["ir_config"], action)
+        Time.sleep(settings["setStateDelay"] / 1000)
+        state = getState(config)
+        if state and state["power"]["active"] == target:
+            return True        
+    return False
+
+def walkStateGroup(config, group, state, action, settings=None):
+    oldState = getState(config)
+    if oldState and stateActive(oldState["states"], state["id"]):
+        return True
+    for _ in range(len(group["states"])):
+        for _ in range(settings["triggerAttempts"]):
+            triggerIR(config["ir_config"], action)
+            Time.sleep(settings["setStateDelay"] / 1000)
+            newState = getState(config)
+            if stateActive(newState["states"], state["id"]):
+                return True
+            if stateChanged(newState, oldState):
+                break
+            oldState = newState            
+    return False
+
+def setState(config, targetState, setting=None):
+    global settings
+    if setting is None:
+        setting = settings
+
+    state = getState(config)
+    if not state:
+        return "Failed to get state"
+
+    buttonMap = {}
+    for b in config["buttons"]:
+        buttonMap[b["id"]] = b["action"]
+    stateMap = {}
+    for g in config["actions"]["stateGroups"]:
+        for s in g["states"]:
+            stateMap[s["id"]] = g
+
+    powerState = getPowerState(config, state)
+    if targetState["power"]["active"]:
+        if not powerState:
+            if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], True, setting):
+                return f"Failed to set power [On]"
+        for state in targetState["states"]:
+            if state["id"] not in stateMap:
+                return "State not associated with a group"
+            group = stateMap[state["id"]]
+            if not walkStateGroup(config, group, state, buttonMap[group["button"]], setting):
+                return f"Failed to set {config['frame']['states'][state['id']]['name']} [On]"
+        #set temperature
+    else:
+        if powerState:
+            if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False, setting):
+                return f"Failed to set power [Off]"
+
 @app.route('/api/state/<id>')
 def getState_API(id):
     if not verifyToken():
@@ -372,6 +440,21 @@ def debugPower(config):
         testResult = {"success": False, "error": str(ex)}
     return json.dumps(testResult), 200, {"Content-Type": "application/json"}     
 
+def debugSetState(config):
+    if request.method != 'POST':
+        return 'No config data', 400
+    body = request.get_json(force = True, silent = True)
+    if body is None:
+        return 'No config data', 400
+    
+    testResult = {}
+    try:
+        result = setState(config, body["state"], body["settings"])
+        testResult = {"success": result is None, "error": result}
+    except Exception as ex:
+        testResult = {"success": False, "error": str(ex)}
+    return json.dumps(testResult), 200, {"Content-Type": "application/json"}   
+
 
 @app.route('/api/debug/<type>/<id>', methods=['POST', 'GET'])
 @app.route('/api/debug/<type>/<id>/<targetId>', methods=['POST', 'GET'])
@@ -389,6 +472,8 @@ def getStateDebug(type, id, targetId = None):
             return debugState(config, targetId)
         elif type == "power":
             return debugPower(config)
+        elif type == "setstate":
+            return debugSetState(config)
         else:
             return 'Bad debug type', 400 
     except Exception as ex:
@@ -460,72 +545,6 @@ def trigger(config, id):
         return "Failed", 500
     finally:
         f.close()
-
-def stateChanged(newState, oldState):
-    try:
-        return any(newState[i]["active"] != oldState[i]["active"] for i in range(len(newState)))
-    except:
-        return True
-    
-def stateActive(states, id):
-    return next((x["active"] for x in states if x["id"] == id), None)
-    
-def attemptSetPower(config, action, target):
-    for i in range(settings["triggerAttempts"]):
-        triggerIR(config["ir_config"], action)
-        Time.sleep(settings["setStateDelay"] / 1000)
-        state = getState(config)
-        if state and state["power"]["active"] == target:
-            return True        
-    return False
-
-def walkStateGroup(config, group, state, action):
-    oldState = getState(config)
-    if oldState and stateActive(oldState["states"], state["id"]):
-        return True
-    for _ in range(len(group["states"])):
-        for _ in range(settings["triggerAttempts"]):
-            triggerIR(config["ir_config"], action)
-            Time.sleep(settings["setStateDelay"] / 1000)
-            newState = getState(config)
-            if stateActive(newState["states"], state["id"]):
-                return True
-            if stateChanged(newState, oldState):
-                break
-            oldState = newState            
-    return False
-            
-
-def setState(config, targetState):
-    state = getState(config)
-    if not state:
-        return "Failed to get state"
-
-    buttonMap = {}
-    for b in config["buttons"]:
-        buttonMap[b["id"]] = b["action"]
-    stateMap = {}
-    for g in config["actions"]["stateGroups"]:
-        for s in g["states"]:
-            stateMap[s["id"]] = g
-
-    powerState = getPowerState(config, state)
-    if targetState["power"]["active"]:
-        if not powerState:
-            if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], True):
-                return f"Failed to set power [On]"
-        for state in targetState["states"]:
-            if state["id"] not in stateMap:
-                return "State not associated with a group"
-            group = stateMap[state["id"]]
-            if not walkStateGroup(config, group, state, buttonMap[group["button"]]):
-                return f"Failed to set {config['frame']['states'][state['id']]['name']} [On]"
-        #set temperature
-    else:
-        if powerState:
-            if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False):
-                return f"Failed to set power [Off]"
-
 
 @app.route('/api/setstate/<config>', methods=["POST"])
 def setState_API(config):

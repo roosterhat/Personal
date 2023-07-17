@@ -13,8 +13,11 @@ class Settings extends React.Component {
             settings: props.Settings,
             config: props.Config,
             debugState: null,
+            debugSetState: null,
             selectedState: null,
-            loadDebug: false,
+            targetState: {"power": {"active": true}, "states": []},
+            loadStateDebug: false,
+            loadSetStateDebug: false,
             saving: false
         }
     }
@@ -44,7 +47,7 @@ class Settings extends React.Component {
                             <input type="number" max="0" min="-13" value={this.state.settings["cameraExposure"]} onChange={e => this.updateSettings("cameraExposure", Number(e.target.value))}/>
                         </div>
                         <div className="setting">
-                            <div className="setting-title">Frame Refresh Delay</div>
+                            <div className="setting-title">Frame Refresh Delay (ms)</div>
                             <input type="number" min="0" value={this.state.settings["frameRefreshDelay"]} onChange={e => this.updateSettings("frameRefreshDelay", Number(e.target.value))}/>
                         </div>
                         <div className="setting">
@@ -52,17 +55,76 @@ class Settings extends React.Component {
                             <input type="number" min="1" value={this.state.settings["triggerAttempts"]} onChange={e => this.updateSettings("triggerAttempts", Number(e.target.value))}/>
                         </div>
                         <div className="setting">
-                            <div className="setting-title">Set State Delay</div>
+                            <div className="setting-title">Set State Delay (ms)</div>
                             <input type="number" min="0" value={this.state.settings["setStateDelay"]} onChange={e => this.updateSettings("setStateDelay", Number(e.target.value))}/>
                         </div>
-                        {this.renderDebug()}
+                        {this.renderDebugState()}
+                        {this.renderDebugSetState()}
                     </div>
                 </div>
             </Menu>
         )
     }
 
-    renderDebug = () => {
+    renderDebugSetState = () => {
+        if(this.state.config) {
+            return (
+                <div className="setting">
+                    <div className="setting-title">Debug Set State</div>
+                    <div className="debug-container">
+                        <div className="debug-properties-container">
+                            <div className="power-state">
+                                <div className="name">Power</div>
+                                <button className={"state " + (this.state.targetState.power.active ? "on" : "off")} onClick={() => this.toggleState(this.state.targetState.power)}>
+                                    {this.state.targetState.power.active ? "On" : "Off"}
+                                </button>
+                            </div>
+                            {this.state.targetState.power.active ? 
+                                <div className="state-groups">
+                                    {this.state.config.actions.stateGroups.map(group => 
+                                        <div className="state-group">
+                                            <div className="name">{group.name}</div>
+                                            <select onChange={e => this.toggleGroupState(group, e.target.value)}>
+                                                <option value={null}></option>
+                                                {group.states.map(s =>
+                                                    <option value={s.id} selected={this.state.targetState.states.some(x => x.groupId == group.id && x.id == s.id)}>{s.name}</option>
+                                                )}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                                : null
+                            }
+                        </div>
+                        <div className="debug-properties-container">
+                            <div>
+                                <div className="debug-property">
+                                    <div>IR Trigger Attempts</div>
+                                    <input type="number" min="0" value={this.state.settings["triggerAttempts"]} onChange={e => this.updateSettings("triggerAttempts", Number(e.target.value))}/>
+                                </div>
+                                <div className="debug-property">
+                                    <div>Set State Delay (ms)</div>
+                                    <input type="number" min="0" value={this.state.settings["setStateDelay"]} onChange={e => this.updateSettings("setStateDelay", Number(e.target.value))}/>
+                                </div>
+                            </div>
+                            <button className="debug-test" onClick={this.debugSetState}>{this.state.loadSetStateDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
+                        </div>
+                        {this.state.debugSetState ?
+                            <div className={"debug-result " + (this.state.debugSetState.success ? "success" : "error")}>
+                                {(this.state.debugSetState.success ? "Success" : ("Error: " + this.state.debugSetState.error))}
+                            </div>
+                            : null
+                        }
+                    </div>
+                </div>
+            )
+        }
+        else {
+            return null;
+        }
+    }
+
+    renderDebugState = () => {
         if(this.state.config) {
             return (
                 <div className="setting">
@@ -73,7 +135,7 @@ class Settings extends React.Component {
                                 {this.state.config.frame.states.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                             </select>
                             <div>
-                                <button className="debug" onClick={() => this.debugState()}>{this.state.loadDebug ? <LoadingSpinner id="spinner" /> : "Debug"}</button>
+                                <button className="debug" onClick={() => this.debugState()}>{this.state.loadStateDebug ? <LoadingSpinner id="spinner" /> : "Debug"}</button>
                                 <button onClick={() => this.setState({debugState: null})}>Clear</button>
                             </div>
                         </div>
@@ -110,7 +172,7 @@ class Settings extends React.Component {
                                         </div>
                                         <div className="debug-active-color" style={{background: this.state.selectedState.properties.activeColor}}></div>
                                     </div>
-                                    <button className="debug-test" onClick={() => this.debugState(this.state.selectedState)}>{this.state.loadDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
+                                    <button className="debug-test" onClick={() => this.debugState(this.state.selectedState)}>{this.state.loadStateDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
                                 </div>
                             </div>
                             : null
@@ -135,7 +197,7 @@ class Settings extends React.Component {
 
     debugState = async (config) => {
         try{
-            this.setState({loadDebug: true})
+            this.setState({loadStateDebug: true})
             if(config) {
                 var body = JSON.stringify(this.state.selectedState)
                 var response = await fetchWithToken(`api/debug/state/${this.state.config.id}/${this.state.selectedState.id}`, "POST", body, {"Content-Type": "application/json"})
@@ -163,8 +225,48 @@ class Settings extends React.Component {
             })
         }
         finally {
-            this.setState({loadDebug: false})
+            this.setState({loadStateDebug: false})
         }
+    }
+
+    debugSetState = async () => {
+        try{
+            this.setState({loadSetStateDebug: true})
+            var body = JSON.stringify({"state": this.state.targetState, "settings": this.state.settings})
+            var response = await fetchWithToken(`api/debug/setstate/${this.state.config.id}`, "POST", body, {"Content-Type": "application/json"})
+            if(response.status == 200){
+                this.setState({debugSetState: await response.json()})
+            } 
+            else {
+                this.setState({debugSetState: {"success": false, "error": "unable to trigger Set State: " + await response.text()}})
+            }
+        }
+        catch(ex) {
+            this.setState({debugSetState: {"success": false, "error": "unable to trigger Set State: " + ex}})
+        }
+        finally {
+            this.setState({loadSetStateDebug: false})
+        }
+    }
+
+    toggleGroupState = (group, id) => {
+        var oldState = this.state.targetState.states.find(x => x.groupId == group.id)
+        if(oldState){
+            var index = this.state.targetState.states.indexOf(oldState)
+            this.state.targetState.states.splice(index, 1)
+        }
+        if(id){
+            this.state.targetState.states.push({
+                "id": id,
+                "groupId": group.id,
+                "active": true
+            })
+        }
+    }
+
+    toggleState = (state) => {
+        state.active = !state.active
+        this.setState({config: this.state.config})
     }
 
     addImageToCanvas = (id, data, bmp) => {
