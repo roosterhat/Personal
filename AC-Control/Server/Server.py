@@ -473,21 +473,20 @@ def stateActive(states, id):
 def attemptSetPower(config, action, target):
     for i in range(settings["triggerAttempts"]):
         triggerIR(config["ir_config"], action)
+        Time.sleep(settings["setStateDelay"] / 1000)
         state = getState(config)
         if state and state["power"]["active"] == target:
-            return True
-        Time.sleep(settings["setStateDelay"] / 1000)
+            return True        
     return False
 
 def walkStateGroup(config, group, state, action):
-    Time.sleep(settings["setStateDelay"] / 1000)
     oldState = getState(config)
     if oldState and stateActive(oldState["states"], state["id"]):
         return True
     for _ in range(len(group["states"])):
         for _ in range(settings["triggerAttempts"]):
-            Time.sleep(settings["setStateDelay"] / 1000)
             triggerIR(config["ir_config"], action)
+            Time.sleep(settings["setStateDelay"] / 1000)
             newState = getState(config)
             if stateActive(newState["states"], state["id"]):
                 return True
