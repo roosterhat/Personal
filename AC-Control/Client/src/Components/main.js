@@ -131,7 +131,7 @@ class Main extends React.Component {
             return (<Schedules Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={this.cancelEdit}/>)
         }
         else if (this.state.editSettings) {
-            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} complete={this.completeSettings} cancel={this.cancelEdit} />)
+            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} refresh={this.refreshFrameAndState} complete={this.completeSettings} cancel={this.cancelEdit} />)
         }
         else {
             return (

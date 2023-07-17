@@ -236,6 +236,7 @@ class Settings extends React.Component {
             var response = await fetchWithToken(`api/debug/setstate/${this.state.config.id}`, "POST", body, {"Content-Type": "application/json"})
             if(response.status == 200){
                 this.setState({debugSetState: await response.json()})
+                this.props.refresh()
             } 
             else {
                 this.setState({debugSetState: {"success": false, "error": "unable to trigger Set State: " + await response.text()}})
