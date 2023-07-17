@@ -121,6 +121,7 @@ body {
     transition: transform 0.5s ease;
     max-width: calc(100vw - 40px);
     z-index: 2;
+    border-left: solid 1px #000;
 
     .expand {
         width: 40px;
@@ -129,6 +130,11 @@ body {
         position: absolute;
         left: 0;
         transform: translateX(-100%);
+        border: solid 1px #000;
+        border-right: none;
+        border-bottom-left-radius: 3px;
+        border-top-left-radius: 3px;
+        background: linear-gradient(90deg, #e9e9ed 90%, #fff);
 
         i {
             transition: all 0.2s ease;
@@ -872,7 +878,7 @@ body {
 
                     .group-header {
                         display: flex;
-                        justify-content: space-between;
+                        align-items: center;
                         margin-bottom: 10px;
 
                         input {
