@@ -589,28 +589,28 @@ def setupCamera():
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
 def getCameraFrame():
-    data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
-    data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
-    return data, 200
-    # global camera
-    # if not camera:
-    #     print("Camera not initialized, attempting to connect")
-    #     setupCamera()
-    #     if not camera:
-    #         return "Failed to connect camera", 500
+    # data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
+    # data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
+    # return data, 200
+    global camera
+    if not camera:
+        print("Camera not initialized, attempting to connect")
+        setupCamera()
+        if not camera:
+            return "Failed to connect camera", 500
         
-    # if not camera.isOpened():
-    #     return "Failed open camera", 500
+    if not camera.isOpened():
+        return "Failed open camera", 500
         
-    # if "cameraExposure" in settings:
-    #     camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+    if "cameraExposure" in settings:
+        camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
-    # camera.read()
-    # success, frame = camera.read()
-    # if not success:
-    #     return "Can't receive frame", 500
+    camera.read()
+    success, frame = camera.read()
+    if not success:
+        return "Can't receive frame", 500
     
-    # return frame, 200
+    return frame, 200
 
 def verifyToken():
     if "token" in request.headers:
