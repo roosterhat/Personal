@@ -51,6 +51,10 @@ class Settings extends React.Component {
                             <div className="setting-title">IR Trigger Attempts</div>
                             <input type="number" min="1" value={this.state.settings["triggerAttempts"]} onChange={e => this.updateSettings("triggerAttempts", Number(e.target.value))}/>
                         </div>
+                        <div className="setting">
+                            <div className="setting-title">Set State Delay</div>
+                            <input type="number" min="0" value={this.state.settings["setStateDelay"]} onChange={e => this.updateSettings("setStateDelay", Number(e.target.value))}/>
+                        </div>
                         {this.renderDebug()}
                     </div>
                 </div>
