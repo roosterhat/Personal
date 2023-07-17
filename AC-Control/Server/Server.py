@@ -518,8 +518,8 @@ def setState(config, targetState):
             if state["id"] not in stateMap:
                 return "State not associated with a group"
             group = stateMap[state["id"]]
-            if walkStateGroup(config, group, state, buttonMap[group["button"]]):
-                return f"Failed to set {config['frame']['states'][id]['name']} [On]"
+            if not walkStateGroup(config, group, state, buttonMap[group["button"]]):
+                return f"Failed to set {config['frame']['states'][state['id']]['name']} [On]"
         #set temperature
     else:
         if powerState:
