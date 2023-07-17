@@ -480,6 +480,7 @@ def attemptSetPower(config, action, target):
     return False
 
 def walkStateGroup(config, group, state, action):
+    Time.sleep(settings["setStateDelay"] / 1000)
     oldState = getState(config)
     if oldState and stateActive(oldState["states"], state["id"]):
         return True
@@ -513,18 +514,18 @@ def setState(config, targetState):
     if targetState["power"]["active"]:
         if not powerState:
             if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], True):
-                return f"Failed to set {config['actions']['power']['name']} [On]"
+                return f"Failed to set power [On]"
         for state in targetState["states"]:
             if state["id"] not in stateMap:
                 return "State not associated with a group"
             group = stateMap[state["id"]]
             if walkStateGroup(config, group, state, buttonMap[group["button"]]):
-                return f"Failed to set {state['name']} [On]"
+                return f"Failed to set {config['frame']['states'][id]['name']} [On]"
         #set temperature
     else:
         if powerState:
             if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False):
-                return f"Failed to set {config['actions']['power']['name']} [Off]"
+                return f"Failed to set power [Off]"
 
 
 @app.route('/api/setstate/<config>', methods=["POST"])
