@@ -80,15 +80,17 @@ class Settings extends React.Component {
                 </div>
                 <div className="schedule-runs">
                     {this.state.loadingScheduleRuns ? <LoadingSpinner id="spinner" /> :
-                        this.state.scheduleRuns ? 
-                            Object.keys(this.state.scheduleRuns).map(id => 
-                                <div className="run">
-                                    <div className="name">{`${this.state.config.schedules.find(s => s.id == id).name}:`}</div>
-                                    <div>{this.state.scheduleRuns[id]}</div>
-                                </div>    
-                            )
-                            : null
-                        
+                        this.state.config.schedules.map(schedule => 
+                            <div className="run">
+                                <div className="name">{`${schedule.name}:`}</div>
+                                <div>
+                                    {schedule.id in this.state.scheduleRuns ? 
+                                        new Date(this.state.scheduleRuns[schedule.id]).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
+                                        : "No run yet"
+                                    }
+                                </div>
+                            </div>    
+                        )                        
                     }
                 </div>
             </div>
