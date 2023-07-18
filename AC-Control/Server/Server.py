@@ -567,6 +567,20 @@ def setState_API(config):
     finally:
         f.close()
 
+@app.route('/api/scheduleruns')
+def getScheduleRuns():
+    if not verifyToken():
+        return "Unauthorized", 401
+    try:
+        f = open('./Data/scheduleRuns', 'rb')
+        data = f.read()
+        return data, 200, {'Content-Type':'application/json'}
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    finally:
+        f.close()
+
 @app.route('/api/test/authorize')
 def testAuthorize():
     if not verifyToken():

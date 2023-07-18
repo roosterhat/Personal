@@ -15,11 +15,15 @@ class Settings extends React.Component {
             debugState: null,
             debugSetState: null,
             selectedState: null,
+            scheduleRuns: null,
             targetState: {"power": {"active": true}, "states": []},
             loadStateDebug: false,
             loadSetStateDebug: false,
+            loadingScheduleRuns: true,
             saving: false
         }
+
+        this.getScheduleRuns()
     }
 
     componentDidUpdate () {
@@ -60,9 +64,34 @@ class Settings extends React.Component {
                         </div>
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
+                        {this.renderScheduleRuns()}
                     </div>
                 </div>
             </Menu>
+        )
+    }
+
+
+    renderScheduleRuns = () => {
+        return (
+            <div className="setting">
+                <div className="setting-title schedule-run">Schedule Runs 
+                    <div className="refresh-container"><div className={"refresh" + (this.state.loadingScheduleRuns ? " loading" : "")} onClick={this.getScheduleRuns}><i className="fa-solid fa-arrows-rotate"></i></div></div>
+                </div>
+                <div className="schedule-runs">
+                    {this.state.loadingScheduleRuns ? <LoadingSpinner id="spinner" /> :
+                        this.state.scheduleRuns ? 
+                            Object.keys(this.state.scheduleRuns).map(id => 
+                                <div className="run">
+                                    <div className="name">{`${this.state.config.schedules.find(s => s.id == id).name}:`}</div>
+                                    <div>{this.state.scheduleRuns[id]}</div>
+                                </div>    
+                            )
+                            : null
+                        
+                    }
+                </div>
+            </div>
         )
     }
 
@@ -183,6 +212,19 @@ class Settings extends React.Component {
         }
         else 
             return null;
+    }
+
+    getScheduleRuns = async () => {
+        try{
+            this.setState({loadingScheduleRuns: true})
+            var response = await fetchWithToken("api/scheduleruns")
+            if(response.status == 200){
+                this.setState({scheduleRuns: await response.json()})
+            }
+        }
+        finally {
+            this.setState({loadingScheduleRuns: false})
+        }
     }
 
     updateSettings = (key, value) => {
