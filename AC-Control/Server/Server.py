@@ -651,7 +651,9 @@ def shouldRun(schedule, runs, checkDateTime):
         if dt >= lastRun and (nextClosestDate is None or dt < nextClosestDate):
             nextClosestDate = dt
 
-    return nextClosestDate is not None and nextClosestDate <= checkDateTime + timedelta(seconds=60 - checkDateTime.second)
+    return (nextClosestDate is not None 
+            and nextClosestDate <= checkDateTime + timedelta(seconds=60 - checkDateTime.second) 
+            and nextClosestDate >= checkDateTime - timedelta(seconds=checkDateTime.second))
 
 
 def manageSessions():
