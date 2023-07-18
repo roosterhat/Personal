@@ -652,7 +652,7 @@ def shouldRun(schedule, runs, checkDateTime):
             nextClosestDate = dt
 
     return (nextClosestDate is not None 
-            and nextClosestDate <= checkDateTime + timedelta(seconds=60 - checkDateTime.second) 
+            and nextClosestDate < checkDateTime + timedelta(seconds=60 - checkDateTime.second) 
             and nextClosestDate >= checkDateTime - timedelta(seconds=checkDateTime.second))
 
 
