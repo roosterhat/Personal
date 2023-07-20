@@ -19,7 +19,7 @@ class Settings extends React.Component {
             selectedState: null,
             scheduleRuns: null,
             selectedOCR: null,
-            targetState: {"power": {"active": true}, "states": []},
+            targetState: {"power": {"active": true}, "states": [], "ocr": []},
             loadStateDebug: false,
             loadSetStateDebug: false,
             loadOCRDebug: false,
@@ -65,6 +65,23 @@ class Settings extends React.Component {
                         <div className="setting">
                             <div className="setting-title">Set State Delay (ms)</div>
                             <input type="number" min="0" value={this.state.settings["setStateDelay"]} onChange={e => this.updateSettings("setStateDelay", Number(e.target.value))}/>
+                        </div>
+                        <div className="setting">
+                            <div className="setting-title">Temperature</div>
+                            <div className="setting-body">
+                                <div>
+                                    <div>Min</div>
+                                    <input type="number" min="0" max={this.state.settings.maxTemperature} value={this.state.settings["minTemperature"]} onChange={e => this.updateSettings("minTemperature", Number(e.target.value))}/>
+                                </div>
+                                <div>
+                                    <div>Max</div>
+                                    <input type="number" min={this.state.settings.minTemperature} max="100" value={this.state.settings["maxTemperature"]} onChange={e => this.updateSettings("maxTemperature", Number(e.target.value))}/>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="setting">
+                            <div className="setting-title">Max OCR Value Change</div>
+                            <input type="number" min="1" value={this.state.settings["maxOCRValueChange"]} onChange={e => this.updateSettings("maxOCRValueChange", Number(e.target.value))}/>
                         </div>
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
@@ -176,6 +193,20 @@ class Settings extends React.Component {
                                 <button className={"state " + (this.state.targetState.power.active ? "on" : "off")} onClick={() => this.toggleState(this.state.targetState.power)}>
                                     {this.state.targetState.power.active ? "On" : "Off"}
                                 </button>
+                            </div>
+                            <div className="ocr-state">
+                                <select onChange={e => this.setCurrentOCR(e.target.value)}>
+                                    <option value={null}></option>
+                                    {this.state.config.actions.ocr.map(o =>
+                                        <option value={o.id} selected={this.state.targetState.ocr.some(x => x.id == o.id)} key={o.id}>{o.name}</option>
+                                    )}
+                                </select>
+                                {this.state.targetState.ocr.length > 0 ?
+                                    <input type="number" min={this.state.settings.minTemperature} max={this.state.settings.maxTemperature} 
+                                        value={this.state.targetState.ocr[0].target} 
+                                        onChange={e => this.updateOCRTarget(Number(e.target.value))}/>
+                                    : null
+                                }                                
                             </div>
                             {this.state.targetState.power.active ? 
                                 <div className="state-groups">
@@ -409,6 +440,19 @@ class Settings extends React.Component {
                 "active": true
             })
         }
+    }
+
+    setCurrentOCR = (id) => {
+        var action = this.state.config.actions.ocr.find(x => x.id == id)
+        this.state.targetState.ocr = []
+        if(action)
+            this.state.targetState.ocr.push(action)
+        this.setState({config: this.state.config})
+    }
+
+    updateOCRTarget = (target) => {
+        this.state.targetState.ocr[0].target = target;        
+        this.setState({config: this.state.config})
     }
 
     toggleState = (state) => {

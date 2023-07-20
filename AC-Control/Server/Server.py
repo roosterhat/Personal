@@ -141,9 +141,15 @@ def saveSettings():
         return 'No settings data', 400
     
     try:        
+        f = open(f"./Data/settings", 'r')
+        data = json.loads(f.read())
+        f.close()
+        for key, value in body.items():
+            if key not in ["password", "salt"]:
+                data[key] = value
         f = open(f"./Data/settings", 'w')
-        f.write(json.dumps(body))
-        settings = body
+        f.write(json.dumps(data))
+        settings = data
         return "Success", 200
     except Exception as ex:
         print(ex, flush=True)
@@ -156,8 +162,10 @@ def retrieveSettings():
     if not verifyToken():
         return "Unauthorized", 401
     try:
-        f = open(f"./Data/settings", 'rb')
-        data = f.read()
+        f = open(f"./Data/settings", 'r')
+        data = json.loads(f.read())
+        for item in ["password", "salt"]:
+            del data[item]
         return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
         print(ex, flush=True)
@@ -231,7 +239,7 @@ def getPowerState(config, state):
     equation = ""
     for element in config["actions"]["power"]["stateEquation"]:
         if element["type"] == "operator":
-            if element["name"] not in ")(notandor":
+            if element["name"] not in ["(",")","not","and","or"]:
                 return "Invalid operator", 400
             equation += f"{element['name']} "
         else:
@@ -293,7 +301,7 @@ def stateChanged(newState, oldState):
 def stateActive(states, id):
     return next((x["active"] for x in states if x["id"] == id), None)
     
-def attemptSetPower(config, action, target, settings=None):
+def attemptSetPower(config, action, target, settings):
     for i in range(settings["triggerAttempts"]):
         triggerIR(config["ir_config"], action)
         Time.sleep(settings["setStateDelay"] / 1000)
@@ -302,7 +310,7 @@ def attemptSetPower(config, action, target, settings=None):
             return True        
     return False
 
-def walkStateGroup(config, group, state, action, settings=None):
+def walkStateGroup(config, group, state, action, settings):
     oldState = getState(config)
     if oldState and stateActive(oldState["states"], state["id"]):
         return True
@@ -318,13 +326,66 @@ def walkStateGroup(config, group, state, action, settings=None):
             oldState = newState            
     return False
 
+def getTemperature(state):
+    return next((int(x["value"]) for x in state["ocr"] if x["name"] == "Temperature"), None)
+
+def atTargetTemperature(state, target):
+    return getTemperature(state) == target
+
+def temperatureChanged(oldState, newState):
+    return getTemperature(oldState) != getTemperature(newState)
+
+def setTemperature(config, target, actions, settings):
+    oldState = getState(config)
+    if oldState and atTargetTemperature(oldState, target):
+        return True
+    count = 0
+    while settings["minTemperature"] <= getTemperature(oldState) <= settings["maxTemperature"]:
+        triggerIR(config["ir_config"], actions[0] if getTemperature(oldState) < target else actions[1])
+        Time.sleep(settings["setStateDelay"] / 1000)
+        newState = getState(config)
+        if atTargetTemperature(newState, target):
+            return True
+        if temperatureChanged(oldState, newState):
+            break
+        count += 1
+        if count >= settings["triggerAttempts"]:
+            return False
+        oldState = newState            
+    return False
+
+def atTargetValue(state, id, target):
+    return getOCRValue(state, id) == target
+
+def getOCRValue(state, id):
+    return next((x["value"] for x in state["ocr"] if x["id"] == id), None)
+
+def OCRValueChanged(oldState, newState, id):
+    return getOCRValue(oldState, id) != getOCRValue(newState, id)
+
+def setOCRValue(config, id, target, action, settings):
+    oldState = getState(config)
+    if oldState and atTargetValue(oldState, id, target):
+        return True
+    for _ in range(settings["maxOCRValueChange"]):
+        for _ in range(settings["triggerAttempts"]):
+            triggerIR(config["ir_config"], action)
+            Time.sleep(settings["setStateDelay"] / 1000)
+            newState = getState(config)
+            if atTargetValue(newState, id, target):
+                return True
+            if OCRValueChanged(newState, oldState, id):
+                break
+            oldState = newState            
+    return False
+
 def setState(config, targetState, setting=None):
     global settings
     if setting is None:
         setting = settings
 
-    state = getState(config)
-    if not state:
+    currentState = getState(config)
+    if not currentState:
         return "Failed to get state"
 
     buttonMap = {}
@@ -335,7 +396,7 @@ def setState(config, targetState, setting=None):
         for s in g["states"]:
             stateMap[s["id"]] = g
 
-    powerState = getPowerState(config, state)
+    powerState = getPowerState(config, currentState)
     if targetState["power"]["active"]:
         if not powerState:
             if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], True, setting):
@@ -346,7 +407,15 @@ def setState(config, targetState, setting=None):
             group = stateMap[state["id"]]
             if not walkStateGroup(config, group, state, buttonMap[group["button"]], setting):
                 return f"Failed to set {config['frame']['states'][state['id']]['name']} [On]"
-        #set temperature
+        for ocr in targetState["ocr"]:
+            if not ocr["target"]:
+                continue 
+            if ocr["name"] == "Temperature":
+                if not setTemperature(config, int(ocr["target"]), ([buttonMap[x["button"]] for x in ocr["buttons"]]), setting):
+                    return f"Failed to set Temperature to [{ocr['target']}]"
+            else:
+                if not setOCRValue(config, ocr["id"], ocr["target"], buttonMap[ocr["buttons"][0]["button"]], setting):
+                    return f"Failed to set {ocr['name']} to [{ocr['target']}]"
     else:
         if powerState:
             if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False, setting):
@@ -499,18 +568,15 @@ def debugOCR(config):
     for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
         draw.rectangle([tuple(data[0:2]),tuple(data[2:4])], outline=np.random.choice(colors))
         value += str(int(data[5]))
-    # buffer = io.BytesIO()
-    # image.save(buffer, "png")
-    # buffer.seek(0)
-    # return buffer, 200, {'Content-Type':'image/png'}
+
     return {"image": np.asarray(image).tolist(), "value": value}, 200, {"Content-Type": "application/json"}
 
 
 @app.route('/api/debug/<type>/<id>', methods=['POST', 'GET'])
 @app.route('/api/debug/<type>/<id>/<targetId>', methods=['POST', 'GET'])
 def getStateDebug(type, id, targetId = None):
-    # if not verifyToken():
-    #    return "Unauthorized", 401
+    if not verifyToken():
+        return "Unauthorized", 401
     try:        
         if not Path.isfile('./Data/Configs/'+id):
             return 'Config does not exists', 400
@@ -766,17 +832,17 @@ def manageSchedules():
 
 if __name__ == '__main__':
     try:
-        print("Starting Session Manager")
+        print("Starting Session Manager", flush=True)
         Thread(target=manageSessions).start()
-        print("Starting Schedule Manager")
+        print("Starting Schedule Manager", flush=True)
         Thread(target=manageSchedules).start()
-        print("Loading Settings")
+        print("Loading Settings", flush=True)
         f = open(f"./Data/settings", 'rb')
         settings = json.loads(f.read())
         f.close()
-        print("Setting up camera")
+        print("Setting up camera", flush=True)
         setupCamera()
-        print("Loading OCR Model")
+        print("Loading OCR Model", flush=True)
         OCRModel = YOLO('7seg.pt')
         app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     finally:

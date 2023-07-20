@@ -176,6 +176,14 @@ body {
             margin-bottom: 5px;
         }
 
+        .setting-body {
+            display: flex;
+
+            & > *:not(:last-child) {
+                margin-right: 10px;
+            }
+        }
+
         input {
             width: 100%;
         }
@@ -289,13 +297,14 @@ body {
                 border-radius: 3px;
             }
 
+            .name {
+                margin-right: 5px;
+            }
+
             .power-state {
                 display: flex;
                 align-items: center;
-
-                .name {
-                    margin-right: 5px;
-                }
+                margin-right: 10px;
 
                 .state {
                     color: white;
@@ -310,6 +319,18 @@ body {
                     &.off {
                         background: red;
                     }
+                }
+            }
+
+            .ocr-state {
+                margin-right: 10px;
+
+                select {
+                    height: 100%;
+                }
+
+                & > *:not(:last-child) {
+                    margin-right: 5px;
                 }
             }
 
