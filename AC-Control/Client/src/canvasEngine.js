@@ -10,6 +10,7 @@ class CanvasEngine {
     shapes = [];
     currentShape = null;
     lastMouse = {x: 0, y: 0};
+    mouseInside = false;
     currentDrag = null;    
     editing = false;
     pointing = false;
@@ -94,6 +95,14 @@ class CanvasEngine {
                 this.Update(mouse);
             }
         });
+
+        this.canvas.addEventListener("mouseover", () => {
+            this.mouseInside = true
+        });
+
+        this.canvas.addEventListener("mouseleave", () => {
+            this.mouseInside = false;
+        })
     
         document.addEventListener("keydown", event => {
             if(event.key === "Escape") {
@@ -114,7 +123,7 @@ class CanvasEngine {
                     this.Update();
                 }
             }
-            else if (event.key === "m") {
+            else if (event.key === "m" && this.mouseInside) {
                 this.magnify = !this.magnify;
                 this.Update();
             }

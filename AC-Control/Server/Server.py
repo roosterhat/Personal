@@ -7,13 +7,13 @@ import uuid
 import io
 import cv2
 import numpy as np
-from PIL import Image, ImageColor
+from PIL import Image, ImageColor, ImageDraw, ImageOps
 from datetime import datetime, timedelta, time
 import time as Time
 from threading import Thread
 import hashlib
 import math
-import sys
+from ultralytics import YOLO
 
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
@@ -27,6 +27,7 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 camera = None
 settings = None
+OCRModel = None
 sessions = []
 lastLoginAttempt = datetime.now()
 
@@ -244,6 +245,18 @@ def getPowerState(config, state):
     except:
         return False
 
+def prepareOCRImage(view, image):
+    if "grayscale" in view["properties"] and view["properties"]["grayscale"]:
+        image = image.convert("L")
+    if "invert" in view["properties"] and view["properties"]["invert"]:
+        image = ImageOps.invert(image)
+    if "scale" in view["properties"] and view["properties"]["scale"]:
+        image = image.resize(((int(image.width * view["properties"]["scale"])), int(image.height * view["properties"]["scale"])))
+    padding = 0.4
+    padded = Image.new("RGB", (int(image.width + image.width * padding), int(image.height + image.height * padding)), 0)
+    padded.paste(image, (int(image.width * (padding / 2)), int(image.height * (padding / 2))))
+    return padded
+
 def getState(config):
     currentState = {}
     result, status = getCameraFrame()
@@ -256,10 +269,17 @@ def getState(config):
         for state in config["frame"]["states"]:
             state["active"] = sampleFrameEllipse(frame, state, config["frame"])
     
-    # if "digits" in config["frame"]:
-    #     currentState["digits"] = config["frame"]["digits"]
-    #     for digit in currentState["digits"]:
-    #         digit["value"] = None
+    if "ocr" in config["frame"]:
+        currentState["ocr"] = config["actions"]["ocr"]
+        for target in currentState["ocr"]:
+            view = next((x for x in config["frame"]["ocr"] if x["id"] == target["view"]), None)
+            image = ReshapeImage(config, frame, view["shape"]["vertices"])
+            image = prepareOCRImage(view, image)
+            results = OCRModel(image, device="cpu", verbose=False)
+            value = ""
+            for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
+                value += str(int(data[5]))
+            target["value"] = value
     
     currentState["power"] = { "active": getPowerState(config, currentState) }
     return currentState
@@ -409,7 +429,6 @@ def debugState(config, stateId):
     else:
         return "No state found", 404
 
-
 def debugPower(config):
     if request.method != 'POST':
         return 'No config data', 400
@@ -441,6 +460,7 @@ def debugPower(config):
         testResult = {"success": False, "error": str(ex)}
     return json.dumps(testResult), 200, {"Content-Type": "application/json"}     
 
+
 def debugSetState(config):
     if request.method != 'POST':
         return 'No config data', 400
@@ -457,11 +477,40 @@ def debugSetState(config):
     return json.dumps(testResult), 200, {"Content-Type": "application/json"}   
 
 
+def debugOCR(config):
+    if request.method != 'POST':
+        return 'No config data', 400
+    view = request.get_json(force = True, silent = True)
+    if view is None:
+        return 'No config data', 400
+    
+    result, status = getCameraFrame()
+    if status != 200:
+        return result, status
+    frame = result
+
+    image = ReshapeImage(config, frame, view["shape"]["vertices"])
+    image = prepareOCRImage(view, image)
+
+    results = OCRModel(image, device="cpu", verbose=False)
+    value = ""
+    draw = ImageDraw.Draw(image)
+    colors = ["#77DD77", "#836953", "#89cff0", "#99c5c4", "#9adedb", "#aa9499", "#aaf0d1", "#b2fba5"]
+    for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
+        draw.rectangle([tuple(data[0:2]),tuple(data[2:4])], outline=np.random.choice(colors))
+        value += str(int(data[5]))
+    # buffer = io.BytesIO()
+    # image.save(buffer, "png")
+    # buffer.seek(0)
+    # return buffer, 200, {'Content-Type':'image/png'}
+    return {"image": np.asarray(image).tolist(), "value": value}, 200, {"Content-Type": "application/json"}
+
+
 @app.route('/api/debug/<type>/<id>', methods=['POST', 'GET'])
 @app.route('/api/debug/<type>/<id>/<targetId>', methods=['POST', 'GET'])
 def getStateDebug(type, id, targetId = None):
-    if not verifyToken():
-        return "Unauthorized", 401
+    # if not verifyToken():
+    #    return "Unauthorized", 401
     try:        
         if not Path.isfile('./Data/Configs/'+id):
             return 'Config does not exists', 400
@@ -475,11 +524,27 @@ def getStateDebug(type, id, targetId = None):
             return debugPower(config)
         elif type == "setstate":
             return debugSetState(config)
+        elif type == "ocr":
+            return debugOCR(config)
         else:
             return 'Bad debug type', 400 
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
+
+def ReshapeImage(config, frame, vertices):
+    scale = config["frame"]["position"]["scale"]
+    points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in vertices])
+    (_,_), (width, height), a = cv2.minAreaRect(points)
+    if a > 45:
+        width, height = height, width
+    dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
+    transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
+    out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
+    out = np.rot90(out, -config["frame"]["rotate"] / 90)
+    out = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
+    image = Image.fromarray(out)
+    return image
 
 @app.route('/api/frame')
 @app.route('/api/frame/<id>')
@@ -500,20 +565,10 @@ def frame(id = None):
             f.close()
 
         if "frame" in config and "position" in config["frame"] and "crop" in config["frame"]:
-            scale = config["frame"]["position"]["scale"]
-            points = np.array([[int(p["x"] / scale), int(p["y"] / scale)] for p in config["frame"]["crop"]["shape"]["vertices"]])
-            (_,_), (width, height), a = cv2.minAreaRect(points)
-            if a > 45:
-                width, height = height, width
-            dstPts = [[0, 0], [width, 0], [width, height], [0, height]]
-            transform = cv2.getPerspectiveTransform(np.float32(points), np.float32(dstPts))
-            out = cv2.warpPerspective(frame, transform, (int(width), int(height)))
-            out = np.rot90(out, -config["frame"]["rotate"] / 90)
-            out = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
-            buffer = io.BytesIO()
-            image = Image.fromarray(out)
+            image = ReshapeImage(config, frame, config["frame"]["crop"]["shape"]["vertices"])
             scale = max(max(255 / image.width, 1), max(150 / image.height, 1))
             image = image.resize((int(image.width * scale), int(image.height * scale)))
+            buffer = io.BytesIO()
             image.save(buffer, "png")
             buffer.seek(0)
             return buffer, 200, {'Content-Type':'image/png'} 
@@ -603,28 +658,28 @@ def setupCamera():
             camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
 def getCameraFrame():
-    # data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
-    # data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
-    # return data, 200
-    global camera
-    if not camera:
-        print("Camera not initialized, attempting to connect")
-        setupCamera()
-        if not camera:
-            return "Failed to connect camera", 500
+    data = np.asarray(Image.open("C:\\Users\\eriko\\Pictures\\PXL_20230626_022707896.jpg"))
+    data = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
+    return data, 200
+    # global camera
+    # if not camera:
+    #     print("Camera not initialized, attempting to connect")
+    #     setupCamera()
+    #     if not camera:
+    #         return "Failed to connect camera", 500
         
-    if not camera.isOpened():
-        return "Failed open camera", 500
+    # if not camera.isOpened():
+    #     return "Failed open camera", 500
         
-    if "cameraExposure" in settings:
-        camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
+    # if "cameraExposure" in settings:
+    #     camera.set(cv2.CAP_PROP_EXPOSURE, settings["cameraExposure"])
 
-    camera.read()
-    success, frame = camera.read()
-    if not success:
-        return "Can't receive frame", 500
+    # camera.read()
+    # success, frame = camera.read()
+    # if not success:
+    #     return "Can't receive frame", 500
     
-    return frame, 200
+    # return frame, 200
 
 def verifyToken():
     if "token" in request.headers:
@@ -717,6 +772,7 @@ if __name__ == '__main__':
         settings = json.loads(f.read())
         f.close()
         setupCamera()
+        OCRModel = YOLO('7seg.pt')
         app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     finally:
         if camera:

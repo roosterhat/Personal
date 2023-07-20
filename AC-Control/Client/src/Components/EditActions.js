@@ -1,7 +1,7 @@
 import React from 'react'
 import Menu from './Menu';
 import LoadingSpinner from './Spinners/loading1';
-import { fetchWithToken } from '../Utility';
+import { fetchWithToken, uuidv4 } from '../Utility';
 
 class EditActions extends React.Component {
     Operations = [
@@ -23,13 +23,17 @@ class EditActions extends React.Component {
             actionTriggers: {}
         }
 
-        if(!this.state.config.actions.digits) {
-            this.state.config.actions.digits = []
-        }
-        if(!this.state.config.actions.temperature) {
-            this.state.config.actions.temperature = [
-                {"name": "Up", "button": null},
-                {"name": "Down", "button": null}
+        if(!this.state.config.actions.ocr) {
+            this.state.config.actions.ocr = [
+                {
+                    "name": "Temperature",
+                    "buttons": [
+                        {"name": "Up", "button": null},
+                        {"name": "Down", "button": null}
+                    ],
+                    "view": null,
+                    "id": uuidv4()
+                }
             ]
         }
         if(!this.state.config.actions.power) {
@@ -56,24 +60,47 @@ class EditActions extends React.Component {
                     </div>
                     <div className="actions">
                         <div className="section digits">
-                            <div className="section-header">OCR</div>
+                            <div className="section-header">
+                                <div className="header-group">
+                                    <span>OCR</span>
+                                    <button className="add-group" onClick={this.addOCR}><i className="fa-solid fa-plus"></i></button>
+                                </div>
+                            </div>
                             <div className="section-body">
-
+                                {this.state.config.actions.ocr.filter(x => x.name != "Temperature").map((o, index) => 
+                                    <div className="pairing-container" key={o.id}>
+                                        <div className="group-container">
+                                            <div className="group-header">
+                                                <input value={o.name} placeholder="Group name" onChange={e => this.setValue(o, "name", e.target.value)}></input>
+                                                <button className="close" onClick={() => this.removeItem(this.state.config.actions.ocr, index+1)}><i className="fa-solid fa-xmark"></i></button>
+                                            </div>
+                                            {o.buttons.map(b => 
+                                                <div className="pairing-container" key={b.id}>
+                                                    <div className="name">{b.name}</div>
+                                                    <select onChange={e => this.setValue(o, "button", e.target.value)}>
+                                                        {this.state.config.buttons.map(x =>
+                                                            <option selected={o.button == x.id} value={x.id} key={x.id}>{x.name}</option>
+                                                        )}
+                                                    </select>
+                                                </div>
+                                            )}                                    
+                                            <div className="pairing-container">
+                                                <div className="name">OCR View</div>
+                                                <select onChange={e => this.setValue(o, "view", e.target.value)}>
+                                                    {this.state.config.frame.ocr.filter(x => !this.state.config.actions.ocr.some(y => y.view == x.id)).map(v => 
+                                                        <option selected={o.view == v.id} value={v.id}>{v.name}</option>
+                                                    )}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="section temperature">
                             <div className="section-header">Temperature</div>
                             <div className="section-body">
-                                {this.state.config.actions.temperature.map(x => 
-                                    <div className="pairing-container">
-                                        <div className="name">{x.name}</div>
-                                        <select onChange={e => this.setButton(x, e.target.value)}>
-                                            {this.state.config.buttons.map(b =>
-                                                <option selected={x.button == b.id} value={b.id}>{b.name}</option>
-                                            )}
-                                        </select>
-                                    </div>
-                                )}
+                                {this.renderTemperature()}
                             </div>                            
                         </div>
                         <div className="section power">
@@ -124,16 +151,16 @@ class EditActions extends React.Component {
                             {this.state.config.actions.stateGroups.length > 0 ?
                                 <div className="section-body">
                                     {this.state.config.actions.stateGroups.map((group, groupIndex) => 
-                                        <div className="pairing-container">
+                                        <div className="pairing-container" key={group.id}>
                                             <div className="group-container">
                                                 <div className="group-header">
-                                                    <input value={group.name} placeholder="Group name" onChange={e => this.setGroupName(group, e.target.value)}></input>
-                                                    <select onChange={e => this.setButton(group, e.target.value)}>
+                                                    <input value={group.name} placeholder="Group name" onChange={e => this.setValue(group, "name", e.target.value)}></input>
+                                                    <select onChange={e => this.setValue(group, "button", e.target.value)}>
                                                         {this.state.config.buttons.map(b =>
                                                             <option selected={group.button == b.id} value={b.id}>{b.name}</option>
                                                         )}
                                                     </select>
-                                                    <button className="close" onClick={() => this.removeGroup(groupIndex)}><i className="fa-solid fa-xmark"></i></button>
+                                                    <button className="close" onClick={() => this.removeItem(this.state.config.actions.stateGroups, groupIndex)}><i className="fa-solid fa-xmark"></i></button>
                                                 </div>
                                                 <div className="group-body">
                                                     <div className="name">States</div>
@@ -168,6 +195,48 @@ class EditActions extends React.Component {
                 </div>
             </Menu>
         )
+    }
+
+    renderTemperature = () => {
+        var temperature = this.state.config.actions.ocr.find(x => x.name == "Temperature")
+        return (
+            <div>
+                {temperature.buttons.map(x => 
+                    <div className="pairing-container" key={x.id}>
+                        <div className="name">{x.name}</div>
+                        <select onChange={e => this.setValue(x, "button", e.target.value)}>
+                            {this.state.config.buttons.map(b =>
+                                <option selected={x.button == b.id} value={b.id} key={b.id}>{b.name}</option>
+                            )}
+                        </select>
+                    </div>
+                )}
+                <div className="pairing-container">
+                    <div className="name">OCR View</div>
+                    <select onChange={e => this.setValue(temperature, "view", e.target.value)}>
+                        {this.state.config.frame.ocr.map(v => 
+                            <option selected={temperature.view == v.id} value={v.id}>{v.name}</option>
+                        )}
+                    </select>
+                </div>
+            </div>
+        )
+    }
+
+    addOCR = () => {
+        if(this.state.config.frame.ocr.filter(x => !this.state.config.actions.ocr.some(y => y.view == x.id)).length == 0)
+            return;
+        this.state.config.actions.ocr.push(
+            {
+                "name": "",
+                "buttons": [
+                    {"name": "Trigger", "button": null}
+                ],
+                "view": null,
+                "id": uuidv4()
+            }
+        )
+        this.setState({config: this.state.config})
     }
 
     complete = () => {
@@ -218,8 +287,8 @@ class EditActions extends React.Component {
         this.setState({actionTriggers: this.state.actionTriggers})
     }
 
-    setButton = (action, id) => {
-        action.button = id;
+    setValue = (action, key, value) => {
+        action[key] = value
         this.setState({config: this.state.config})
     }
 
@@ -242,8 +311,8 @@ class EditActions extends React.Component {
         this.setState({config: this.state.config})
     }
 
-    removeGroup = (index) => {
-        this.state.config.actions.stateGroups.splice(index, 1)
+    removeItem = (list, index) => {
+        list.splice(index, 1)
         this.setState({config: this.state.config})
     }
 
@@ -260,11 +329,6 @@ class EditActions extends React.Component {
 
     removeState = (group, index) => {
         group.states.splice(index, 1)
-        this.setState({config: this.state.config})
-    }
-
-    setGroupName = (group, name) => {
-        group.name = name
         this.setState({config: this.state.config})
     }
 }

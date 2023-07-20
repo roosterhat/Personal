@@ -51,20 +51,41 @@ class EditFrame extends React.Component {
                     <div className="item-crop minimal">
                         <div className="crop-header">
                             <div className="header-title">
-                                <span>Digits</span>
-                                <button className="btn" onClick={this.addDigit}><i className="fa-solid fa-plus"></i></button>
+                                <span>OCR View</span>
+                                <button className="btn" onClick={this.addOCRView}><i className="fa-solid fa-plus"></i></button>
                             </div>                            
                         </div>
                         <div className="items">
                             {
-                                this.Config.frame.digits ? this.Config.frame.digits.map(button => 
+                                this.Config.frame.ocr ? this.Config.frame.ocr.map(button => 
                                     <Button 
                                         key={button.id} 
                                         button={button} 
                                         update={() => this.Engine.Update()}
-                                        remove={() => this.removeButton(button, this.Config.frame.digits)}
+                                        remove={() => this.removeButton(button, this.Config.frame.ocr)}
                                         showAction={false}
-                                    />
+                                    >
+                                        <div className="state-properties">
+                                            <div>
+                                                <div>Scale</div>
+                                                <input type="number" min="1" max="3" 
+                                                    value={button.properties.scale} 
+                                                    onChange={e => this.updateOCRProperty("scale", Number(e.target.value))}/>
+                                                </div>
+                                            <div>
+                                                <div>Gray Scale</div>
+                                                <input type="checkbox"
+                                                    checked={button.properties.grayscale}
+                                                    onChange={e => this.updateOCRProperty("grayscale", !button.properties.grayscale)}/>
+                                            </div>
+                                            <div>
+                                                <div>Invert</div>
+                                                <input type="checkbox"
+                                                    checked={button.properties.invert}
+                                                    onChange={e => this.updateOCRProperty("invert", !button.properties.invert)}/>
+                                            </div>
+                                        </div>
+                                    </Button>
                                 ) : null
                             }
                         </div>
@@ -137,7 +158,7 @@ class EditFrame extends React.Component {
         }
         if(this.Config.frame.position){
             await this.Engine.LoadBackground(background, this.Config.frame.position)
-            this.Engine.shapes.push(...this.Config.frame.digits.map(x => x.shape))
+            this.Engine.shapes.push(...this.Config.frame.ocr.map(x => x.shape))
             this.Engine.shapes.push(...this.Config.frame.states.map(x => x.shape))
             this.Engine.shapes.push(this.Config.frame.crop.shape);
             this.Engine.Update()
@@ -155,7 +176,7 @@ class EditFrame extends React.Component {
             this.Config.frame = {
                 position: position,
                 crop: { shape: shape, id: uuidv4() },
-                digits: [],
+                ocr: [],
                 states: [],
                 rotate: 0
             };
@@ -163,6 +184,11 @@ class EditFrame extends React.Component {
             this.Engine.Update();
             this.setConfig(this.Config);
         }
+    }
+
+    updateOCRProperty = (ocr, key, value) => {
+        ocr.properties[key] = value;
+        this.setConfig(this.Config)
     }
 
     reorder = (index, dir) => {
@@ -215,7 +241,7 @@ class EditFrame extends React.Component {
             shape: shape,
             id: uuidv4(),
             name: '', 
-            properties: { "colorDistanceThreshold": 20, "stateActivationPercentage": 5, "activeColor": null },
+            properties: { "colorDistanceThreshold": 100, "stateActivationPercentage": 10, "activeColor": null },
             index: this.Config.frame.states.length + 1            
         }
 
@@ -231,21 +257,20 @@ class EditFrame extends React.Component {
         this.setConfig(this.Config);
     }
 
-    addDigit = () => {
+    addOCRView = () => {
         var s = 40;
         var shape = { 'vertices': [
             {x: 0, y: 0},
-            {x: 0, y: s},
-            {x: s, y: s},
             {x: s, y: 0},
+            {x: s, y: s},
+            {x: 0, y: s},
         ], 'type': 'poly', 'closed': true, 'highlight': false, 'color': this.Config.frame.crop.shape.color };
 
-        this.Config.frame.digits.push({
+        this.Config.frame.ocr.push({
             shape: shape,
             id: uuidv4(),
             name: '', 
-            properties: {},
-            index: this.Config.frame.digits.length + 1
+            properties: {scale: 1.0, grayscale: false, invert: false}
         });
         this.Engine.shapes.push(shape);
         this.Engine.currentDrag = {"item": shape, "type": "poly"};

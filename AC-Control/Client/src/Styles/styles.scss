@@ -36,6 +36,10 @@ body {
                 background: #777777de;
             }
         }
+
+        .lds-ring {
+            width: 10%;
+        }
     }
 
     .content-header {
@@ -63,6 +67,7 @@ body {
         border-radius: 5px;
         margin-left: 5px;
         min-width: 150px;
+        position: relative;
 
         .state {
             display: flex;
@@ -134,7 +139,7 @@ body {
         border-right: none;
         border-bottom-left-radius: 3px;
         border-top-left-radius: 3px;
-        background: linear-gradient(90deg, #e9e9ed 90%, #fff);
+        background: linear-gradient(90deg, #e9e9ed 30%, #ffffffeb);
 
         i {
             transition: all 0.2s ease;
@@ -199,6 +204,7 @@ body {
                     display: flex;
                     justify-content: center;
                     align-items: center;
+                    position: relative;
     
                     .lds-ring {
                         transform: scale(50%)
@@ -210,6 +216,7 @@ body {
         .debug-canvas-container {
             display: flex;
             margin-top: 5px;
+            position: relative;
     
             .canvas-container {
                 width: 100%;
@@ -225,6 +232,10 @@ body {
                     border: solid 1px #000;
                     position: relative;
                     inset: auto;                    
+                }
+
+                .lds-ring {
+                    transform: scale(50%)
                 }
             }
         }
@@ -262,6 +273,7 @@ body {
                 align-items: center;
                 flex-shrink: 0;
                 margin-left: 5px;
+                position: relative;
 
                 .lds-ring {
                     transform: scale(50%)
@@ -344,6 +356,7 @@ body {
         border: solid 1px #000;
         border-radius: 5px;
         padding: 5px;
+        position: relative;
 
         .run {
             display: flex;
@@ -355,7 +368,7 @@ body {
         }
 
         .lds-ring {
-            position: relative;
+            width: 10%;
             left: 50%;
             transform: translateX(-50%);
         }
@@ -497,7 +510,7 @@ body {
         margin-top: 4px;
         align-items: flex-end;
 
-        input {
+        input:not([type=checkbox]) {
             height: 27px;
             width: 70px;
         }
@@ -1110,11 +1123,16 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+
+    .lds-ring {
+        width: 10%;
+    }
 }
 
 .lds-ring {
-    position: absolute;
-    width: 10%;
+    position: relative;
+    width: 100%;
     aspect-ratio: 1;
 
     div {

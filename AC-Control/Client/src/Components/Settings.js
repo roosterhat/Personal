@@ -14,11 +14,15 @@ class Settings extends React.Component {
             config: props.Config,
             debugState: null,
             debugSetState: null,
+            debugOCR: null,
+            OCRDebugResult: null,
             selectedState: null,
             scheduleRuns: null,
+            selectedOCR: null,
             targetState: {"power": {"active": true}, "states": []},
             loadStateDebug: false,
             loadSetStateDebug: false,
+            loadOCRDebug: false,
             loadingScheduleRuns: true,
             saving: false
         }
@@ -64,6 +68,7 @@ class Settings extends React.Component {
                         </div>
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
+                        {this.renderDebugOCR()}
                         {this.renderScheduleRuns()}
                     </div>
                 </div>
@@ -71,30 +76,92 @@ class Settings extends React.Component {
         )
     }
 
-
     renderScheduleRuns = () => {
-        return (
-            <div className="setting">
-                <div className="setting-title schedule-run">Schedule Runs 
-                    <div className="refresh-container"><div className={"refresh" + (this.state.loadingScheduleRuns ? " loading" : "")} onClick={this.getScheduleRuns}><i className="fa-solid fa-arrows-rotate"></i></div></div>
+        if(this.state.config){
+            return (
+                <div className="setting">
+                    <div className="setting-title schedule-run">Schedule Runs 
+                        <div className="refresh-container"><div className={"refresh" + (this.state.loadingScheduleRuns ? " loading" : "")} onClick={this.getScheduleRuns}><i className="fa-solid fa-arrows-rotate"></i></div></div>
+                    </div>
+                    <div className="schedule-runs">
+                        {this.state.loadingScheduleRuns ? <LoadingSpinner id="spinner" /> :
+                            this.state.config.schedules.map(schedule => 
+                                <div className="run" key={schedule.id}>
+                                    <div className="name">{`${schedule.name}:`}</div>
+                                    <div>
+                                        {schedule.id in this.state.scheduleRuns ? 
+                                            new Date(this.state.scheduleRuns[schedule.id]).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
+                                            : " - "
+                                        }
+                                    </div>
+                                </div>    
+                            )                        
+                        }
+                    </div>
                 </div>
-                <div className="schedule-runs">
-                    {this.state.loadingScheduleRuns ? <LoadingSpinner id="spinner" /> :
-                        this.state.config.schedules.map(schedule => 
-                            <div className="run">
-                                <div className="name">{`${schedule.name}:`}</div>
-                                <div>
-                                    {schedule.id in this.state.scheduleRuns ? 
-                                        new Date(this.state.scheduleRuns[schedule.id]).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
-                                        : "No run yet"
-                                    }
+            )
+        }
+        else {
+            return null
+        }
+    }
+
+    renderDebugOCR = () => {
+        if(this.state.config){
+            return (
+                <div className="setting">
+                    <div className="setting-title">Debug OCR</div>
+                    <div className="debug-container">
+                        <div className="debug-header">
+                            <select name="buttons" id="ocr-select" onChange={() => this.setState({OCRDebugResult: null})}>
+                                {this.state.config.actions.ocr.map(x => <option key={x.id} value={x.view}>{x.name}</option>)}
+                            </select>
+                            <div>
+                                <button className="debug" onClick={() => this.debugOCR()}>{this.state.loadOCRDebug ? <LoadingSpinner id="spinner" /> : "Debug"}</button>
+                                <button onClick={() => this.setState({OCRDebugResult: null})}>Clear</button>
+                            </div>
+                        </div>
+                        {this.state.OCRDebugResult ? 
+                            <div>
+                                <div className="debug-canvas-container">
+                                    <div className="canvas-container">
+                                        <div>{`Value: ${this.state.OCRDebugResult.value}`}</div>
+                                        <canvas id="debug-canvas-ocr"></canvas>
+                                    </div>                               
                                 </div>
-                            </div>    
-                        )                        
-                    }
+                                <div className="debug-properties-container">
+                                    <div>
+                                        <div className="debug-property">
+                                            <div>Scale</div>
+                                            <input type="number" min="1" max="3" 
+                                                value={this.state.selectedOCR.properties.scale} 
+                                                onChange={e => this.updateOCRProperty("scale", Number(e.target.value))}/>
+                                        </div>
+                                        <div className="debug-property">
+                                            <div>Gray Scale</div>
+                                            <input type="checkbox"
+                                                checked={this.state.selectedOCR.properties.grayscale}
+                                                onChange={e => this.updateOCRProperty("grayscale", !this.state.selectedOCR.properties.grayscale)}/>
+                                        </div>
+                                        <div className="debug-property">
+                                            <div>Invert</div>
+                                            <input type="checkbox"
+                                                checked={this.state.selectedOCR.properties.invert}
+                                                onChange={e => this.updateOCRProperty("invert", !this.state.selectedOCR.properties.invert)}/>
+                                        </div>
+                                    </div>
+                                    <button className="debug-test" onClick={() => this.debugOCR()}>{this.state.loadOCRDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
+                                </div>
+                            </div>
+                            : null
+                        }
+                    </div>
                 </div>
-            </div>
-        )
+            )
+        }
+        else {
+            return null
+        }
     }
 
     renderDebugSetState = () => {
@@ -113,12 +180,12 @@ class Settings extends React.Component {
                             {this.state.targetState.power.active ? 
                                 <div className="state-groups">
                                     {this.state.config.actions.stateGroups.map(group => 
-                                        <div className="state-group">
+                                        <div className="state-group" key={group.id}>
                                             <div className="name">{group.name}</div>
                                             <select onChange={e => this.toggleGroupState(group, e.target.value)}>
                                                 <option value={null}></option>
                                                 {group.states.map(s =>
-                                                    <option value={s.id} selected={this.state.targetState.states.some(x => x.groupId == group.id && x.id == s.id)}>{s.name}</option>
+                                                    <option value={s.id} selected={this.state.targetState.states.some(x => x.groupId == group.id && x.id == s.id)} key={s.id}>{s.name}</option>
                                                 )}
                                             </select>
                                         </div>
@@ -216,6 +283,36 @@ class Settings extends React.Component {
             return null;
     }
 
+    debugOCR = async () => {
+        try{
+            this.setState({loadOCRDebug: true})
+            var elem = document.getElementById("ocr-select")
+            if(elem){
+                var id = elem.value;
+                if(id){
+                    var ocr = this.state.config.frame.ocr.find(x => x.id == id);
+                    var body = JSON.stringify(ocr)
+                    var response = await fetchWithToken(`api/debug/ocr/${this.state.config.id}`, "POST", body, {"Content-Type": "application/json"})
+                    if(response.status == 200){
+                        var result = await response.json()
+                        this.setState({OCRDebugResult: result, selectedOCR: ocr})
+                        this.UpdateQueue.push(() => {
+                            this.addImageToCanvas("debug-canvas-ocr", result["image"], false);
+                        })
+                    }
+                }                    
+            }            
+        }
+        finally {
+            this.setState({loadOCRDebug: false})
+        }
+    }
+
+    updateOCRProperty = (key, value) => {
+        this.state.selectedOCR.properties[key] = value
+        this.setState({config: this.state.config});
+    }
+
     getScheduleRuns = async () => {
         try{
             this.setState({loadingScheduleRuns: true})
@@ -242,11 +339,13 @@ class Settings extends React.Component {
     debugState = async (config) => {
         try{
             this.setState({loadStateDebug: true})
+            var result = null
             if(config) {
                 var body = JSON.stringify(this.state.selectedState)
                 var response = await fetchWithToken(`api/debug/state/${this.state.config.id}/${this.state.selectedState.id}`, "POST", body, {"Content-Type": "application/json"})
                 if(response.status == 200){
-                    this.setState({debugState: await response.json()})
+                    result = await response.json()
+                    this.setState({debugState: result})
                 }                        
             }
             else {
@@ -257,16 +356,19 @@ class Settings extends React.Component {
                         this.setState({selectedState: this.state.config.frame.states.find(x => x.id == id)})
                         var response = await fetchWithToken(`api/debug/state/${this.state.config.id}/${id}`)
                         if(response.status == 200){
-                            this.setState({debugState: await response.json()})
+                            result = await response.json()
+                            this.setState({debugState: result})
                         }
                     }                    
                 }
             }
 
-            this.UpdateQueue.push(() => {
-                this.addImageToCanvas("debug-canvas-mask", this.state.debugState["mask"], true);
-                this.addImageToCanvas("debug-canvas-patch", this.state.debugState["patch"], false);
-            })
+            if(result){
+                this.UpdateQueue.push(() => {
+                    this.addImageToCanvas("debug-canvas-mask", result["mask"], true);
+                    this.addImageToCanvas("debug-canvas-patch", result["patch"], false);
+                })
+            }
         }
         finally {
             this.setState({loadStateDebug: false})
