@@ -247,6 +247,8 @@ class EditActions extends React.Component {
                     if(!x.button)
                         x.button = defaultId
                 })
+                if(!o.view)
+                    o.view = this.state.config.frame.ocr[0].id
             })
             if(!this.state.config.actions.power.button)
                 this.state.config.actions.power.button = defaultId
