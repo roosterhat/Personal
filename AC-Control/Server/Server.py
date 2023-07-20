@@ -766,12 +766,17 @@ def manageSchedules():
 
 if __name__ == '__main__':
     try:
+        print("Starting Session Manager")
         Thread(target=manageSessions).start()
+        print("Starting Schedule Manager")
         Thread(target=manageSchedules).start()
+        print("Loading Settings")
         f = open(f"./Data/settings", 'rb')
         settings = json.loads(f.read())
         f.close()
+        print("Setting up camera")
         setupCamera()
+        print("Loading OCR Model")
         OCRModel = YOLO('7seg.pt')
         app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     finally:

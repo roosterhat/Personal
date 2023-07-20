@@ -224,7 +224,7 @@ class EditActions extends React.Component {
     }
 
     addOCR = () => {
-        if(this.state.config.frame.ocr.filter(x => !this.state.config.actions.ocr.some(y => y.view == x.id)).length == 0)
+        if(this.state.config.frame.ocr.length <= this.state.config.actions.ocr.length)
             return;
         this.state.config.actions.ocr.push(
             {
@@ -242,9 +242,11 @@ class EditActions extends React.Component {
     complete = () => {
         if(this.state.config.buttons.length > 0){
             var defaultId = this.state.config.buttons[0].id;
-            this.state.config.actions.temperature.forEach(temp => {
-                if(!temp.button)
-                    temp.button = defaultId
+            this.state.config.actions.ocr.forEach(o => {
+                o.buttons.forEach(x => {
+                    if(!x.button)
+                        x.button = defaultId
+                })
             })
             if(!this.state.config.actions.power.button)
                 this.state.config.actions.power.button = defaultId
