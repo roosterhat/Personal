@@ -427,7 +427,8 @@ def setState(config, targetState, setting=None):
                 return f"Failed to set power [Off]"
 
 @app.route('/api/state/<id>')
-def getState_API(id):
+@app.route('/api/state/<id>/<section>')
+def getState_API(id, section = None):
     if not verifyToken():
         return "Unauthorized", 401
     try:
@@ -438,7 +439,10 @@ def getState_API(id):
         f.close()
         if "frame" not in config:
             return "No frame data", 400
-        state = getState(config)
+        sections = None
+        if section and section in ["states", "power", "ocr"]:
+            sections = [section]
+        state = getState(config, sections)
         if state:
             return state, 200, {'Content-Type':'image'} 
         else:
