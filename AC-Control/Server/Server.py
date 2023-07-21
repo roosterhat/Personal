@@ -340,8 +340,10 @@ def setTemperature(config, target, actions, settings):
     if oldState and atTargetTemperature(oldState, target):
         return True
     count = 0
+    up = next((x for x in actions if x["name"] == "Up"), None)
+    down = next((x for x in actions if x["name"] == "Down"), None)
     while settings["minTemperature"] <= getTemperature(oldState) <= settings["maxTemperature"]:
-        triggerIR(config["ir_config"], actions[0] if getTemperature(oldState) < target else actions[1])
+        triggerIR(config["ir_config"], up if getTemperature(oldState) < target else down)
         Time.sleep(settings["setStateDelay"] / 1000)
         newState = getState(config)
         if atTargetTemperature(newState, target):
