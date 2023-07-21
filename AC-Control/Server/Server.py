@@ -351,8 +351,9 @@ def setTemperature(config, target, actions, settings):
         if atTargetTemperature(newState, target):
             return True
         if temperatureChanged(oldState, newState):
-            break
-        count += 1
+            count = 0
+        else:
+            count += 1
         if count >= settings["triggerAttempts"]:
             return False
         oldState = newState            
