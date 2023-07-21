@@ -787,12 +787,15 @@ def shouldRun(schedule, runs, checkDateTime):
             nextClosestDate = dt
             nextClosestDateIndex = index
     
+    if not nextClosestDate:
+        return False
+
     lastScheduledDOW = Days.index(schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])])
     lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
     if lastScheduledDOW >= currentDOW:
         lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
 
-    return ((nextClosestDate and nextClosestDate < checkDateTime + timedelta(seconds=60)) or 
+    return (nextClosestDate < checkDateTime + timedelta(seconds=60) or 
             (abs(currentRun - lastScheduledDateTime) < timedelta(minutes=5) and (not lastRun or abs(lastRun - lastScheduledDateTime) > timedelta(minutes=5))))
 
 
