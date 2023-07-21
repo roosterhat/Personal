@@ -265,19 +265,19 @@ def prepareOCRImage(view, image):
     padded.paste(image, (int(image.width * (padding / 2)), int(image.height * (padding / 2))))
     return padded
 
-def getState(config):
+def getState(config, sections = None):
     currentState = {}
     result, status = getCameraFrame()
     if status != 200:
         return None
     frame = result
 
-    if "states" in config["frame"]:
+    if "states" in config["frame"] and (sections is None or "states" in sections):
         currentState["states"] = config["frame"]["states"]
         for state in config["frame"]["states"]:
             state["active"] = sampleFrameEllipse(frame, state, config["frame"])
     
-    if "ocr" in config["frame"]:
+    if "ocr" in config["frame"] and (sections is None or "ocr" in sections):
         currentState["ocr"] = config["actions"]["ocr"]
         for target in currentState["ocr"]:
             view = next((x for x in config["frame"]["ocr"] if x["id"] == target["view"]), None)
@@ -289,7 +289,8 @@ def getState(config):
                 value += str(int(data[5]))
             target["value"] = value
     
-    currentState["power"] = { "active": getPowerState(config, currentState) }
+    if sections is None or "power" in sections:
+        currentState["power"] = { "active": getPowerState(config, currentState) }
     return currentState
 
 def stateChanged(newState, oldState):
@@ -305,20 +306,20 @@ def attemptSetPower(config, action, target, settings):
     for i in range(settings["triggerAttempts"]):
         triggerIR(config["ir_config"], action)
         Time.sleep(settings["setStateDelay"] / 1000)
-        state = getState(config)
+        state = getState(config, ["power"])
         if state and state["power"]["active"] == target:
             return True        
     return False
 
 def walkStateGroup(config, group, state, action, settings):
-    oldState = getState(config)
+    oldState = getState(config, ["states"])
     if oldState and stateActive(oldState["states"], state["id"]):
         return True
     for _ in range(len(group["states"])):
         for _ in range(settings["triggerAttempts"]):
             triggerIR(config["ir_config"], action)
             Time.sleep(settings["setStateDelay"] / 1000)
-            newState = getState(config)
+            newState = getState(config, ["states"])
             if stateActive(newState["states"], state["id"]):
                 return True
             if stateChanged(newState, oldState):
@@ -329,34 +330,29 @@ def walkStateGroup(config, group, state, action, settings):
 def getTemperature(state):
     return next((int(x["value"]) for x in state["ocr"] if x["name"] == "Temperature"), None)
 
-def atTargetTemperature(state, target):
-    return getTemperature(state) == target
-
 def temperatureChanged(oldState, newState):
     return getTemperature(oldState) != getTemperature(newState)
 
 def setTemperature(config, target, actions, settings):
-    oldState = getState(config)
-    if oldState and atTargetTemperature(oldState, target):
+    currentTemp = getTemperature(getState(config, ["ocr"]))
+    if currentTemp == target:
         return True
     count = 0
     UP = next((x for x in actions if x["name"] == "Up"), None)
     DOWN = next((x for x in actions if x["name"] == "Down"), None)
-    while settings["minTemperature"] <= getTemperature(oldState) <= settings["maxTemperature"]:
-        triggerIR(config["ir_config"], UP["action"] if getTemperature(oldState) < target else DOWN["action"])
+    while settings["minTemperature"] <= currentTemp <= settings["maxTemperature"]:
+        triggerIR(config["ir_config"], UP["action"] if currentTemp < target else DOWN["action"])
         Time.sleep(settings["setStateDelay"] / 1000)
-        print(newState["ocr"], oldState["ocr"])
-        newState = getState(config)
-        if atTargetTemperature(newState, target):
+        newTemp = getTemperature(getState(config, ["ocr"]))
+        if newTemp == target:
             return True
-        print(newState["ocr"], oldState["ocr"])
-        if temperatureChanged(oldState, newState):
+        if currentTemp != newTemp:
             count = 0
         else:
             count += 1
         if count >= settings["triggerAttempts"]:
             return False
-        oldState = json.loads(json.dumps(newState))
+        currentTemp = newTemp
     return False
 
 def getOCRValue(state, id):
@@ -369,14 +365,14 @@ def OCRValueChanged(oldState, newState, id):
     return getOCRValue(oldState, id) != getOCRValue(newState, id)
 
 def setOCRValue(config, id, target, action, settings):
-    oldState = getState(config)
+    oldState = getState(config, ["ocr"])
     if oldState and atTargetValue(oldState, id, target):
         return True
     for _ in range(settings["maxOCRValueChange"]):
         for _ in range(settings["triggerAttempts"]):
             triggerIR(config["ir_config"], action)
             Time.sleep(settings["setStateDelay"] / 1000)
-            newState = getState(config)
+            newState = getState(config, ["ocr"])
             if atTargetValue(newState, id, target):
                 return True
             if OCRValueChanged(newState, oldState, id):
@@ -389,7 +385,7 @@ def setState(config, targetState, setting=None):
     if setting is None:
         setting = settings
 
-    currentState = getState(config)
+    currentState = getState(config, ["power"])
     if not currentState:
         return "Failed to get state"
 
