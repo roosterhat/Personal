@@ -771,6 +771,8 @@ def shouldRun(schedule, runs, checkDateTime):
     for index, day in enumerate(schedule["days"]):
         DOW = Days.index(day)
         dt = roundToMinutes(datetime.combine((currentRun + timedelta(days = DOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
+        if DOW < currentDOW:
+            dt = dt + timedelta(days=7)
         if dt >= currentRun and (nextClosestDate is None or dt < nextClosestDate):
             nextClosestDate = dt
             nextClosestDateIndex = index
@@ -780,6 +782,7 @@ def shouldRun(schedule, runs, checkDateTime):
     if lastScheduledDOW > currentDOW:
         lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
 
+    print(currentRun, nextClosestDate, lastScheduledDateTime, lastRun)
     return ((nextClosestDate is not None and nextClosestDate < checkDateTime + timedelta(seconds=60)) 
             or (lastRun and (currentRun - lastRun) - (currentRun - lastScheduledDateTime) < timedelta(minutes=5)))
 
