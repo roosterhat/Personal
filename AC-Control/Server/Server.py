@@ -272,7 +272,7 @@ def getState(config, sections = None):
         return None
     frame = result
 
-    if "states" in config["frame"] and (sections is None or "states" in sections):
+    if "states" in config["frame"] and (sections is None or "states" in sections or "power" in sections):
         currentState["states"] = config["frame"]["states"]
         for state in config["frame"]["states"]:
             state["active"] = sampleFrameEllipse(frame, state, config["frame"])
@@ -505,7 +505,7 @@ def debugPower(config):
     if body is None:
         return 'No config data', 400
     
-    state = getState(config)
+    state = getState(config, ["power"])
     if not state:
         return "Failed to get state", 500
 
@@ -542,6 +542,7 @@ def debugSetState(config):
         result = setState(config, body["state"], body["settings"])
         testResult = {"success": result is None, "error": result}
     except Exception as ex:
+        print(ex)
         testResult = {"success": False, "error": str(ex)}
     return json.dumps(testResult), 200, {"Content-Type": "application/json"}   
 
