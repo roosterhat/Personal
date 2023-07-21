@@ -194,20 +194,23 @@ class Settings extends React.Component {
                                     {this.state.targetState.power.active ? "On" : "Off"}
                                 </button>
                             </div>
-                            <div className="ocr-state">
-                                <select onChange={e => this.setCurrentOCR(e.target.value)}>
-                                    <option value={null}></option>
-                                    {this.state.config.actions.ocr.map(o =>
-                                        <option value={o.id} selected={this.state.targetState.ocr.some(x => x.id == o.id)} key={o.id}>{o.name}</option>
-                                    )}
-                                </select>
-                                {this.state.targetState.ocr.length > 0 ?
-                                    <input type="number" min={this.state.settings.minTemperature} max={this.state.settings.maxTemperature} 
-                                        value={this.state.targetState.ocr[0].target} 
-                                        onChange={e => this.updateOCRTarget(Number(e.target.value))}/>
-                                    : null
-                                }                                
-                            </div>
+                            {this.state.targetState.power.active ? 
+                                <div className="ocr-state">
+                                    <select onChange={e => this.setCurrentOCR(e.target.value)}>
+                                        <option value={null}></option>
+                                        {this.state.config.actions.ocr.map(o =>
+                                            <option value={o.id} selected={this.state.targetState.ocr.some(x => x.id == o.id)} key={o.id}>{o.name}</option>
+                                        )}
+                                    </select>
+                                    {this.state.targetState.ocr.length > 0 ?
+                                        <input type="number" min={this.state.settings.minTemperature} max={this.state.settings.maxTemperature} 
+                                            value={this.state.targetState.ocr[0].target} 
+                                            onChange={e => this.updateOCRTarget(Number(e.target.value))}/>
+                                        : null
+                                    }                                
+                                </div>
+                                : null
+                            }
                             {this.state.targetState.power.active ? 
                                 <div className="state-groups">
                                     {this.state.config.actions.stateGroups.map(group => 

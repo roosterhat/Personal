@@ -213,6 +213,7 @@ body {
                     justify-content: center;
                     align-items: center;
                     position: relative;
+                    cursor: pointer;
     
                     .lds-ring {
                         transform: scale(50%)
@@ -282,6 +283,7 @@ body {
                 flex-shrink: 0;
                 margin-left: 5px;
                 position: relative;
+                cursor: pointer;
 
                 .lds-ring {
                     transform: scale(50%)

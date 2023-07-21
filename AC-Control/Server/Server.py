@@ -763,22 +763,26 @@ def shouldRun(schedule, runs, checkDateTime):
     Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     if schedule["id"] in runs:
         lastRun = roundToMinutes(runs[schedule["id"]])
-    else:
-        lastRun = roundToMinutes(checkDateTime)
+    currentRun = roundToMinutes(checkDateTime)
 
-    dow = lastRun.weekday()
+    currentDOW = currentRun.weekday()
     nextClosestDate = None
-    for day in schedule["days"]:
-        d = Days.index(day)
-        dt = roundToMinutes(datetime.combine((lastRun + timedelta(days = d - dow)).date(), time.fromisoformat(schedule["time"])))
-        if dt < lastRun:
-            dt += timedelta(days=7)
-        if nextClosestDate is None or dt < nextClosestDate:
+    nextClosestDateIndex = None
+    for index, day in enumerate(schedule["days"]):
+        DOW = Days.index(day)
+        dt = roundToMinutes(datetime.combine((currentRun + timedelta(days = DOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
+        if dt >= currentRun and (nextClosestDate is None or dt < nextClosestDate):
             nextClosestDate = dt
+            nextClosestDateIndex = index
+    
+    lastScheduledDay = schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])]
+    lastScheduledDOW = lastScheduledDay.weekday()
+    lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
+    if lastScheduledDOW > currentDOW:
+        lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
 
-    return (nextClosestDate is not None
-            and nextClosestDate >= checkDateTime - timedelta(minutes=30)
-            and nextClosestDate < checkDateTime + timedelta(seconds=60))
+    return ((nextClosestDate is not None and nextClosestDate < checkDateTime + timedelta(seconds=60)) 
+            or (lastRun and (currentRun - lastRun) - (currentRun - lastScheduledDateTime) < timedelta(minutes=5)))
 
 
 def manageSessions():
