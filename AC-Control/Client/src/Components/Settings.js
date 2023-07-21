@@ -149,10 +149,10 @@ class Settings extends React.Component {
                                 <div className="debug-properties-container">
                                     <div>
                                         <div className="debug-property">
-                                            <div>Scale</div>
-                                            <input type="number" min="1" max="3" 
-                                                value={this.state.selectedOCR.properties.scale} 
-                                                onChange={e => this.updateOCRProperty("scale", Number(e.target.value))}/>
+                                            <div>Threshold</div>
+                                            <input type="number" min="0" max="255" 
+                                                value={this.state.selectedOCR.properties.threshold} 
+                                                onChange={e => this.updateOCRProperty("threshold", Number(e.target.value))}/>
                                         </div>
                                         <div className="debug-property">
                                             <div>Gray Scale</div>

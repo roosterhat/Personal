@@ -209,8 +209,10 @@ def background(filename):
 
 def colorDistance(c1, c2):
     rBar = 0.5 * (c1[0] + c2[0])
-    dC = pow(max((2 + rBar / 256) * (c1[0] - c2[0]) + 4 * pow(c1[1] - c2[1], 2) + (2 + (255 - rBar) / 256) * (c1[2] - c2[2]), 0), 1/2)
-    return 300 if math.isnan(dC) else dC
+    v = (2 + rBar / 256) * (c1[0] - c2[0]) + 4 * pow(c1[1] - c2[1], 2) + (2 + (255 - rBar) / 256) * (c1[2] - c2[2])
+    if math.isnan(v) or v < 0:
+        return False
+    return pow(v, 1/2)
 
 def sampleFrameEllipse(frame, state, config):
     shape = state["shape"]
@@ -256,10 +258,13 @@ def getPowerState(config, state):
 def prepareOCRImage(view, image):
     if "grayscale" in view["properties"] and view["properties"]["grayscale"]:
         image = image.convert("L")
+    if "threshold" in view["properties"] and view["properties"]["threshold"]:
+        image = image.point( lambda p: p if p > view["properties"]["threshold"] else np.random.randint(int(view["properties"]["threshold"] * 0.2), int(view["properties"]["threshold"] * 0.8)))
     if "invert" in view["properties"] and view["properties"]["invert"]:
         image = ImageOps.invert(image)
     if "scale" in view["properties"] and view["properties"]["scale"]:
         image = image.resize(((int(image.width * view["properties"]["scale"])), int(image.height * view["properties"]["scale"])))
+    
     padding = 0.4
     padded = Image.new("RGB", (int(image.width + image.width * padding), int(image.height + image.height * padding)), 0)
     padded.paste(image, (int(image.width * (padding / 2)), int(image.height * (padding / 2))))
@@ -283,7 +288,7 @@ def getState(config, sections = None):
             view = next((x for x in config["frame"]["ocr"] if x["id"] == target["view"]), None)
             image = ReshapeImage(config, frame, view["shape"]["vertices"])
             image = prepareOCRImage(view, image)
-            results = OCRModel(image, device="cpu", verbose=False)
+            results = OCRModel(image, device="cpu", verbose=False, agnostic_nms=True)
             value = ""
             for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
                 value += str(int(data[5]))
@@ -562,7 +567,7 @@ def debugOCR(config):
     image = ReshapeImage(config, frame, view["shape"]["vertices"])
     image = prepareOCRImage(view, image)
 
-    results = OCRModel(image, device="cpu", verbose=False)
+    results = OCRModel(image, device="cpu", verbose=False, agnostic_nms=True)
     value = ""
     draw = ImageDraw.Draw(image)
     colors = ["#77DD77", "#836953", "#89cff0", "#99c5c4", "#9adedb", "#aa9499", "#aaf0d1", "#b2fba5"]
@@ -778,13 +783,14 @@ def shouldRun(schedule, runs, checkDateTime):
             nextClosestDate = dt
             nextClosestDateIndex = index
     
+    #print(currentRun, nextClosestDate, lastScheduledDateTime, lastRun)
     lastScheduledDOW = Days.index(schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])])
     lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
     if lastScheduledDOW > currentDOW:
         lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
 
-    return ((nextClosestDate and nextClosestDate < checkDateTime + timedelta(seconds=60))
-            or (lastRun and abs(lastRun - lastScheduledDateTime) > timedelta(minutes=5)))
+    return ((nextClosestDate and nextClosestDate < checkDateTime + timedelta(seconds=60)) or 
+            (abs(currentRun - lastScheduledDateTime) < timedelta(minutes=5) and (not lastRun or abs(lastRun - lastScheduledDateTime) > timedelta(minutes=5))))
 
 
 def manageSessions():
