@@ -47,11 +47,27 @@ class Schedules extends React.Component {
                                         </div>
                                         <div className="schedule-state">
                                             <div className="power-state">
-                                                <div className="name">Power</div>
                                                 <button className={"state " + (schedule.state.power.active ? "on" : "off")} onClick={() => this.toggleState(schedule.state.power)}>
                                                     {schedule.state.power.active ? "On" : "Off"}
                                                 </button>
                                             </div>
+                                            {schedule.state.power.active ? 
+                                                <div className="state-group">
+                                                    <select onChange={e => this.setCurrentOCR(schedule, e.target.value)}>
+                                                        <option value={null}></option>
+                                                        {this.state.config.actions.ocr.map(o =>
+                                                            <option value={o.id} selected={schedule.state.ocr.some(x => x.id == o.id)} key={o.id}>{o.name}</option>
+                                                        )}
+                                                    </select>
+                                                    {schedule.state.ocr.length > 0 ?
+                                                        <input type="number" min={this.props.Settings.minTemperature} max={this.props.Settings.maxTemperature} 
+                                                            value={schedule.state.ocr[0].target} 
+                                                            onChange={e => this.updateOCRTarget(schedule, Number(e.target.value))}/>
+                                                        : null
+                                                    }
+                                                </div>
+                                                : null 
+                                            }
                                             {schedule.state.power.active ? 
                                                 <div className="state-groups">
                                                     {this.state.config.actions.stateGroups.map(group => 
@@ -116,20 +132,34 @@ class Schedules extends React.Component {
     }
 
     setScheduleValue = (schedule, key, value) => {
-        console.log(key, value)
         schedule[key] = value;
         this.setState({config: this.state.config})
     }
 
+    setCurrentOCR = (schedule, id) => {
+        var action = this.state.config.actions.ocr.find(x => x.id == id)
+        schedule.state.ocr = []
+        if(action)
+            schedule.state.ocr.push(action)
+        this.setState({config: this.state.config})
+    }
+
+    updateOCRTarget = (schedule, target) => {
+        if(schedule.state.ocr.length > 0){
+            schedule.state.ocr[0].target = target
+        }
+    }
+
     newSchedule = () => {
         this.state.config.schedules.push({
-            "name": `Schedule ${this.state.config.schedules.length}`,
+            "name": `Schedule ${this.state.config.schedules.length + 1}`,
             "id": uuidv4(),
             "days": [],
             "time": "00:00",
             "state": {
                 "power": { "active": true },
-                "states": []
+                "states": [],
+                "ocr": []
             },
             "enabled": true
         })

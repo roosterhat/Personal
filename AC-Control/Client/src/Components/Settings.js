@@ -187,7 +187,7 @@ class Settings extends React.Component {
                 <div className="setting">
                     <div className="setting-title">Debug Set State</div>
                     <div className="debug-container">
-                        <div className="debug-properties-container">
+                        <div className="debug-properties-container debug-settings">
                             <div className="power-state">
                                 <div className="name">Power</div>
                                 <button className={"state " + (this.state.targetState.power.active ? "on" : "off")} onClick={() => this.toggleState(this.state.targetState.power)}>
@@ -203,8 +203,7 @@ class Settings extends React.Component {
                                         )}
                                     </select>
                                     {this.state.targetState.ocr.length > 0 ?
-                                        <input type="number" min={this.state.settings.minTemperature} max={this.state.settings.maxTemperature} 
-                                            value={this.state.targetState.ocr[0].target} 
+                                        <input type="number" value={this.state.targetState.ocr[0].target} 
                                             onChange={e => this.updateOCRTarget(Number(e.target.value))}/>
                                         : null
                                     }                                

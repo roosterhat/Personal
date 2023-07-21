@@ -128,7 +128,7 @@ class Main extends React.Component {
             return (<EditActions Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeActions} cancel={this.cancelEdit}/>)
         }
         else if (this.state.editSchedules) {
-            return (<Schedules Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={this.cancelEdit}/>)
+            return (<Schedules Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={this.cancelEdit}/>)
         }
         else if (this.state.editSettings) {
             return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} refresh={this.refreshFrameAndState} complete={this.completeSettings} cancel={this.cancelEdit} />)
@@ -163,13 +163,14 @@ class Main extends React.Component {
 
     editSchedules = () => {
         this.checkAuthorized(false)
+        var settings = JSON.parse(JSON.stringify(this.Settings));
         var config = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editSchedules: true, EditConfig: config})
+        this.setState({editSchedules: true, EditConfig: config, EditSetting: settings})
     }
 
     completeSchedules = async () => {
         await this.save();
-        this.setState({editSchedules: false, EditConfig: null})
+        this.setState({editSchedules: false, EditConfig: null, EditSetting: null})
         this.switchToMainView();
     }
 
@@ -218,6 +219,7 @@ class Main extends React.Component {
     }
 
     editSettings = () => {
+        this.checkAuthorized(false)
         var settings = JSON.parse(JSON.stringify(this.Settings));
         var editConfig = JSON.parse(JSON.stringify(this.Config));
         this.setState({editSettings: true, EditSetting: settings, EditConfig: editConfig});
