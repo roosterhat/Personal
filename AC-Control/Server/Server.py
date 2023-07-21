@@ -756,26 +756,29 @@ def verifyToken():
                 return True
     return False
 
+def roundToMinutes(datetime):
+    return datetime - timedelta(seconds=datetime.second, microseconds=datetime.microsecond)
+
 def shouldRun(schedule, runs, checkDateTime):
     Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     if schedule["id"] in runs:
-        lastRun = runs[schedule["id"]]
+        lastRun = roundToMinutes(runs[schedule["id"]])
     else:
-        lastRun = checkDateTime
+        lastRun = roundToMinutes(checkDateTime)
 
     dow = lastRun.weekday()
     nextClosestDate = None
     for day in schedule["days"]:
         d = Days.index(day)
-        dt = datetime.combine((lastRun + timedelta(days = d - dow)).date(), time.fromisoformat(schedule["time"]))
+        dt = roundToMinutes(datetime.combine((lastRun + timedelta(days = d - dow)).date(), time.fromisoformat(schedule["time"])))
         if dt < lastRun:
             dt += timedelta(days=7)
-        if dt >= lastRun and (nextClosestDate is None or dt < nextClosestDate):
+        if nextClosestDate is None or dt < nextClosestDate:
             nextClosestDate = dt
 
-    return (nextClosestDate is not None 
-            and nextClosestDate < checkDateTime + timedelta(seconds=60 - checkDateTime.second) 
-            and nextClosestDate >= checkDateTime - timedelta(seconds=checkDateTime.second))
+    return (nextClosestDate is not None
+            and nextClosestDate >= checkDateTime - timedelta(minutes=30)
+            and nextClosestDate < checkDateTime + timedelta(seconds=60))
 
 
 def manageSessions():
