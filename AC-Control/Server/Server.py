@@ -761,6 +761,7 @@ def roundToMinutes(datetime):
 
 def shouldRun(schedule, runs, checkDateTime):
     Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    lastRun = None
     if schedule["id"] in runs:
         lastRun = roundToMinutes(runs[schedule["id"]])
     currentRun = roundToMinutes(checkDateTime)
