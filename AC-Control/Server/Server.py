@@ -775,8 +775,7 @@ def shouldRun(schedule, runs, checkDateTime):
             nextClosestDate = dt
             nextClosestDateIndex = index
     
-    lastScheduledDay = schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])]
-    lastScheduledDOW = lastScheduledDay.weekday()
+    lastScheduledDOW = Days.index(schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])])
     lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
     if lastScheduledDOW > currentDOW:
         lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
