@@ -355,7 +355,7 @@ def setTemperature(config, target, actions, settings):
             count += 1
         if count >= settings["triggerAttempts"]:
             return False
-        oldState = newState            
+        oldState = json.loads(json.dumps(newState))
     return False
 
 def getOCRValue(state, id):
