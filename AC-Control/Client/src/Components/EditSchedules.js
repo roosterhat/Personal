@@ -148,6 +148,7 @@ class Schedules extends React.Component {
         if(schedule.state.ocr.length > 0){
             schedule.state.ocr[0].target = target
         }
+        this.setState({config: this.state.config})
     }
 
     newSchedule = () => {

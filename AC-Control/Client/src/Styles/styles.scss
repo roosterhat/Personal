@@ -149,6 +149,7 @@ body {
     .menu-content {
         background: #ffffffeb;
         padding: 5px;
+        width: calc(100% - 10px);
     }
 
     &.closed {
@@ -1033,7 +1034,6 @@ body {
     .schedule {
         border: solid 1px #000;
         border-radius: 5px;
-        width: 100%;
         transition: all 0.2s ease;
 
         &.disabled {
@@ -1131,6 +1131,10 @@ body {
 
                     & > *:not(:last-child) {
                         margin-right: 5px;
+                    }
+
+                    input[type=number] {
+                        width: 50px;
                     }
                 }
             }
