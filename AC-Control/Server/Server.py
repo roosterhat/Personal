@@ -209,7 +209,7 @@ def background(filename):
 
 def colorDistance(c1, c2):
     rBar = 0.5 * (c1[0] + c2[0])
-    dC = pow((2 + rBar / 256) * (c1[0] - c2[0]) + 4 * pow(c1[1] - c2[1], 2) + (2 + (255 - rBar) / 256) * (c1[2] - c2[2]), 1/2)
+    dC = pow(max((2 + rBar / 256) * (c1[0] - c2[0]) + 4 * pow(c1[1] - c2[1], 2) + (2 + (255 - rBar) / 256) * (c1[2] - c2[2]), 0), 1/2)
     return 300 if math.isnan(dC) else dC
 
 def sampleFrameEllipse(frame, state, config):
@@ -784,8 +784,8 @@ def shouldRun(schedule, runs, checkDateTime):
         lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
 
     print(currentRun, nextClosestDate, lastScheduledDateTime, lastRun)
-    return ((nextClosestDate is not None and nextClosestDate < checkDateTime + timedelta(seconds=60)) 
-            or (lastRun and (currentRun - lastRun) - (currentRun - lastScheduledDateTime) < timedelta(minutes=5)))
+    return ((nextClosestDate is not None and nextClosestDate < checkDateTime + timedelta(seconds=60)))
+            #or (lastRun and (currentRun - lastRun) - (currentRun - lastScheduledDateTime) < timedelta(minutes=5)))
 
 
 def manageSessions():
