@@ -783,9 +783,8 @@ def shouldRun(schedule, runs, checkDateTime):
     if lastScheduledDOW > currentDOW:
         lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
 
-    print(currentRun, nextClosestDate, lastScheduledDateTime, lastRun)
-    return ((nextClosestDate is not None and nextClosestDate < checkDateTime + timedelta(seconds=60)))
-            #or (lastRun and (currentRun - lastRun) - (currentRun - lastScheduledDateTime) < timedelta(minutes=5)))
+    return ((nextClosestDate is not None and nextClosestDate < checkDateTime + timedelta(seconds=60))
+            or (lastRun and (lastRun - lastScheduledDateTime) > timedelta(minutes=5)))
 
 
 def manageSessions():
