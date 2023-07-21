@@ -349,6 +349,7 @@ def setTemperature(config, target, actions, settings):
         if atTargetTemperature(newState, target):
             return True
         if temperatureChanged(oldState, newState):
+            print("changed")
             count = 0
         else:
             count += 1
@@ -399,9 +400,8 @@ def setState(config, targetState, setting=None):
         for s in g["states"]:
             stateMap[s["id"]] = g
 
-    powerState = getPowerState(config, currentState)
     if targetState["power"]["active"]:
-        if not powerState:
+        if not currentState["power"]["active"]:
             if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], True, setting):
                 return f"Failed to set power [On]"
         for state in targetState["states"]:
@@ -420,7 +420,7 @@ def setState(config, targetState, setting=None):
                 if not setOCRValue(config, ocr["id"], ocr["target"], buttonMap[ocr["buttons"][0]["button"]], setting):
                     return f"Failed to set {ocr['name']} to [{ocr['target']}]"
     else:
-        if powerState:
+        if currentState["power"]["active"]:
             if not attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False, setting):
                 return f"Failed to set power [Off]"
 
