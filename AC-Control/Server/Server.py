@@ -343,7 +343,7 @@ def setTemperature(config, target, actions, settings):
     up = next((x for x in actions if x["name"] == "Up"), None)
     down = next((x for x in actions if x["name"] == "Down"), None)
     while settings["minTemperature"] <= getTemperature(oldState) <= settings["maxTemperature"]:
-        triggerIR(config["ir_config"], up if getTemperature(oldState) < target else down)
+        triggerIR(config["ir_config"], up["action"] if getTemperature(oldState) < target else down["action"])
         Time.sleep(settings["setStateDelay"] / 1000)
         newState = getState(config)
         if atTargetTemperature(newState, target):
@@ -413,7 +413,7 @@ def setState(config, targetState, setting=None):
             if not ocr["target"]:
                 continue 
             if ocr["name"] == "Temperature":
-                if not setTemperature(config, int(ocr["target"]), ([buttonMap[x["button"]] for x in ocr["buttons"]]), setting):
+                if not setTemperature(config, int(ocr["target"]), ([{"name": x["name"], "action": buttonMap[x["button"]]} for x in ocr["buttons"]]), setting):
                     return f"Failed to set Temperature to [{ocr['target']}]"
             else:
                 if not setOCRValue(config, ocr["id"], ocr["target"], buttonMap[ocr["buttons"][0]["button"]], setting):
