@@ -140,7 +140,7 @@ class Schedules extends React.Component {
         var action = this.state.config.actions.ocr.find(x => x.id == id)
         schedule.state.ocr = []
         if(action)
-            schedule.state.ocr.push(action)
+            schedule.state.ocr.push(JSON.parse(JSON.stringify(action)))
         this.setState({config: this.state.config})
     }
 
