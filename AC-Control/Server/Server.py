@@ -348,8 +348,8 @@ def setTemperature(config, target, actions, settings):
         newState = getState(config)
         if atTargetTemperature(newState, target):
             return True
+        print(newState["ocr"], oldState["ocr"])
         if temperatureChanged(oldState, newState):
-            print("changed")
             count = 0
         else:
             count += 1
@@ -358,11 +358,11 @@ def setTemperature(config, target, actions, settings):
         oldState = newState            
     return False
 
-def atTargetValue(state, id, target):
-    return getOCRValue(state, id) == target
-
 def getOCRValue(state, id):
     return next((x["value"] for x in state["ocr"] if x["id"] == id), None)
+
+def atTargetValue(state, id, target):
+    return getOCRValue(state, id) == target
 
 def OCRValueChanged(oldState, newState, id):
     return getOCRValue(oldState, id) != getOCRValue(newState, id)
