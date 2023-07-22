@@ -301,7 +301,7 @@ def trigger(config, id):
         buttons = [b for b in data['buttons'] if b['id'] == id]
         if not any(buttons):
             return 'Button does not exist', 400
-        Utility.rtriggerIR(data['ir_config'], buttons[0]['action'])
+        Utility.triggerIR(data['ir_config'], buttons[0]['action'])
         return "Success", 200
     except Exception as ex:
         print(ex, flush=True)
