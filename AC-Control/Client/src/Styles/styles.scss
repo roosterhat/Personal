@@ -420,8 +420,13 @@ body {
 .btn-container {
     display: flex;
 
+    .spacer {
+        height: 100vh;
+    }
+
     &.vertical {
         flex-direction: column;
+        height: 100vh;
     }
 
     .title {
@@ -1032,13 +1037,45 @@ body {
     }
 }
 
-.macros {
+.macros-container {
     justify-content: center;
     align-items: center;
     margin-top: 5px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    transition: all 0.2s ease;
+    background: #ffffffd6;
+    padding: 10px 0px;
+
+    &.hidden {
+        transform: translateY(100%);
+    }
+
+    &.show {
+        transform: translateY(0%);
+    }
 
     .btn {
         margin: 0px 10px;
+    }
+}
+
+.macros {
+    &.expand {
+        i {
+            transform: rotate(-90deg)
+        }
+    }
+
+    &.retract {
+        i {
+            transform: rotate(90deg)
+        }
+    }
+    
+    i {
+        transition: all 0.1s ease;
     }
 }
 

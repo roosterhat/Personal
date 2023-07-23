@@ -29,6 +29,7 @@ class Main extends React.Component {
             editActions: false,
             editSchedules: false,
             editMacros: false,
+            showMacros: false,
             uploading: false,
             showConfigSelect: false,
             EditConfig: null,
@@ -108,8 +109,8 @@ class Main extends React.Component {
                             <LoadingSpinner id="spinner" style={{display: 'none'}}/>
                             <canvas id="canvas"></canvas>
                         </div>  
-                        {this.Config && this.Config.macros.length > 0 ? 
-                            <div className="btn-container macros">
+                        {this.Config && this.Config.macros.length > 0 && !this.state.editFrame && !this.state.editRemote? 
+                            <div className={"btn-container macros-container " + (this.state.showMacros ? "show" : "hidden")}>
                                 {this.Config.macros.map(x => 
                                     <button className="btn" onClick={() => this.triggerMacro(x)}>
                                         {this.state.triggeringMacro ? 
@@ -164,6 +165,8 @@ class Main extends React.Component {
                     { this.Config ? <button className="btn" onClick={this.editMacros}><i className="fa-solid fa-clapperboard"></i></button> : null }
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
+                    <div className="spacer"></div>
+                    { this.Settings ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i class="fa-solid fa-angles-right"></i></button> : null }
                 </div>
             )
         }
