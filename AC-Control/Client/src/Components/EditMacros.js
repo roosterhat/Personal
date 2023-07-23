@@ -13,6 +13,7 @@ class Macros extends React.Component {
             saving: false,
             showIconList: false,
             currentMacro: null,
+            iconFilter: "",
             config: props.Config
         }
         
@@ -91,10 +92,11 @@ class Macros extends React.Component {
                         <div className="icons-container">
                             <div className="icons-header">
                                 <div className="name">Icons</div>
+                                <input onChange={e => this.setState({iconFilter: e.target.value})} placeholder="Search"></input>
                                 <button className="close" onClick={() => this.setState({showIconList: false})}><i className="fa-solid fa-xmark"></i></button>
                             </div>
                             <div className="icons">
-                                {this.Icons.map(x => 
+                                {this.Icons.filter(x => !this.state.iconFilter || x.includes(this.state.iconFilter)).map(x => 
                                     <button onClick={() => this.selectIcon(x)}><i className={x}></i></button>    
                                 )}
                             </div>

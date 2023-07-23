@@ -388,6 +388,8 @@ class Main extends React.Component {
     }
 
     triggerMacro = async (macro) => {
+        if(this.state.triggeringMacro) return;
+
         try{
             this.setState({triggeringMacro: true})
             var body = JSON.stringify(macro.state)
