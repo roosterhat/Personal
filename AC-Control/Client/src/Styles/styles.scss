@@ -421,12 +421,12 @@ body {
     display: flex;
 
     .spacer {
-        height: 100dvh;
+        height: 100vh;
     }
 
     &.vertical {
         flex-direction: column;
-        height: 100vh;
+        height: 100dvh;
     }
 
     .title {
