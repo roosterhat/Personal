@@ -7,9 +7,11 @@ import EditFrame from './EditFrame';
 import Login from './Login';
 import Settings from './Settings';
 import EditActions from './EditActions';
+import Schedules from './EditSchedules';
+import Macros from './EditMacros';
 import { uuidv4, fetchWithToken, getCookie } from '../Utility';
 import '../Styles/styles.scss'
-import Schedules from './EditSchedules';
+
 
 
 class Main extends React.Component {
@@ -26,6 +28,7 @@ class Main extends React.Component {
             editSettings: false,
             editActions: false,
             editSchedules: false,
+            editMacros: false,
             uploading: false,
             showConfigSelect: false,
             EditConfig: null,
@@ -33,6 +36,7 @@ class Main extends React.Component {
             error: null,
             loadingFrame: false,
             loadingState: false,
+            triggeringMacro: false,
             hasFrame: false,
             loggedIn: false,
             checkingLogin: true,
@@ -104,10 +108,23 @@ class Main extends React.Component {
                             <LoadingSpinner id="spinner" style={{display: 'none'}}/>
                             <canvas id="canvas"></canvas>
                         </div>  
+                        {this.Config && this.Config.macros.length > 0 ? 
+                            <div className="btn-container macros">
+                                {this.Config.macros.map(x => 
+                                    <button className="btn" onClick={() => this.triggerMacro(x)}>
+                                        {this.state.triggeringMacro ? 
+                                            <LoadingSpinner id="spinner"/>
+                                            : <i className={x.icon}></i>
+                                        }                                        
+                                    </button>    
+                                )}
+                            </div>
+                            : null
+                        }
                     </div>                     
                     <div className='controls'>
-                    {this.renderMenus()}       
-                    {this.state.showConfigSelect ? <ConfigLoader select={(config) => this.load(config)} close={() => this.setState({showConfigSelect: false})}/> : null}  
+                        {this.renderMenus()}       
+                        {this.state.showConfigSelect ? <ConfigLoader select={(config) => this.load(config)} close={() => this.setState({showConfigSelect: false})}/> : null}  
                     </div>   
                 </div>
             );
@@ -130,6 +147,9 @@ class Main extends React.Component {
         else if (this.state.editSchedules) {
             return (<Schedules Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={this.cancelEdit}/>)
         }
+        else if (this.state.editMacros) {
+            return (<Macros Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeMacros} cancel={this.cancelEdit}/>)
+        }
         else if (this.state.editSettings) {
             return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} refresh={this.refreshFrameAndState} complete={this.completeSettings} cancel={this.cancelEdit} />)
         }
@@ -141,6 +161,7 @@ class Main extends React.Component {
                     { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editActions}><i className="fa-solid fa-shapes"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editSchedules}><i className="fa-regular fa-clock"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={this.editMacros}><i className="fa-solid fa-clapperboard"></i></button> : null }
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
                 </div>
@@ -159,6 +180,19 @@ class Main extends React.Component {
                 this.refreshState();     
             }
         })
+    }
+
+    editMacros = () => {
+        this.checkAuthorized(false)
+        var settings = JSON.parse(JSON.stringify(this.Settings));
+        var config = JSON.parse(JSON.stringify(this.Config));
+        this.setState({editMacros: true, EditConfig: config, EditSetting: settings})
+    }
+
+    completeMacros = async () => {
+        await this.save();
+        this.setState({editMacros: false, EditConfig: null, EditSetting: null})
+        this.switchToMainView();
     }
 
     editSchedules = () => {
@@ -241,6 +275,7 @@ class Main extends React.Component {
             'frame': {},
             'actions': {},
             'schedules': [],
+            'macros': [],
             'background': {},
             'ir_config': null,
             'id': uuidv4()
@@ -252,7 +287,7 @@ class Main extends React.Component {
     }
 
     cancelEdit = () => {
-        this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editSettings: false, EditConfig: null, error: null, EditSetting: null})
+        this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editMacros: false, editSettings: false, EditConfig: null, error: null, EditSetting: null})
         this.switchToMainView();
     }
     
@@ -347,6 +382,17 @@ class Main extends React.Component {
         catch(ex) {
             console.error(ex);
         } 
+    }
+
+    triggerMacro = async (macro) => {
+        try{
+            this.setState({triggeringMacro: true})
+            var body = JSON.stringify(macro.state)
+            var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
+        }
+        finally {
+            this.setState({triggeringMacro: false})
+        }
     }
 
     refreshFrameAndState = () => {

@@ -1032,6 +1032,69 @@ body {
     }
 }
 
+.macros {
+    justify-content: center;
+    align-items: center;
+    margin-top: 5px;
+
+    .btn {
+        margin: 0px 10px;
+    }
+}
+
+.icons-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #00000075;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icons-container {
+        max-width: 400px;
+        height: 80%;            
+        background: #fff;
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        flex-direction: column;
+
+        .icons-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0px;
+
+            .name {
+                font-size: 24px;
+            }
+        }
+
+        .icons {
+            height: 100%;
+            border: solid 1px #000;
+            border-radius: 3px;
+            overflow: auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+
+            button {
+                width: 40px;
+                height: 40px;
+                cursor: pointer;
+
+                i {
+                    transform: scale(1.5);
+                }
+            }
+        }
+    }
+}
+
 .schedules {
     overflow: hidden auto;
 
@@ -1060,6 +1123,21 @@ body {
 
             input[type=checkbox] {
                 cursor: pointer;
+            }
+
+            .icon-select {
+                height: 24px;
+                width: 24px;
+                cursor: pointer;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+
+                i {
+                    transform: scale(1.3);
+                }
             }
         }
 
