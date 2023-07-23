@@ -389,6 +389,7 @@ class Main extends React.Component {
             this.setState({triggeringMacro: true})
             var body = JSON.stringify(macro.state)
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
+            this.refreshFrameAndState();
         }
         finally {
             this.setState({triggeringMacro: false})

@@ -1228,11 +1228,11 @@ body {
     }
 }
 
-@media only screen and (max-width: 920px) {
-    .btn-container:not(.editing) {
-        flex-direction: column;
-    }
-}
+// @media only screen and (max-width: 920px) {
+//     .btn-container:not(.editing) {
+//         flex-direction: column;
+//     }
+// }
 
 @media only screen and (max-device-width: 920px) {
     .desktop-only {
