@@ -18,7 +18,8 @@ class Main extends React.Component {
     Engine = new CanvasEngine();
     Config = null;
     Settings = null;
-    UpdateQueue = []
+    UpdateQueue = [];
+    CloseMenuDelay = 450;
 
     constructor(props) {
         super(props);
@@ -194,7 +195,7 @@ class Main extends React.Component {
 
     completeMacros = async () => {
         await this.save();
-        this.setState({editMacros: false, EditConfig: null, EditSetting: null})
+        setTimeout(() => this.setState({editMacros: false, EditConfig: null, EditSetting: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
@@ -207,7 +208,7 @@ class Main extends React.Component {
 
     completeSchedules = async () => {
         await this.save();
-        this.setState({editSchedules: false, EditConfig: null, EditSetting: null})
+        setTimeout(() => this.setState({editSchedules: false, EditConfig: null, EditSetting: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
@@ -219,7 +220,7 @@ class Main extends React.Component {
 
     completeActions = async () => {
         await this.save();
-        this.setState({editActions: false, EditConfig: null})
+        setTimeout(() => this.setState({editActions: false, EditConfig: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
@@ -266,7 +267,7 @@ class Main extends React.Component {
         this.Settings = settings
         await this.saveSettings();
         await this.save();
-        this.setState({editSettings: false, EditSetting: null})
+        setTimeout(() => this.setState({editSettings: false, EditSetting: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
@@ -290,7 +291,7 @@ class Main extends React.Component {
     }
 
     cancelEdit = () => {
-        this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editMacros: false, editSettings: false, EditConfig: null, error: null, EditSetting: null})
+        setTimeout(() => this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editMacros: false, editSettings: false, EditConfig: null, error: null, EditSetting: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
     
@@ -307,7 +308,7 @@ class Main extends React.Component {
             this.Engine.Reset()
             this.setState({saving: true, error: false}) 
             await this.save()
-            this.setState({saving: false, editRemote: false, editFrame: false}) 
+            setTimeout(() => this.setState({saving: false, editRemote: false, editFrame: false}), this.CloseMenuDelay)
             this.switchToMainView();            
         }
     }
@@ -449,6 +450,9 @@ class Main extends React.Component {
     }
 
     switchToMainView = () => {
+        var menu = document.getElementById("menu");
+        if(menu)
+            menu.classList.add("closed")
         const buttons = JSON.parse(JSON.stringify(this.Config && this.Config.buttons ? this.Config.buttons : []))
         const background = this.Config && this.Config.background ? this.Config.background : null
         this.Engine.SetEdit(false);

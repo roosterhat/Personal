@@ -10,13 +10,13 @@ class Menu extends React.Component {
     }
 
     componentDidMount() {
-        this.setState({open: true})
+        setTimeout(() => this.setState({open: true}), 10)        
     }
 
     render = () => {
         return (
             <div className="menu-container">
-                <div className={"menu" + (this.state.open ? "" : " closed")}>
+                <div className={"menu" + (this.state.open ? "" : " closed")}  id="menu">
                     <button className="expand" onClick={() => this.setState({open: !this.state.open})}><i class="fa-solid fa-angles-right"></i></button>
                     <div className="menu-content">
                         {this.props.children}
