@@ -115,7 +115,7 @@ body {
 
 
 .menu-container {
-    width: 70px;
+    width: 40px;
 }
 
 .menu {
@@ -177,6 +177,12 @@ body {
                 border-bottom-right-radius: 3px;
                 border-top-right-radius: 3px;
                 background: linear-gradient(90deg, #ffffffeb, 70%, #e9e9ed);
+            }
+        }
+
+        .edit {
+            .title {
+                padding-left: 40px;
             }
         }
     }
@@ -440,6 +446,7 @@ body {
 
 .btn-container {
     display: flex;
+    justify-content: end;
 
     .spacer {
         height: 100vh;
@@ -755,6 +762,7 @@ body {
         border-radius: 3px;
         display: flex;
         flex-direction: column;
+        margin: 5px;
 
         .title {
             font-weight: 700;
@@ -870,7 +878,6 @@ body {
 }
 
 .actions {
-    width: calc(min(500px, (100vw - 50px)));
     overflow: auto;
 
     .section {
