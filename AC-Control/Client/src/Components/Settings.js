@@ -142,18 +142,12 @@ class Settings extends React.Component {
                             <div>
                                 <div className="debug-canvas-container">
                                     <div className="canvas-container">
-                                        <div>{`Value: ${this.state.OCRDebugResult.value}`}</div>
+                                        <div>{`Value: [${this.state.OCRDebugResult.value}] in: ${this.state.OCRDebugResult.executionTime}ms`}</div>
                                         <canvas id="debug-canvas-ocr"></canvas>
                                     </div>                               
                                 </div>
                                 <div className="debug-properties-container">
                                     <div>
-                                        <div className="debug-property">
-                                            <div>Threshold</div>
-                                            <input type="number" min="0" max="255" 
-                                                value={this.state.selectedOCR.properties.threshold} 
-                                                onChange={e => this.updateOCRProperty("threshold", Number(e.target.value))}/>
-                                        </div>
                                         <div className="debug-property">
                                             <div>Gray Scale</div>
                                             <input type="checkbox"
@@ -325,9 +319,12 @@ class Settings extends React.Component {
                 if(id){
                     var ocr = this.state.config.frame.ocr.find(x => x.id == id);
                     var body = JSON.stringify(ocr)
+                    var start = Date.now()
                     var response = await fetchWithToken(`api/debug/ocr/${this.state.config.id}`, "POST", body, {"Content-Type": "application/json"})
                     if(response.status == 200){
+                        var end = Date.now()
                         var result = await response.json()
+                        result["executionTime"] = end - start
                         this.setState({OCRDebugResult: result, selectedOCR: ocr})
                         this.UpdateQueue.push(() => {
                             this.addImageToCanvas("debug-canvas-ocr", result["image"], false);

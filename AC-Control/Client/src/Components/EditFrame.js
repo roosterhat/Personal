@@ -67,12 +67,6 @@ class EditFrame extends React.Component {
                                     >
                                         <div className="state-properties">
                                             <div>
-                                                <div>Scale</div>
-                                                <input type="number" min="1" max="3" 
-                                                    value={button.properties.scale} 
-                                                    onChange={e => this.updateOCRProperty("scale", Number(e.target.value))}/>
-                                                </div>
-                                            <div>
                                                 <div>Gray Scale</div>
                                                 <input type="checkbox"
                                                     checked={button.properties.grayscale}
