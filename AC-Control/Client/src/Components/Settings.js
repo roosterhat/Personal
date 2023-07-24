@@ -142,7 +142,7 @@ class Settings extends React.Component {
                             <div>
                                 <div className="debug-canvas-container">
                                     <div className="canvas-container">
-                                        <div>{`Value: [${this.state.OCRDebugResult.value}] in: ${this.state.OCRDebugResult.executionTime}ms`}</div>
+                                        <div>{`Value (${this.state.OCRDebugResult.value}) - ${this.state.OCRDebugResult.executionTime}ms`}</div>
                                         <canvas id="debug-canvas-ocr"></canvas>
                                     </div>                               
                                 </div>
