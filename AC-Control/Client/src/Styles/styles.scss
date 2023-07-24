@@ -115,7 +115,8 @@ body {
 
 
 .menu-container {
-    width: 40px;
+    width: 65px;
+    flex-shrink: 0;
 }
 
 .menu {
@@ -189,7 +190,6 @@ body {
 }
 
 .settings {
-    max-width: 400px;
     height: 100%;
     border: solid 1px #000;
     padding: 5px;
@@ -827,6 +827,8 @@ body {
 
 .controls {
     display: block;
+    flex-shrink: 0;
+    width: 65px;
 }
 
 .desktop-only {

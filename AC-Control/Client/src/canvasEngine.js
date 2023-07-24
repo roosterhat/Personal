@@ -1,5 +1,3 @@
-
-
 class CanvasEngine {
     context = null;
     canvas = null;
@@ -551,6 +549,7 @@ class CanvasEngine {
         this.backgroundLoaded = false;
         document.getElementById('spinner').style.display = "block";
         this.background = new Image();
+        this.Update()
     }
 
     async LoadBackground(file, position) {

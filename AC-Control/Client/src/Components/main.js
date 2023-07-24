@@ -19,7 +19,6 @@ class Main extends React.Component {
     Config = null;
     Settings = null;
     UpdateQueue = [];
-    CloseMenuDelay = 450;
 
     constructor(props) {
         super(props);
@@ -32,6 +31,7 @@ class Main extends React.Component {
             editMacros: false,
             showMacros: false,
             uploading: false,
+            hideHeaders: false,
             showConfigSelect: false,
             EditConfig: null,
             EditSetting: null,
@@ -73,8 +73,8 @@ class Main extends React.Component {
             return (
                 <div className="container">
                     <div className="content-container">
-                        { !this.state.editFrame && !this.state.editRemote && (this.state.hasFrame || this.state.currentState) ?
-                            <div className="content-header">
+                        {(this.state.hasFrame || this.state.currentState) ?
+                            <div className="content-header" style={{display: this.state.hideHeaders ? "none" : "flex"}}>
                                 { this.state.hasFrame ? 
                                     <div className="frame-container">
                                         <img id="frame" onLoad={() => { this.setState({loadingFrame: false}); this.Engine.RefreshDimensions() }}/>
@@ -138,22 +138,22 @@ class Main extends React.Component {
 
     renderMenus = () => {
         if(this.state.editRemote) {
-            return (<EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit}/>);
+            return (<EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={() => this.cancelEdit(true)}/>);
         }
         else if (this.state.editFrame) {
-            return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={this.cancelEdit} refresh={this.refreshEditFrame}/>);
+            return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={() => this.cancelEdit(true)} refresh={this.refreshEditFrame}/>);
         }
         else if (this.state.editActions) {
-            return (<EditActions Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeActions} cancel={this.cancelEdit}/>)
+            return (<EditActions Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeActions} cancel={() => this.cancelEdit()}/>)
         }
         else if (this.state.editSchedules) {
-            return (<Schedules Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={this.cancelEdit}/>)
+            return (<Schedules Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={() => this.cancelEdit()}/>)
         }
         else if (this.state.editMacros) {
-            return (<Macros Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeMacros} cancel={this.cancelEdit}/>)
+            return (<Macros Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeMacros} cancel={() => this.cancelEdit()}/>)
         }
         else if (this.state.editSettings) {
-            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} refresh={this.refreshFrameAndState} complete={this.completeSettings} cancel={this.cancelEdit} />)
+            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} refresh={this.refreshFrameAndState} complete={this.completeSettings} cancel={() => this.cancelEdit()} />)
         }
         else {
             return (
@@ -195,7 +195,6 @@ class Main extends React.Component {
 
     completeMacros = async () => {
         await this.save();
-        setTimeout(() => this.setState({editMacros: false, EditConfig: null, EditSetting: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
@@ -208,7 +207,6 @@ class Main extends React.Component {
 
     completeSchedules = async () => {
         await this.save();
-        setTimeout(() => this.setState({editSchedules: false, EditConfig: null, EditSetting: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
@@ -220,14 +218,13 @@ class Main extends React.Component {
 
     completeActions = async () => {
         await this.save();
-        setTimeout(() => this.setState({editActions: false, EditConfig: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
     editFrame = () => {
         this.checkAuthorized(false)
         var config = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editFrame: true, EditConfig: config})
+        this.setState({editFrame: true, hideHeaders: true, EditConfig: config})
         this.Engine.SetEdit(true);
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
@@ -250,7 +247,7 @@ class Main extends React.Component {
     editButtons = () => {
         this.checkAuthorized(false)
         var editConfig = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editRemote: true, EditConfig: editConfig})
+        this.setState({editRemote: true, hideHeaders: true, EditConfig: editConfig})
         this.Engine.shapes = editConfig.buttons.map(x => x.shape);
         this.Engine.SetEdit(true);
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
@@ -267,13 +264,12 @@ class Main extends React.Component {
         this.Settings = settings
         await this.saveSettings();
         await this.save();
-        setTimeout(() => this.setState({editSettings: false, EditSetting: null}), this.CloseMenuDelay)
         this.switchToMainView();
     }
 
     newButtons = () => {
         this.checkAuthorized(false)
-        this.setState({editRemote: true, EditConfig: {
+        this.setState({editRemote: true, hideHeaders: true, EditConfig: {
             'name': null,
             'buttons': [],
             'frame': {},
@@ -290,9 +286,8 @@ class Main extends React.Component {
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
 
-    cancelEdit = () => {
-        setTimeout(() => this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editMacros: false, editSettings: false, EditConfig: null, error: null, EditSetting: null}), this.CloseMenuDelay)
-        this.switchToMainView();
+    cancelEdit = (refresh = false) => {
+        this.switchToMainView(refresh);
     }
     
     complete = async () => {
@@ -308,7 +303,6 @@ class Main extends React.Component {
             this.Engine.Reset()
             this.setState({saving: true, error: false}) 
             await this.save()
-            setTimeout(() => this.setState({saving: false, editRemote: false, editFrame: false}), this.CloseMenuDelay)
             this.switchToMainView();            
         }
     }
@@ -449,10 +443,12 @@ class Main extends React.Component {
         }
     }
 
-    switchToMainView = () => {
+    switchToMainView = (refresh = true) => {
         var menu = document.getElementById("menu");
         if(menu)
             menu.classList.add("closed")
+
+        setTimeout(() => this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editMacros: false, editSettings: false, error: null, EditSetting: null, EditConfig: null}), 450)
         const buttons = JSON.parse(JSON.stringify(this.Config && this.Config.buttons ? this.Config.buttons : []))
         const background = this.Config && this.Config.background ? this.Config.background : null
         this.Engine.SetEdit(false);
@@ -461,11 +457,11 @@ class Main extends React.Component {
             x.shape['function'] = () => this.triggerIr(x.id);
             return x.shape
         });
-        if(background) {
+        if(refresh && background) {
             this.Engine.StartBackgroundLoad();
             try{
                 fetchWithToken(`api/background/${background.file}`).then(async response => {
-                    if(response.status == 200 && !this.state.editRemote){
+                    if(response.status == 200){
                         var blob = await response.blob()
                         await this.Engine.LoadBackground(URL.createObjectURL(blob), background.position)
                         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
@@ -474,8 +470,11 @@ class Main extends React.Component {
             }
             catch {}
         }
-        if(this.state.hasFrame)
+        
+        if(refresh && this.state.hasFrame)
             this.UpdateQueue.push(this.refreshFrameAndState)
+
+        this.setState({hideHeaders: false})            
     }
 
     checkAuthorized = async(allowUnauthorized = true) => {
