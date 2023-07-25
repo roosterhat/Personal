@@ -70,13 +70,13 @@ class EditFrame extends React.Component {
                                                 <div>Gray Scale</div>
                                                 <input type="checkbox"
                                                     checked={button.properties.grayscale}
-                                                    onChange={e => this.updateOCRProperty("grayscale", !button.properties.grayscale)}/>
+                                                    onChange={e => this.updateOCRProperty(button, "grayscale", !button.properties.grayscale)}/>
                                             </div>
                                             <div>
                                                 <div>Invert</div>
                                                 <input type="checkbox"
                                                     checked={button.properties.invert}
-                                                    onChange={e => this.updateOCRProperty("invert", !button.properties.invert)}/>
+                                                    onChange={e => this.updateOCRProperty(button, "invert", !button.properties.invert)}/>
                                             </div>
                                         </div>
                                     </Button>

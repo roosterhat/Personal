@@ -427,9 +427,9 @@ def manageSchedules():
             checkDateTime = datetime.now()
             for schedule in config["schedules"]:
                 if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime):
-                    _State.setState(config, schedule["state"])
-                    runs[schedule["id"]] = checkDateTime
-                    updated = True
+                    if _State.setState(config, schedule["state"]) is None:
+                        runs[schedule["id"]] = checkDateTime
+                        updated = True
 
             activeRuns = {}
             for id in runs:

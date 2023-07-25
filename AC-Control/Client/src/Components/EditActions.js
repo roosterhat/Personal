@@ -71,7 +71,7 @@ class EditActions extends React.Component {
                                     <div className="pairing-container" key={o.id}>
                                         <div className="group-container">
                                             <div className="group-header">
-                                                <input value={o.name} placeholder="Group name" onChange={e => this.setValue(o, "name", e.target.value)}></input>
+                                                <input value={o.name} placeholder="Action name" onChange={e => this.setValue(o, "name", e.target.value)}></input>
                                                 <button className="close" onClick={() => this.removeItem(this.state.config.actions.ocr, index+1)}><i className="fa-solid fa-xmark"></i></button>
                                             </div>
                                             {o.buttons.map(b => 
