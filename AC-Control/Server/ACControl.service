@@ -1,0 +1,14 @@
+[Unit]
+Description=AC Control Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Restart=always
+RestartSec=1
+User=pi
+WorkingDirectory=/home/pi/AC-Control/Server
+ExecStart=/usr/bin/python /home/pi/AC-Control/Server/Server.py
+
+[Install]
+WantedBy=multi-user.target
