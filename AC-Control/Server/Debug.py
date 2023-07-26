@@ -24,7 +24,7 @@ class Debug:
         r1 = int(shape["r1"] / scale)
         r2 = int(shape["r2"] / scale)
         activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
-        threshold = state["properties"]["colorDistanceThreshold"] if "colorDistanceThreshold" in state["properties"] else 20
+        threshold = state["properties"]["colorDistanceThreshold"]
         count = 0 
         total = 0
         for y in range(y1, y2):

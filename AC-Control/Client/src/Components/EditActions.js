@@ -325,7 +325,8 @@ class EditActions extends React.Component {
         if(elem){
             var id = elem.value
             if(id) {
-                group.states.push(this.state.config.frame.states.find(x => x.id == id))
+                var state = this.state.config.frame.states.find(x => x.id == id)
+                group.states.push({'name': state.name, 'id': state.id})
                 this.setState({config: this.state.config})
             }
         }

@@ -20,16 +20,18 @@ class State:
         r1 = int(shape["r1"] / scale)
         r2 = int(shape["r2"] / scale)
         activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
-        threshold = state["properties"]["colorDistanceThreshold"] if "colorDistanceThreshold" in state["properties"] else 20
+        threshold = state["properties"]["colorDistanceThreshold"]
         count = 0
+        total = 0
         for y in range(y1, y2):
             for x in range(x1, x2):
-                if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0 and Utility.colorDistance(activeColor, frame[y][x]) <= threshold:
-                    count += 1
+                if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
+                    total += 1
+                    if Utility.colorDistance(activeColor, frame[y][x]) <= threshold:
+                        count += 1
 
-        activation = count / ((y2-y1) * (x2-x1)) * 100
-        threshold = state["properties"]["stateActivationPercentage"] if "stateActivationPercentage" in state["properties"] else 5
-        return activation >= threshold
+        activation = count / total * 100
+        return activation >= state["properties"]["stateActivationPercentage"]
 
     def getPowerState(self, config, state):
         equation = ""
