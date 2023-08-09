@@ -911,6 +911,33 @@ body {
                 border: solid 1px #000;
                 border-radius: 3px;
 
+                .state-properties {
+                    display: flex;
+
+                    div {
+                        display: flex;
+                        align-items: center;
+
+                        &:not(:last-child) {
+                            margin-right: 10px;
+                        }
+                    }
+                }
+
+                .model-select {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    max-height: 100%;
+                    position: relative;
+                    min-width: 45px;
+                    height: 19px;
+
+                    .lds-ring {
+                        transform: scale(35%);
+                    }
+                }
+
                 .name {
                     margin-right: 5px;
                 }

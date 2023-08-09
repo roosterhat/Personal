@@ -5,9 +5,9 @@ from PIL import ImageColor, ImageDraw
 import Utility
 
 class Debug:
-    def __init__(self, camera, OCRModel, State):
+    def __init__(self, camera, OCRModels, State):
         self.camera = camera
-        self.OCRModel = OCRModel
+        self.OCRModels = OCRModels
         self.State = State
 
     def debugSampleFrameEllipse(self, frame, state, config):
@@ -118,8 +118,8 @@ class Debug:
     def debugOCR(self, config, request):
         if request.method != 'POST':
             return 'No config data', 400
-        view = request.get_json(force = True, silent = True)
-        if view is None:
+        body = request.get_json(force = True, silent = True)
+        if body is None:
             return 'No config data', 400
         
         result, status = self.camera.getFrame()
@@ -127,10 +127,10 @@ class Debug:
             return result, status
         frame = result
 
-        image = Utility.reshapeImage(config, frame, view["shape"]["vertices"])
-        image = Utility.prepareOCRImage(view, image)
+        image = Utility.reshapeImage(config, frame, body["view"]["shape"]["vertices"])
+        image = Utility.prepareOCRImage(image, body["action"]["view"]["properties"])
 
-        results = self.OCRModel(image, device="cpu", verbose=False, agnostic_nms=True)
+        results = self.OCRModels[body["action"]["model"]](image, device="cpu", verbose=False, agnostic_nms=True)
         value = ""
         draw = ImageDraw.Draw(image)
         colors = ["#77DD77", "#836953", "#89cff0", "#99c5c4", "#9adedb", "#aa9499", "#aaf0d1", "#b2fba5"]

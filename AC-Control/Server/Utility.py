@@ -11,15 +11,15 @@ def colorDistance(c1, c2):
         return False
     return pow(v, 1/2)
 
-def prepareOCRImage(view, image):
-    if "grayscale" in view["properties"] and view["properties"]["grayscale"]:
+def prepareOCRImage(image, options):
+    if "grayscale" in options and options["grayscale"]:
         image = image.convert("L")
-    if "threshold" in view["properties"] and view["properties"]["threshold"]:
-        image = image.point( lambda p: p if p > view["properties"]["threshold"] else np.random.randint(int(view["properties"]["threshold"] * 0.2), int(view["properties"]["threshold"] * 0.8)))
-    if "invert" in view["properties"] and view["properties"]["invert"]:
+    if "threshold" in options and options["threshold"]:
+        image = image.point( lambda p: p if p > options["threshold"] else np.random.randint(int(options["threshold"] * 0.2), int(options["threshold"] * 0.8)))
+    if "invert" in options and options["invert"]:
         image = ImageOps.invert(image)
-    if "scale" in view["properties"] and view["properties"]["scale"]:
-        image = image.resize(((int(image.width * view["properties"]["scale"])), int(image.height * view["properties"]["scale"])))
+    if "scale" in options and options["scale"]:
+        image = image.resize(((int(image.width * options["scale"])), int(image.height * options["scale"])))
     
     padding = 0.4
     padded = Image.new("RGB", (int(image.width + image.width * padding), int(image.height + image.height * padding)), 0)

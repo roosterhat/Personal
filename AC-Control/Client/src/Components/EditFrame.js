@@ -65,20 +65,6 @@ class EditFrame extends React.Component {
                                         remove={() => this.removeButton(button, this.Config.frame.ocr)}
                                         showAction={false}
                                     >
-                                        <div className="state-properties">
-                                            <div>
-                                                <div>Gray Scale</div>
-                                                <input type="checkbox"
-                                                    checked={button.properties.grayscale}
-                                                    onChange={e => this.updateOCRProperty(button, "grayscale", !button.properties.grayscale)}/>
-                                            </div>
-                                            <div>
-                                                <div>Invert</div>
-                                                <input type="checkbox"
-                                                    checked={button.properties.invert}
-                                                    onChange={e => this.updateOCRProperty(button, "invert", !button.properties.invert)}/>
-                                            </div>
-                                        </div>
                                     </Button>
                                 ) : null
                             }

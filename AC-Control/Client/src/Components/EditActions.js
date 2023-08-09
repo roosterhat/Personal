@@ -19,19 +19,35 @@ class EditActions extends React.Component {
             config: props.Config,
             testResult: null,
             loadingTest: false,
+            loadingModels: true,
+            models: [],
             saving: false,
             actionTriggers: {}
         }
+
+        this.listModels();
+
+        var defaultButton = this.state.config.buttons[0].id
+        var defaultView = this.state.config.frame.ocr[0].id
+        var defaultModel = this.state.models[0]
 
         if(!this.state.config.actions.ocr) {
             this.state.config.actions.ocr = [
                 {
                     "name": "Temperature",
                     "buttons": [
-                        {"name": "Up", "button": null},
-                        {"name": "Down", "button": null}
+                        {"name": "Up", "button": defaultButton},
+                        {"name": "Down", "button": defaultButton}
                     ],
-                    "view": null,
+                    "view": {
+                        "id": defaultView,
+                        "properties": {
+                            "scale": 1,
+                            "grayscale": true,
+                            "invert": true
+                        }
+                    },
+                    "model": defaultModel,
                     "id": uuidv4()
                 }
             ]
@@ -40,7 +56,7 @@ class EditActions extends React.Component {
             this.state.config.actions.power = {
                 "name": "Power",
                 "stateEquation": [],
-                "button": null
+                "button": defaultButton
             }
         }
         if(!this.state.config.actions.stateGroups) {
@@ -68,39 +84,14 @@ class EditActions extends React.Component {
                             </div>
                             <div className="section-body">
                                 {this.state.config.actions.ocr.filter(x => x.name != "Temperature").map((o, index) => 
-                                    <div className="pairing-container" key={o.id}>
-                                        <div className="group-container">
-                                            <div className="group-header">
-                                                <input value={o.name} placeholder="Action name" onChange={e => this.setValue(o, "name", e.target.value)}></input>
-                                                <button className="close" onClick={() => this.removeItem(this.state.config.actions.ocr, index+1)}><i className="fa-solid fa-xmark"></i></button>
-                                            </div>
-                                            {o.buttons.map(b => 
-                                                <div className="pairing-container" key={b.id}>
-                                                    <div className="name">{b.name}</div>
-                                                    <select onChange={e => this.setValue(o, "button", e.target.value)}>
-                                                        {this.state.config.buttons.map(x =>
-                                                            <option selected={o.button == x.id} value={x.id} key={x.id}>{x.name}</option>
-                                                        )}
-                                                    </select>
-                                                </div>
-                                            )}                                    
-                                            <div className="pairing-container">
-                                                <div className="name">OCR View</div>
-                                                <select onChange={e => this.setValue(o, "view", e.target.value)}>
-                                                    {this.state.config.frame.ocr.filter(x => !this.state.config.actions.ocr.some(y => y.view == x.id)).map(v => 
-                                                        <option selected={o.view == v.id} value={v.id}>{v.name}</option>
-                                                    )}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    this.renderOCRAction(o, index)
                                 )}
                             </div>
                         </div>
                         <div className="section temperature">
                             <div className="section-header">Temperature</div>
                             <div className="section-body">
-                                {this.renderTemperature()}
+                                {this.renderOCRAction(this.state.config.actions.ocr.find(x => x.name == "Temperature"))}
                             </div>                            
                         </div>
                         <div className="section power">
@@ -124,7 +115,7 @@ class EditActions extends React.Component {
                                                 <button className="operation" onClick={() => this.addOperation(x)}>{x.name}</button>    
                                             )}
                                             <div className="divider" />
-                                            {this.state.config.frame.states.filter(x => !this.state.config.actions.power.stateEquation.some(y => x.id == y.id)).map(x =>
+                                            {this.state.config.frame.states.map(x =>
                                                 <button className="operation" onClick={() => this.addOperation({"name": x.name, "id": x.id, "type": "state", "color": "#c5c5ff"})}>{x.name}</button>
                                             )}
                                         </div>
@@ -134,7 +125,7 @@ class EditActions extends React.Component {
                                             )}
                                         </div>
                                         <div className="test-equation">
-                                            <button className="trigger test" onClick={this.testEqustion}>{this.state.loadingTest ? <LoadingSpinner id="spinner" /> : "Test"}</button>
+                                            <button className="trigger test" onClick={this.testEquation}>{this.state.loadingTest ? <LoadingSpinner id="spinner" /> : "Test"}</button>
                                             { this.state.testResult ? this.renderTestResult() : null }
                                         </div>
                                     </div>
@@ -197,27 +188,62 @@ class EditActions extends React.Component {
         )
     }
 
-    renderTemperature = () => {
-        var temperature = this.state.config.actions.ocr.find(x => x.name == "Temperature")
+    renderOCRAction = (ocr, index) => {
         return (
-            <div>
-                {temperature.buttons.map(x => 
-                    <div className="pairing-container" key={x.id}>
-                        <div className="name">{x.name}</div>
-                        <select onChange={e => this.setValue(x, "button", e.target.value)}>
-                            {this.state.config.buttons.map(b =>
-                                <option selected={x.button == b.id} value={b.id} key={b.id}>{b.name}</option>
+            <div className="pairing-container" key={ocr.id}>
+                <div className="group-container">
+                    {index != null ? 
+                        <div className="group-header">
+                            <input value={ocr.name} placeholder="Action name" onChange={e => this.setValue(ocr, "name", e.target.value)}></input>
+                            <button className="close" onClick={() => this.removeItem(this.state.config.actions.ocr, index+1)}><i className="fa-solid fa-xmark"></i></button>
+                        </div>
+                        : null
+                    }
+                    {ocr.buttons.map(x => 
+                        <div className="pairing-container" key={x.id}>
+                            <div className="name">{x.name}</div>
+                            <select onChange={e => this.setValue(x, "button", e.target.value)}>
+                                {this.state.config.buttons.map(b =>
+                                    <option selected={x.button == b.id} value={b.id} key={b.id}>{b.name}</option>
+                                )}
+                            </select>
+                        </div>
+                    )}
+                    <div className="pairing-container">
+                        <div className="name">OCR View</div>
+                        <div className="model-select">
+                            {this.state.loadingModels ? 
+                                <LoadingSpinner /> : 
+                                <select onChange={e => this.setValue(ocr, "model", e.target.value)}>
+                                    {this.state.models.map(model => 
+                                        <option selected={ocr.model == model} value={model}>{model}</option>
+                                    )}
+                                </select>
+                            }
+                        </div>
+                        <select onChange={e => this.setValue(ocr.view, "id", e.target.value)}>
+                            {this.state.config.frame.ocr.map(v => 
+                                <option selected={ocr.view.id == v.id} value={v.id}>{v.name}</option>
                             )}
                         </select>
                     </div>
-                )}
-                <div className="pairing-container">
-                    <div className="name">OCR View</div>
-                    <select onChange={e => this.setValue(temperature, "view", e.target.value)}>
-                        {this.state.config.frame.ocr.map(v => 
-                            <option selected={temperature.view == v.id} value={v.id}>{v.name}</option>
-                        )}
-                    </select>
+                    <div className="pairing-container">
+                        <div className="name">Filters</div>
+                        <div className="state-properties">
+                            <div>
+                                <div>Gray Scale</div>
+                                <input type="checkbox"
+                                    checked={ocr.view.properties.grayscale}
+                                    onChange={e => this.setValue(ocr.view.properties, "grayscale", !ocr.view.properties.grayscale)}/>
+                            </div>
+                            <div>
+                                <div>Invert</div>
+                                <input type="checkbox"
+                                    checked={ocr.view.properties.invert}
+                                    onChange={e => this.setValue(ocr.view.properties, "invert", !ocr.view.properties.invert)}/>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )
@@ -226,13 +252,26 @@ class EditActions extends React.Component {
     addOCR = () => {
         if(this.state.config.frame.ocr.length <= this.state.config.actions.ocr.length)
             return;
+
+        var defaultButton = this.state.config.buttons[0].id
+        var defaultView = this.state.config.frame.ocr[0].id
+        var defaultModel = this.state.models[0]
+
         this.state.config.actions.ocr.push(
             {
                 "name": "",
                 "buttons": [
-                    {"name": "Trigger", "button": null}
+                    {"name": "Trigger", "button": defaultButton}
                 ],
-                "view": null,
+                "view": {
+                    "id": defaultView,
+                    "properties": {
+                        "scale": 1,
+                        "grayscale": true,
+                        "invert": true
+                    }
+                },
+                "model": defaultModel,
                 "id": uuidv4()
             }
         )
@@ -240,24 +279,6 @@ class EditActions extends React.Component {
     }
 
     complete = () => {
-        if(this.state.config.buttons.length > 0){
-            var defaultId = this.state.config.buttons[0].id;
-            this.state.config.actions.ocr.forEach(o => {
-                o.buttons.forEach(x => {
-                    if(!x.button)
-                        x.button = defaultId
-                })
-                if(!o.view)
-                    o.view = this.state.config.frame.ocr[0].id
-            })
-            if(!this.state.config.actions.power.button)
-                this.state.config.actions.power.button = defaultId
-            this.state.config.actions.stateGroups.forEach(group => {
-                if(!group.button)
-                    group.button = defaultId
-            })
-                
-        }
         this.setState({saving: true})
         this.props.onConfigChange(this.state.config)
         this.props.complete()
@@ -272,7 +293,7 @@ class EditActions extends React.Component {
         }
     }
 
-    testEqustion = async () => {
+    testEquation = async () => {
         try {
             this.setState({loadingTest: true})
             var body = JSON.stringify(this.state.config.actions.power)
@@ -307,9 +328,11 @@ class EditActions extends React.Component {
     }
 
     addGroup = () => {
+        var defaultButton = this.state.config.buttons[0].id
+
         this.state.config.actions.stateGroups.push({
             "states": [],
-            "button": null,
+            "button": defaultButton,
             "name": "Group " + this.state.config.actions.stateGroups.length
         })
         this.setState({config: this.state.config})
@@ -335,6 +358,21 @@ class EditActions extends React.Component {
     removeState = (group, index) => {
         group.states.splice(index, 1)
         this.setState({config: this.state.config})
+    }
+
+    listModels = async () => {
+        try {
+            this.setState({loadingModels: true})
+            const response = await fetchWithToken(`api/models`)
+            if(response.status == 200)
+                this.setState({models: await response.json()})
+        }
+        catch(ex) {
+            console.error(ex);
+        } 
+        finally { 
+            this.setState({loadingModels: false})
+        }
     }
 }
 

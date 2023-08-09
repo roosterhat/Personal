@@ -131,7 +131,7 @@ class Settings extends React.Component {
                     <div className="debug-container">
                         <div className="debug-header">
                             <select name="buttons" id="ocr-select" onChange={() => this.setState({OCRDebugResult: null})}>
-                                {this.state.config.actions.ocr.map(x => <option key={x.id} value={x.view}>{x.name}</option>)}
+                                {this.state.config.actions.ocr.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                             </select>
                             <div>
                                 <button className="debug" onClick={() => this.debugOCR()}>{this.state.loadOCRDebug ? <LoadingSpinner id="spinner" /> : "Debug"}</button>
@@ -151,14 +151,14 @@ class Settings extends React.Component {
                                         <div className="debug-property">
                                             <div>Gray Scale</div>
                                             <input type="checkbox"
-                                                checked={this.state.selectedOCR.properties.grayscale}
-                                                onChange={e => this.updateOCRProperty("grayscale", !this.state.selectedOCR.properties.grayscale)}/>
+                                                checked={this.state.selectedOCR.view.properties.grayscale}
+                                                onChange={e => this.updateOCRProperty("grayscale", !this.state.selectedOCR.view.properties.grayscale)}/>
                                         </div>
                                         <div className="debug-property">
                                             <div>Invert</div>
                                             <input type="checkbox"
-                                                checked={this.state.selectedOCR.properties.invert}
-                                                onChange={e => this.updateOCRProperty("invert", !this.state.selectedOCR.properties.invert)}/>
+                                                checked={this.state.selectedOCR.view.properties.invert}
+                                                onChange={e => this.updateOCRProperty("invert", !this.state.selectedOCR.view.properties.invert)}/>
                                         </div>
                                     </div>
                                     <button className="debug-test" onClick={() => this.debugOCR()}>{this.state.loadOCRDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
@@ -317,15 +317,16 @@ class Settings extends React.Component {
             if(elem){
                 var id = elem.value;
                 if(id){
-                    var ocr = this.state.config.frame.ocr.find(x => x.id == id);
-                    var body = JSON.stringify(ocr)
+                    var action = this.state.config.actions.ocr.find(x => x.id == id)
+                    var ocr = this.state.config.frame.ocr.find(x => x.id == action.view.id);
+                    var body = JSON.stringify({"view": ocr, "action": action})
                     var start = Date.now()
                     var response = await fetchWithToken(`api/debug/ocr/${this.state.config.id}`, "POST", body, {"Content-Type": "application/json"})
                     if(response.status == 200){
                         var end = Date.now()
                         var result = await response.json()
                         result["executionTime"] = end - start
-                        this.setState({OCRDebugResult: result, selectedOCR: ocr})
+                        this.setState({OCRDebugResult: result, selectedOCR: action})
                         this.UpdateQueue.push(() => {
                             this.addImageToCanvas("debug-canvas-ocr", result["image"], false);
                         })
@@ -339,7 +340,7 @@ class Settings extends React.Component {
     }
 
     updateOCRProperty = (key, value) => {
-        this.state.selectedOCR.properties[key] = value
+        this.state.selectedOCR.view.properties[key] = value
         this.setState({config: this.state.config});
     }
 

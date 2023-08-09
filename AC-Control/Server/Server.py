@@ -28,6 +28,7 @@ lastLoginAttempt = datetime.now()
 _Camera = None
 _Debug = None
 _State = None
+OCRModels = {}
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -75,6 +76,19 @@ def listConfigs():
                 return "Failed", 500
             finally:
                 f.close()
+        return names, 200
+    except Exception as ex:
+        print(ex, flush=True)
+        return "Failed", 500
+    
+@app.route('/api/models')
+def listModels():
+    if not verifyToken():
+        return "Unauthorized", 401
+    try:
+        names = []
+        for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
+            names.append(file)
         return names, 200
     except Exception as ex:
         print(ex, flush=True)
@@ -460,11 +474,13 @@ if __name__ == '__main__':
         Thread(target=manageSchedules).start()
         print("Setting up _Camera", flush=True)
         _Camera = Camera(settings)
-        print("Loading OCR Model", flush=True)
-        OCRModel = YOLO('7seg.pt')
+        print("Loading OCR Models...", flush=True)
+        for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
+            print(file)
+            OCRModels[file] = YOLO(Path.join('./Data/OCR', file))
 
-        _State = State(_Camera, OCRModel, settings)
-        _Debug = Debug(_Camera, OCRModel, _State)
+        _State = State(_Camera, OCRModels, settings)
+        _Debug = Debug(_Camera, OCRModels, _State)
         app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     finally:
         if _Camera:
