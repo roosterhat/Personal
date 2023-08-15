@@ -167,7 +167,7 @@ class Main extends React.Component {
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
                     { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
                     <div className="spacer"></div>
-                    { this.Settings ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i class="fa-solid fa-angles-right"></i></button> : null }
+                    { this.Settings && this.Config && this.Config.macros.length > 0 ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i class="fa-solid fa-angles-right"></i></button> : null }
                 </div>
             )
         }

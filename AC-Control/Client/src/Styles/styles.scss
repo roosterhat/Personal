@@ -982,6 +982,16 @@ body {
                         }                        
                     }
 
+                    .operations {
+                        overflow-x: auto;
+                        width: 100%;
+                        flex-wrap: nowrap;
+
+                        .operation {
+                            flex-shrink: 0;
+                        }
+                    }
+
                     .divider {
                         margin: 0px 5px;
                         border-left: solid 1px #000;
