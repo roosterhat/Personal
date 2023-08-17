@@ -526,10 +526,8 @@ class CanvasEngine {
         context.canvas.height = dims.height;
         if(this.backgroundLoaded){
             context.translate(context.canvas.width/2, context.canvas.height/2);
-            if(this.imageEffects){
-                if(this.imageEffects.rotate){                    
-                    context.rotate(this.imageEffects.rotate * Math.PI / 180);
-                }
+            if(this.imageEffects && this.imageEffects.rotate){
+                context.rotate(this.imageEffects.rotate * Math.PI / 180);
             }
             var scale = Math.min(context.canvas.width / this.background.width, context.canvas.height / this.background.height);
             var x =  - (this.background.width / 2) * scale;
