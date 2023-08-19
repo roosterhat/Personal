@@ -380,7 +380,7 @@ def shouldRun(schedule, runs, checkDateTime):
     Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     lastRun = None
     if schedule["id"] in runs:
-        lastRun = roundToMinutes(runs[schedule["id"]]["lastRun"])
+        lastRun = roundToMinutes(datetime.fromisoformat(runs[schedule["id"]]["lastRun"]))
     currentRun = roundToMinutes(checkDateTime)
 
     currentDOW = currentRun.weekday()
@@ -434,7 +434,7 @@ def manageSchedules():
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
             f = open("./Data/scheduleRuns", 'rb')
-            runs = json.loads(f.read(), object_hook=decodeObject)
+            runs = json.loads(f.read())
             f.close()
 
             updated = False
