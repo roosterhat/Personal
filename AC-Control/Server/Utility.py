@@ -14,9 +14,9 @@ def colorDistance_old(c1, c2):
 srgb_p = ImageCms.createProfile("sRGB")
 lab_p  = ImageCms.createProfile("LAB")
 rgb2lab = ImageCms.buildTransformFromOpenProfiles(srgb_p, lab_p, "RGB", "LAB")
-def colorDistance(c1, c2):    
-    img1 = Image.new('RGB', (1,1), tuple(c1))
-    img2 = Image.new('RGB', (1,1), tuple(c2))
+def colorDistance(color1, color2):    
+    img1 = Image.new('RGB', (1,1), tuple(color1))
+    img2 = Image.new('RGB', (1,1), tuple(color2))
     labA = ImageCms.applyTransform(img1, rgb2lab).getpixel((0,0))
     labB = ImageCms.applyTransform(img2, rgb2lab).getpixel((0,0))
     deltaL = labA[0] - labB[0]
@@ -33,7 +33,13 @@ def colorDistance(c1, c2):
     deltaCkcsc = deltaC / (sc)
     deltaHkhsh = deltaH / (sh)
     i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh
-    return 0 if i < 0 else math.sqrt(i)
+    res1 = 0 if i < 0 else math.sqrt(i)
+
+    rBar = 0.5 * (color1[0] + color2[0])
+    v = (2 + rBar / 256) * (color1[0] - color2[0]) + 4 * pow(color1[1] - color2[1], 2) + (2 + (255 - rBar) / 256) * (color1[2] - color2[2])
+    res2 = 0 if math.isnan(v) or v < 0 else pow(v, 1/2)    
+
+    return (res1 + res2) / 2
 
 
 def prepareOCRImage(image, options):
