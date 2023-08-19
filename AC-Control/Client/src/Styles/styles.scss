@@ -426,11 +426,39 @@ body {
         border-radius: 5px;
         padding: 5px;
         position: relative;
+        overflow-x: auto;
+        max-width: 500px;
+
+        table {
+            width: max-content;
+
+            thead {
+                background: #efefef;
+
+                th {
+                    padding: 5px;
+                }
+
+                .date {
+                    width: 150px;
+                }
+            }
+
+            tbody {
+                tr {                    
+                    background: #ffffff;
+                    &:nth-child(even) {
+                        background: #f0f0f0;
+                    }
+                    td {
+                        border: none;
+                        margin: 0;
+                    }
+                }
+            }
+        }
 
         .run {
-            display: flex;
-            justify-content: space-between;
-
             .name {
                 font-weight: 700;
             }

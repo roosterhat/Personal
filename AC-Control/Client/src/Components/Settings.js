@@ -101,19 +101,36 @@ class Settings extends React.Component {
                         <div className="refresh-container"><div className={"refresh" + (this.state.loadingScheduleRuns ? " loading" : "")} onClick={this.getScheduleRuns}><i className="fa-solid fa-arrows-rotate"></i></div></div>
                     </div>
                     <div className="schedule-runs">
-                        {this.state.loadingScheduleRuns ? <LoadingSpinner id="spinner" /> :
-                            this.state.config.schedules.map(schedule => 
-                                <div className="run" key={schedule.id}>
-                                    <div className="name">{`${schedule.name}:`}</div>
-                                    <div>
-                                        {schedule.id in this.state.scheduleRuns ? 
-                                            new Date(this.state.scheduleRuns[schedule.id]).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
-                                            : " - "
-                                        }
-                                    </div>
-                                </div>    
-                            )                        
-                        }
+                        <table>
+                            <thead><tr><th>Schedule</th><th className="date">Last Run</th><th className="date">Last Attempt</th><th>Duration</th><th>Error</th></tr></thead>
+                            <tbody>
+                                {this.state.loadingScheduleRuns ? <LoadingSpinner id="spinner" /> :
+                                    this.state.config.schedules.map(schedule => 
+                                        <tr className="run" key={schedule.id}>
+                                            <td className="name">{`${schedule.name}:`}</td>
+                                            <td>
+                                                {schedule.id in this.state.scheduleRuns ? 
+                                                    new Date(this.state.scheduleRuns[schedule.id].lastRun).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
+                                                    : " - "
+                                                }
+                                            </td>
+                                            <td>
+                                                {schedule.id in this.state.scheduleRuns ? 
+                                                    new Date(this.state.scheduleRuns[schedule.id].lastAttempt).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
+                                                    : " - "
+                                                }
+                                            </td>
+                                            <td>
+                                                {schedule.id in this.state.scheduleRuns ? this.state.scheduleRuns[schedule.id].duration  : " - "}
+                                            </td>
+                                            <td>
+                                                {schedule.id in this.state.scheduleRuns ? this.state.scheduleRuns[schedule.id].error  : " - "}
+                                            </td>
+                                        </tr>    
+                                    )                        
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )

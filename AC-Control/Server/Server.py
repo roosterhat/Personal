@@ -380,7 +380,7 @@ def shouldRun(schedule, runs, checkDateTime):
     Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     lastRun = None
     if schedule["id"] in runs:
-        lastRun = roundToMinutes(runs[schedule["id"]])
+        lastRun = roundToMinutes(runs[schedule["id"]]["lastRun"])
     currentRun = roundToMinutes(checkDateTime)
 
     currentDOW = currentRun.weekday()
@@ -441,9 +441,14 @@ def manageSchedules():
             checkDateTime = datetime.now()
             for schedule in config["schedules"]:
                 if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime):
-                    if _State.setState(config, schedule["state"]) is None:
-                        runs[schedule["id"]] = checkDateTime
+                    runs[schedule["id"]]["lastAttempt"] = checkDateTime
+                    start = datetime.now()
+                    result = _State.setState(config, schedule["state"])
+                    if result is None:
+                        runs[schedule["id"]]["lastRun"] = checkDateTime
                         updated = True
+                    runs[schedule["id"]]["error"] = result
+                    runs[schedule["id"]]["duration"] = datetime.now() - start
 
             activeRuns = {}
             for id in runs:
