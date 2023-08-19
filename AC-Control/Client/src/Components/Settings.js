@@ -107,7 +107,7 @@ class Settings extends React.Component {
                                 {this.state.loadingScheduleRuns ? <LoadingSpinner id="spinner" /> :
                                     this.state.config.schedules.map(schedule => 
                                         <tr className="run" key={schedule.id}>
-                                            <td className="name">{`${schedule.name}:`}</td>
+                                            <td className="name">{schedule.name}</td>
                                             <td>
                                                 {schedule.id in this.state.scheduleRuns ? 
                                                     new Date(this.state.scheduleRuns[schedule.id].lastRun).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
