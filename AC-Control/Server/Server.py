@@ -477,7 +477,7 @@ if __name__ == '__main__':
         Thread(target=manageSessions).start()
         print("Starting Schedule Manager", flush=True)
         Thread(target=manageSchedules).start()
-        print("Setting up _Camera", flush=True)
+        print("Setting up Camera", flush=True)
         _Camera = Camera(settings)
         print("Loading OCR Models...", flush=True)
         for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
