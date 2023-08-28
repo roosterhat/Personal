@@ -127,15 +127,13 @@ class State:
         UP = next((x for x in actions if x["name"] == "Up"), None)
         DOWN = next((x for x in actions if x["name"] == "Down"), None)
         while settings["minTemperature"] <= currentTemp <= settings["maxTemperature"]:
-            Utility.triggerIR(config["ir_config"], UP["action"] if currentTemp < target else DOWN["action"])
-            Time.sleep(settings["setStateDelay"] / 1000)
+            for _ in range(max(abs(currentTemp - target, 10))):
+                Utility.triggerIR(config["ir_config"], UP["action"] if currentTemp < target else DOWN["action"])
+                Time.sleep(settings["setStateDelay"] / 1000)
             newTemp = self.getTemperature(self.getState(config, ["ocr"]))
             if newTemp == target:
                 return True
-            if currentTemp != newTemp:
-                count = 0
-            else:
-                count += 1
+            count += 1
             if count >= settings["triggerAttempts"]:
                 return False
             currentTemp = newTemp
