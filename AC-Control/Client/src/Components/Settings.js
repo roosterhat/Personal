@@ -121,8 +121,8 @@ class Settings extends React.Component {
                                                 }
                                             </td>
                                             <td>
-                                                {schedule.id in this.state.scheduleRuns ? 
-                                                    new Date(new Date(Date.now()).toDateString() + ' ' +this.state.scheduleRuns[schedule.id].duration).toLocaleTimeString("en-US", {minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3}) 
+                                                {schedule.id in this.state.scheduleRuns && this.state.scheduleRuns[schedule.id].duration ? 
+                                                    new Date(new Date(Date.now()).toDateString() + ' ' + this.state.scheduleRuns[schedule.id].duration).toLocaleTimeString("en-US", {minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3}) 
                                                     : " - "
                                                 }
                                             </td>
