@@ -441,12 +441,12 @@ def manageSchedules():
             checkDateTime = datetime.now()
             for schedule in config["schedules"]:
                 if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime):
+                    updated = True
                     runs[schedule["id"]]["lastAttempt"] = checkDateTime
                     start = datetime.now()
                     result = _State.setState(config, schedule["state"])
                     if result is None:
-                        runs[schedule["id"]]["lastRun"] = checkDateTime
-                        updated = True
+                        runs[schedule["id"]]["lastRun"] = checkDateTime                        
                     runs[schedule["id"]]["error"] = result
                     runs[schedule["id"]]["duration"] = datetime.now() - start
 
