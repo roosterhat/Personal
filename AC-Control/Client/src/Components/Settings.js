@@ -516,8 +516,7 @@ class Settings extends React.Component {
         var time = new Date(Date.now())
         var stages = {"hours": x => time.setHours(x), "minutes": x => time.setMinutes(x), "seconds": x => time.setSeconds(x), "millis": x => time.setMilliseconds(x)}
         for(var stage in stages)
-            if(stage in result.groups)
-                stages[stage](result.groups[stage])
+            stages[stage](stage in result.groups ? result.groups[stage] : 0)
         return time
     }
 }
