@@ -1,10 +1,9 @@
 import React from 'react'
 import Menu from './Menu';
 import LoadingSpinner from './Spinners/loading1';
-import { fetchWithToken } from '../Utility';
+import { fetchWithToken, parseTime } from '../Utility';
 
 class Settings extends React.Component {
-    TimePattern = /(?:(?<hours>\d{1,2}):)?(?<minutes>\d{1,2}):(?<seconds>\d{1,2})\.?(?<millis>\d+)?/
     constructor(props) {
         super(props);
 
@@ -123,7 +122,7 @@ class Settings extends React.Component {
                                             </td>
                                             <td>
                                                 {schedule.id in this.state.scheduleRuns && this.state.scheduleRuns[schedule.id].duration ? 
-                                                    this.parseTime(this.state.scheduleRuns[schedule.id].duration).toLocaleTimeString("en-US", {minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3}) 
+                                                    parseTime(this.state.scheduleRuns[schedule.id].duration).toLocaleTimeString("en-US", {minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3}) 
                                                     : ""
                                                 }
                                             </td>
@@ -509,15 +508,6 @@ class Settings extends React.Component {
     updateStateProperty = (key, value) => {
         this.state.selectedState.properties[key] = value;
         this.setState({selectedState: this.state.selectedState});
-    }
-
-    parseTime = (data) => {
-        var result = this.TimePattern.exec(data)
-        var time = new Date(Date.now())
-        var stages = { "hours": x => time.setHours(x), "minutes": x => time.setMinutes(x), "seconds": x => time.setSeconds(x), "millis": x => time.setMilliseconds(Number(x.padEnd(6, "0"))/1000) }
-        for(var stage in stages)
-            stages[stage](result && stage in result.groups ? result.groups[stage] : 0)
-        return time
     }
 }
 

@@ -34,4 +34,15 @@ function fetchWithToken(endpoint, method = "GET", body = null, headers = {}, all
     });
 }
 
-export { uuidv4, fetchWithToken, getCookie, setCookie }
+const TimePattern = /(?:(?<hours>\d{1,2}):)?(?<minutes>\d{1,2}):(?<seconds>\d{1,2})\.?(?<millis>\d+)?/
+
+function parseTime(data) {
+    var result = TimePattern.exec(data)
+    var time = new Date(Date.now())
+    var stages = { "hours": x => time.setHours(x), "minutes": x => time.setMinutes(x), "seconds": x => time.setSeconds(x), "millis": x => time.setMilliseconds(Number(x.padEnd(6, "0"))/1000) }
+    for(var stage in stages)
+        stages[stage](result && stage in result.groups ? result.groups[stage] : 0)
+    return time
+}
+
+export { uuidv4, fetchWithToken, getCookie, setCookie, parseTime }
