@@ -514,9 +514,9 @@ class Settings extends React.Component {
     parseTime = (data) => {
         var result = this.TimePattern.exec(data)
         var time = new Date(Date.now())
-        var stages = {"hours": x => time.setHours(x), "minutes": x => time.setMinutes(x), "seconds": x => time.setSeconds(x), "millis": x => time.setMilliseconds(x)}
+        var stages = { "hours": x => time.setHours(x), "minutes": x => time.setMinutes(x), "seconds": x => time.setSeconds(x), "millis": x => time.setMilliseconds(Number(x.padEnd(6, "0"))/1000) }
         for(var stage in stages)
-            stages[stage](stage in result.groups ? result.groups[stage] : 0)
+            stages[stage](result && stage in result.groups ? result.groups[stage] : 0)
         return time
     }
 }
