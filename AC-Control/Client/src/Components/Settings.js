@@ -4,6 +4,7 @@ import LoadingSpinner from './Spinners/loading1';
 import { fetchWithToken } from '../Utility';
 
 class Settings extends React.Component {
+    TimePattern = /(?:(?<hours>\d{1,2}):)?(?<minutes>\d{1,2}):(?<seconds>\d{1,2})\.?(?<millis>\d+)?/
     constructor(props) {
         super(props);
 
@@ -111,23 +112,23 @@ class Settings extends React.Component {
                                             <td>
                                                 {schedule.id in this.state.scheduleRuns ? 
                                                     new Date(this.state.scheduleRuns[schedule.id].lastRun).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
-                                                    : " - "
+                                                    : ""
                                                 }
                                             </td>
                                             <td>
                                                 {schedule.id in this.state.scheduleRuns ? 
                                                     new Date(this.state.scheduleRuns[schedule.id].lastAttempt).toLocaleDateString("en-US", {year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"}) 
-                                                    : " - "
+                                                    : ""
                                                 }
                                             </td>
                                             <td>
                                                 {schedule.id in this.state.scheduleRuns && this.state.scheduleRuns[schedule.id].duration ? 
-                                                    new Date(new Date(Date.now()).toDateString() + ' ' + this.state.scheduleRuns[schedule.id].duration).toLocaleTimeString("en-US", {minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3}) 
-                                                    : " - "
+                                                    this.parseTime(this.state.scheduleRuns[schedule.id].duration).toLocaleTimeString("en-US", {minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3}) 
+                                                    : ""
                                                 }
                                             </td>
                                             <td>
-                                                {schedule.id in this.state.scheduleRuns ? this.state.scheduleRuns[schedule.id].error  : " - "}
+                                                {schedule.id in this.state.scheduleRuns ? this.state.scheduleRuns[schedule.id].error  : ""}
                                             </td>
                                         </tr>    
                                     )                        
@@ -505,9 +506,19 @@ class Settings extends React.Component {
         context.putImageData(result, (context.canvas.width - result.width) / 2, (context.canvas.height - result.height) / 2);
     }
 
-    updateStateProperty(key, value) {
+    updateStateProperty = (key, value) => {
         this.state.selectedState.properties[key] = value;
         this.setState({selectedState: this.state.selectedState});
+    }
+
+    parseTime = (data) => {
+        var result = this.TimePattern.exec(data)
+        var time = new Date(Date.now())
+        var stages = {"hours": x => time.setHours(x), "minutes": x => time.setMinutes(x), "seconds": x => time.setSeconds(x), "millis": x => time.setMilliseconds(x)}
+        for(var stage in stages)
+            if(stage in result.groups)
+                stages[stage](result.groups[stage])
+        return time
     }
 }
 
