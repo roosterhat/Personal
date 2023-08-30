@@ -11,7 +11,6 @@ class Debug:
         self.State = State
 
     def debugSampleFrameEllipse(self, frame, state, config):
-        f = np.rot90(frame, -config["rotate"] / 90)
         shape = state["shape"]
         scale = config["position"]["scale"]
         x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
@@ -31,17 +30,19 @@ class Debug:
         for y in range(y1, y2):
             for x in range(x1, x2):
                 if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
-                    active = Utility.colorDistance(activeColor, f[y][x]) <= threshold
+                    active = Utility.colorDistance(activeColor, frame[y][x]) <= threshold
                     count += 1 if active else 0
                     total += 1
                     mask[y - y1][x - x1] = 255 if active else 0
-                    patch[y - y1][x - x1] = f[y][x]       
+                    patch[y - y1][x - x1] = frame[y][x]       
                 else:
                     mask[y - y1][x - x1] = 50
                     patch[y - y1][x - x1] = [50,50,50]
 
         activation = count / total * 100
         patch = cv2.cvtColor(patch, cv2.COLOR_BGR2RGB)
+        patch = np.rot90(patch, -config["rotate"] / 90)
+        mask = np.rot90(mask, -config["rotate"] / 90)
         return mask, patch, activation 
         
     def debugState(self, config, stateId, request):
