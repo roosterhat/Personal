@@ -11,7 +11,7 @@ class Debug:
         self.State = State
 
     def debugSampleFrameEllipse(self, frame, state, config):
-        f = np.rot90(frame, -config["frame"]["rotate"] / 90)
+        f = np.rot90(frame, -config["rotate"] / 90)
         shape = state["shape"]
         scale = config["position"]["scale"]
         x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
