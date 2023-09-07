@@ -464,10 +464,9 @@ def manageSchedules():
                 f.write(json.dumps(runs, default=str))
                 f.close()
         except Exception as ex:
-            print(ex)
+            print(ex)   
 
-def appStart():
-    global _State, _Debug, _Camera, OCRModels
+if __name__ == '__main__':
     try:
         print("Loading Settings", flush=True)
         f = open(f"./Data/settings", 'rb')
@@ -493,7 +492,4 @@ def appStart():
     finally:
         if _Camera:
             _Camera.release()
-
-if __name__ == '__main__':
-    appStart()
 
