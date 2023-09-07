@@ -2,6 +2,7 @@ from flask import Flask, request, send_from_directory
 from flask_cors import CORS
 import re
 from os import listdir, path as Path
+import sys
 import json
 import uuid
 import io
@@ -465,7 +466,8 @@ def manageSchedules():
         except Exception as ex:
             print(ex)
 
-if __name__ == '__main__':
+def appStart():
+    global _State, _Debug, _Camera, OCRModels
     try:
         print("Loading Settings", flush=True)
         f = open(f"./Data/settings", 'rb')
@@ -486,8 +488,12 @@ if __name__ == '__main__':
 
         _State = State(_Camera, OCRModels, settings)
         _Debug = Debug(_Camera, OCRModels, _State)
-        app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
+        if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
+            app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     finally:
         if _Camera:
-            _Camera.release()   
+            _Camera.release()
+
+if __name__ == '__main__':
+    appStart()
 
