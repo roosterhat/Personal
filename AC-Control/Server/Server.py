@@ -30,6 +30,7 @@ _Camera = None
 _Debug = None
 _State = None
 OCRModels = {}
+settings = {}
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -464,9 +465,10 @@ def manageSchedules():
                 f.write(json.dumps(runs, default=str))
                 f.close()
         except Exception as ex:
-            print(ex)   
+            print(ex)
 
-if __name__ == '__main__':
+def appStart():
+    global _State, _Debug, _Camera, OCRModels, settings
     try:
         print("Loading Settings", flush=True)
         f = open(f"./Data/settings", 'rb')
@@ -489,7 +491,12 @@ if __name__ == '__main__':
         _Debug = Debug(_Camera, OCRModels, _State)
         if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
             app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
+        else:
+            return app
     finally:
         if _Camera:
             _Camera.release()
+
+if __name__ == '__main__':
+    appStart()
 
