@@ -40,6 +40,8 @@ class Camera:
             self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             if "cameraExposure" in self.settings:
                 self.camera.set(cv2.CAP_PROP_EXPOSURE, self.settings["cameraExposure"])
+        else:
+            print("Failed open camera")
 
     def release(self):
         if self.camera:

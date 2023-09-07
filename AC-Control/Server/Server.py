@@ -469,34 +469,35 @@ def manageSchedules():
 
 def appStart():
     global _State, _Debug, _Camera, OCRModels, settings
-    try:
-        print("Loading Settings", flush=True)
-        f = open(f"./Data/settings", 'rb')
-        settings = json.loads(f.read())
-        f.close()
-        if not settings:
-            exit("Failed to load settings")
-        print("Starting Session Manager", flush=True)
-        Thread(target=manageSessions).start()
-        print("Starting Schedule Manager", flush=True)
-        Thread(target=manageSchedules).start()
-        print("Setting up Camera", flush=True)
-        _Camera = Camera(settings)
-        print("Loading OCR Models...", flush=True)
-        for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
-            print(file)
-            OCRModels[file] = YOLO(Path.join('./Data/OCR', file))
+    print("Loading Settings", flush=True)
+    f = open(f"./Data/settings", 'rb')
+    settings = json.loads(f.read())
+    f.close()
+    if not settings:
+        exit("Failed to load settings")
+    print("Starting Session Manager", flush=True)
+    Thread(target=manageSessions).start()
+    print("Starting Schedule Manager", flush=True)
+    Thread(target=manageSchedules).start()
+    print("Setting up Camera", flush=True)
+    _Camera = Camera(settings)
+    print("Loading OCR Models...", flush=True)
+    for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
+        print(file)
+        OCRModels[file] = YOLO(Path.join('./Data/OCR', file))
 
-        _State = State(_Camera, OCRModels, settings)
-        _Debug = Debug(_Camera, OCRModels, _State)
-        if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
-            app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
-        else:
-            return app
+    _State = State(_Camera, OCRModels, settings)
+    _Debug = Debug(_Camera, OCRModels, _State)
+    if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
+        app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
+    else:
+        return app
+    
+
+if __name__ == '__main__':
+    try:
+        appStart()
     finally:
         if _Camera:
             _Camera.release()
-
-if __name__ == '__main__':
-    appStart()
 
