@@ -384,13 +384,14 @@ def shouldRun(schedule, runs, checkDateTime):
     if schedule["id"] in runs:
         lastRun = roundToMinutes(datetime.fromisoformat(runs[schedule["id"]]["lastRun"]))
     currentRun = roundToMinutes(checkDateTime)
+    scheduleTime = time.fromisoformat(schedule["time"])
 
     currentDOW = currentRun.weekday()
     nextClosestDate = None
     nextClosestDateIndex = None
     for index, day in enumerate(schedule["days"]):
         DOW = Days.index(day)
-        dt = roundToMinutes(datetime.combine((currentRun + timedelta(days = DOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
+        dt = roundToMinutes(datetime.combine((currentRun + timedelta(days = DOW - currentDOW)).date(), scheduleTime))
         if DOW < currentDOW:
             dt = dt + timedelta(days=7)
         if dt >= currentRun and (nextClosestDate is None or dt < nextClosestDate):
@@ -401,7 +402,7 @@ def shouldRun(schedule, runs, checkDateTime):
         return False
 
     lastScheduledDOW = Days.index(schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])])
-    lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), time.fromisoformat(schedule["time"])))
+    lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), scheduleTime))
     if lastScheduledDOW >= currentDOW:
         lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
 
