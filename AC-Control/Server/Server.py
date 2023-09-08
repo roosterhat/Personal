@@ -479,11 +479,11 @@ def appStart():
     Thread(target=manageSessions).start()
     print("Starting Schedule Manager", flush=True)
     Thread(target=manageSchedules).start()
-    print("Setting up Camera", flush=True)
+    print("Loading Camera", flush=True)
     _Camera = Camera(settings)
     print("Loading OCR Models...", flush=True)
     for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
-        print(file)
+        print("- "+file)
         OCRModels[file] = YOLO(Path.join('./Data/OCR', file))
 
     _State = State(_Camera, OCRModels, settings)
