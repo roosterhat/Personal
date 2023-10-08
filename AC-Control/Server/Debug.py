@@ -30,11 +30,13 @@ class Debug:
         for y in range(y1, y2):
             for x in range(x1, x2):
                 if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
-                    active = Utility.colorDistance(activeColor, frame[y][x]) <= threshold
+                    c = np.dot(frame[y][x], [0.299, 0.587, 0.114])
+                    #active = Utility.colorDistance(activeColor, frame[y][x]) <= threshold
+                    active = c >= threshold
                     count += 1 if active else 0
                     total += 1
                     mask[y - y1][x - x1] = 255 if active else 0
-                    patch[y - y1][x - x1] = np.full((1), np.dot(frame[y][x], [0.299, 0.587, 0.114]))
+                    patch[y - y1][x - x1] = np.full((1), c)
                 else:
                     mask[y - y1][x - x1] = 50
                     patch[y - y1][x - x1] = [50,50,50]
