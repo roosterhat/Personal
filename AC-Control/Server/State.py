@@ -1,6 +1,7 @@
 from PIL import ImageColor
 import time as Time
 import Utility
+import numpy as np
 
 class State:
     def __init__(self, camera, OCRModels, settings):
@@ -27,7 +28,8 @@ class State:
             for x in range(x1, x2):
                 if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
                     total += 1
-                    if Utility.colorDistance(activeColor, frame[y][x]) <= threshold:
+                    #if Utility.colorDistance(activeColor, frame[y][x]) <= threshold:
+                    if np.dot(frame[y][x], [0.299, 0.587, 0.114]) >= threshold:
                         count += 1
 
         activation = count / total * 100
