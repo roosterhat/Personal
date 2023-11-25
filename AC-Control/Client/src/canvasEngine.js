@@ -18,6 +18,11 @@ class CanvasEngine {
     center = null;
     magnify = false;
     sample = null;
+    refreshRate = 1/60;
+    eventQueue = {
+        queue: {},
+        actionQueued: false
+    };
 
     Init() {
         console.log("Init")
@@ -26,110 +31,152 @@ class CanvasEngine {
         this.RefreshDimensions()
 
         this.canvas.addEventListener("mousemove", event => {
-            var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
-            if(this.dragging)
-                this.DragItem(mouse);
-            this.Update(mouse);
+            this.QueueEvent("mousemove", () => {
+                    var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
+                    if(this.dragging)
+                        this.DragItem(mouse);
+                    this.Update(mouse);
+                }
+            )
         })
     
         this.canvas.addEventListener("mouseup", event => {
-            if(this.dragging) {
-                this.dragging = false;
-                this.currentDrag = null;
-            }
-    
-            var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
-            var scale = this.BackgroundScaleRatio();
-            if(this.editing){
-                if(this.currentShape){
-                    if(this.currentShape.type == 'poly'){
-                        var d = this.currentShape.vertices.length > 0 ? this.Dist(mouse, this.currentShape.vertices[0]) : -1;
-                        if(d <= Math.min(100 / d * scale, 10) && this.currentShape.vertices.length > 2) {
-                            this.currentShape.closed = true;
-                            this.Reset();
+            this.QueueEvent("mouseup", () => {
+                    if(this.dragging) {
+                        this.dragging = false;
+                        this.currentDrag = null;
+                    }
+            
+                    var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
+                    var scale = this.BackgroundScaleRatio();
+                    if(this.editing){
+                        if(this.currentShape){
+                            if(this.currentShape.type == 'poly'){
+                                var d = this.currentShape.vertices.length > 0 ? this.Dist(mouse, this.currentShape.vertices[0]) : -1;
+                                if(d <= Math.min(100 / d * scale, 10) && this.currentShape.vertices.length > 2) {
+                                    this.currentShape.closed = true;
+                                    this.Reset();
+                                }
+                                else {
+                                    this.currentShape.vertices.push({'x': mouse.x, 'y': mouse.y, 'index': this.shapes[this.shapes.length - 1].vertices.length});
+                                }
+                            }
+                            else if (this.currentShape.type == 'ellipse') {
+                                this.currentShape.x = mouse.x;
+                                this.currentShape.y = mouse.y;
+                                this.currentShape.closed = true;
+                                this.Reset();
+                            }
                         }
-                        else {
-                            this.currentShape.vertices.push({'x': mouse.x, 'y': mouse.y, 'index': this.shapes[this.shapes.length - 1].vertices.length});
+                    }
+                    else {
+                        for(var shape of this.shapes) {
+                            if(this.Inside(shape, mouse)){
+                                shape['function']()
+                                break;
+                            }
                         }
                     }
-                    else if (this.currentShape.type == 'ellipse') {
-                        this.currentShape.x = mouse.x;
-                        this.currentShape.y = mouse.y;
-                        this.currentShape.closed = true;
-                        this.Reset();
-                    }
-                }
-            }
-            else {
-                for(var shape of this.shapes) {
-                    if(this.Inside(shape, mouse)){
-                        shape['function']()
-                        break;
-                    }
-                }
-            }
 
-            if(this.sample){
-                this.sample(this.SampleColor(event))
-            }
+                    if(this.sample){
+                        this.sample(this.SampleColor(event))
+                    }
 
-            this.Update(mouse);
+                    this.Update(mouse);
+                }
+            )
         })
     
         this.canvas.addEventListener("mousedown", (event) => {
-            if(this.dragging && this.currentDrag.onDragStop)
-                this.currentDrag.onDragStop(event)
-            this.dragging = this.editing && !this.currentShape && this.canDrag;
-            var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
-            this.Update(mouse);
+            this.QueueEvent("mousedown", () => {
+                    if(this.dragging && this.currentDrag.onDragStop)
+                        this.currentDrag.onDragStop(event)
+                    this.dragging = this.editing && !this.currentShape && this.canDrag;
+                    var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
+                    this.Update(mouse);
+                }
+            )
         });
     
         this.canvas.addEventListener("wheel", (event) => {
-            if(this.currentShape && this.currentShape.type === "ellipse"){
-                var delta = event.deltaY / 20;
-                this.currentShape.r1 = Math.max(this.currentShape.r1 - delta, 1);
-                this.currentShape.r2 = Math.max(this.currentShape.r2 - delta, 1);
-                var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
-                this.Update(mouse);
-            }
+            this.QueueEvent("wheel", () => {
+                    if(this.currentShape && this.currentShape.type === "ellipse"){
+                        var delta = event.deltaY / 20;
+                        this.currentShape.r1 = Math.max(this.currentShape.r1 - delta, 1);
+                        this.currentShape.r2 = Math.max(this.currentShape.r2 - delta, 1);
+                        var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
+                        this.Update(mouse);
+                    }
+                }
+            )
         });
 
         this.canvas.addEventListener("mouseover", () => {
-            this.mouseInside = true
+            this.QueueEvent("mouseover", () => {
+                    this.mouseInside = true
+                }
+            )
         });
 
         this.canvas.addEventListener("mouseleave", () => {
-            this.mouseInside = false;
+            this.QueueEvent("mouseleave", () => {
+                    this.mouseInside = false;
+                }
+            )
         })
     
         document.addEventListener("keydown", event => {
-            if(event.key === "Escape") {
-                if(this.currentShape) {
-                    if(this.currentShape.remove)
-                        this.currentShape.remove()
-                    this.shapes.pop()
-                    this.Reset();
-                    this.Update();
+            this.QueueEvent("keydown", () => {
+                    if(event.key === "Escape") {
+                        if(this.currentShape) {
+                            if(this.currentShape.remove)
+                                this.currentShape.remove()
+                            this.shapes.pop()
+                            this.Reset();
+                            this.Update();
+                        }
+                        if(this.sample) {
+                            this.sample(null);
+                        }
+                    }
+                    else if (event.key === "Delete" && this.currentShape) {
+                        if(this.currentShape.type == "poly" && this.currentShape.vertices.length > 0){
+                            this.currentShape.vertices.pop();
+                            this.Update();
+                        }
+                    }
+                    else if (event.key === "m" && this.mouseInside) {
+                        this.magnify = !this.magnify;
+                        this.Update();
+                    }
                 }
-                if(this.sample) {
-                    this.sample(null);
-                }
-            }
-            else if (event.key === "Delete" && this.currentShape) {
-                if(this.currentShape.type == "poly" && this.currentShape.vertices.length > 0){
-                    this.currentShape.vertices.pop();
-                    this.Update();
-                }
-            }
-            else if (event.key === "m" && this.mouseInside) {
-                this.magnify = !this.magnify;
-                this.Update();
-            }
+            )
         })
 
         window.onresize = () => {
-            this.RefreshDimensions()
+            this.QueueEvent("onresize", () => this.RefreshDimensions())
         };
+
+        setInterval(this.ProcessEventQueue, this.refreshRate * 1000, this.eventQueue)
+    }
+
+    QueueEvent(name, action) {
+        this.eventQueue.queue[name] = {
+            time: Date.now(),
+            action: action
+        }
+        this.eventQueue.actionQueued = true
+    }
+
+    ProcessEventQueue(eventQueue) {
+        if(!eventQueue.actionQueued) return;
+        eventQueue.actionQueued = false;
+        var actions = Object.values(eventQueue.queue);
+        for(var k in eventQueue.queue)
+            delete eventQueue.queue[k]
+        actions.sort((x,y) => x.time - y.time);
+        for(var a of actions)
+            a.action()
     }
 
     RefreshDimensions() {
