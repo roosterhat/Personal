@@ -2,6 +2,7 @@ from PIL import ImageColor
 import time as Time
 import Utility
 import numpy as np
+from PIL import ImageColor, Image
 
 class State:
     def __init__(self, camera, OCRModels, settings):
@@ -12,14 +13,17 @@ class State:
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
         scale = config["position"]["scale"]
-        x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
-        x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
-        y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
-        y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
-        cx = int(shape["x"] / scale)
-        cy = int(shape["y"] / scale)
-        r1 = int(shape["r1"] / scale)
-        r2 = int(shape["r2"] / scale)
+        subsampleScale = state["properties"]["subsampleScale"]
+        subsampleShape = np.divide(np.shape(frame), subsampleScale).astype(int)
+        subsample = np.array(Image.fromarray(frame, mode='RGB').resize(subsampleShape[:2][::-1]))
+        x1 = int(max(shape["x"] - shape["r1"], 0) / (scale * subsampleScale))
+        x2 = int(max(shape["x"] + shape["r1"], 0) / (scale * subsampleScale))
+        y1 = int(max(shape["y"] - shape["r2"], 0) / (scale * subsampleScale))
+        y2 = int(max(shape["y"] + shape["r2"], 0) / (scale * subsampleScale))
+        cx = int(shape["x"] / (scale * subsampleScale))
+        cy = int(shape["y"] / (scale * subsampleScale))
+        r1 = int(shape["r1"] / (scale * subsampleScale))
+        r2 = int(shape["r2"] / (scale * subsampleScale))
         activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
         threshold = state["properties"]["colorDistanceThreshold"]
         count = 0
@@ -28,8 +32,7 @@ class State:
             for x in range(x1, x2):
                 if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
                     total += 1
-                    if Utility.colorDistance(activeColor, frame[y][x]) <= threshold:
-                    #if np.dot(frame[y][x], [0.299, 0.587, 0.114]) >= threshold:
+                    if Utility.colorDistance(activeColor, subsample[y][x]) <= threshold:
                         count += 1
 
         activation = count / total * 100

@@ -315,6 +315,12 @@ class Settings extends React.Component {
                                                 value={this.state.selectedState.properties.stateActivationPercentage}
                                                 onChange={e => this.updateStateProperty("stateActivationPercentage", Number(e.target.value))}/>
                                         </div>
+                                        <div className="debug-property">
+                                            <div>Scale</div>
+                                            <input type="number" min="1" max="10" 
+                                                value={this.state.selectedState.properties.subsampleScale}
+                                                onChange={e => this.updateStateProperty("subsampleScale", Number(e.target.value))}/>
+                                        </div>
                                         <div className="debug-active-color" style={{background: this.state.selectedState.properties.activeColor}}></div>
                                     </div>
                                     <button className="debug-test" onClick={() => this.debugState(this.state.selectedState)}>{this.state.loadStateDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>

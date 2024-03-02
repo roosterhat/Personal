@@ -16,7 +16,7 @@ from Debug import Debug
 from Camera import Camera
 from State import State
 import Utility
-
+import traceback
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
@@ -242,7 +242,6 @@ def getState_API(id, section = None):
         print(ex, flush=True)
         return "Failed", 500
 
-
 @app.route('/api/debug/<type>/<id>', methods=['POST', 'GET'])
 @app.route('/api/debug/<type>/<id>/<targetId>', methods=['POST', 'GET'])
 def getStateDebug(type, id, targetId = None):
@@ -266,7 +265,7 @@ def getStateDebug(type, id, targetId = None):
         else:
             return 'Bad _Debug type', 400 
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
 
 @app.route('/api/frame')

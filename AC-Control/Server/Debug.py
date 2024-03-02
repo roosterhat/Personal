@@ -1,7 +1,7 @@
 import json
 import cv2
 import numpy as np
-from PIL import ImageColor, ImageDraw
+from PIL import ImageColor, ImageDraw, Image
 import Utility
 
 class Debug:
@@ -13,30 +13,32 @@ class Debug:
     def debugSampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
         scale = config["position"]["scale"]
-        x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
-        x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
-        y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
-        y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
+        subsampleScale = state["properties"]["subsampleScale"]
+        subsampleShape = np.divide(np.shape(frame), subsampleScale).astype(int)
+        subsample = np.array(Image.fromarray(frame, mode='RGB').resize(subsampleShape[:2][::-1]))
+        x1 = int(max(shape["x"] - shape["r1"], 0) / (scale * subsampleScale))
+        x2 = int(max(shape["x"] + shape["r1"], 0) / (scale * subsampleScale)) 
+        y1 = int(max(shape["y"] - shape["r2"], 0) / (scale * subsampleScale))
+        y2 = int(max(shape["y"] + shape["r2"], 0) / (scale * subsampleScale))
         patch = np.ndarray((y2-y1, x2-x1, 3), np.uint8)
         mask = np.ndarray((y2-y1, x2-x1), np.uint8)
-        cx = int(shape["x"] / scale)
-        cy = int(shape["y"] / scale)
-        r1 = int(shape["r1"] / scale)
-        r2 = int(shape["r2"] / scale)
+        cx = int(shape["x"] / (scale * subsampleScale))
+        cy = int(shape["y"] / (scale * subsampleScale))
+        r1 = int(shape["r1"] / (scale * subsampleScale))
+        r2 = int(shape["r2"] / (scale * subsampleScale))
         activeColor = ImageColor.getrgb(state["properties"]["activeColor"])[:3]
         threshold = state["properties"]["colorDistanceThreshold"]
         count = 0 
         total = 0
+
         for y in range(y1, y2):
             for x in range(x1, x2):
                 if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
-                    #c = np.dot(frame[y][x], [0.299, 0.587, 0.114])
-                    active = Utility.colorDistance(activeColor, frame[y][x]) <= threshold
-                    #active = c >= threshold
+                    active = Utility.colorDistance(activeColor, subsample[y][x]) <= threshold
                     count += 1 if active else 0
                     total += 1
                     mask[y - y1][x - x1] = 255 if active else 0
-                    patch[y - y1][x - x1] = frame[y][x]
+                    patch[y - y1][x - x1] = subsample[y][x]
                 else:
                     mask[y - y1][x - x1] = 50
                     patch[y - y1][x - x1] = [50,50,50]
