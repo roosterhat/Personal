@@ -34,7 +34,7 @@ class Debug:
         for y in range(y1, y2):
             for x in range(x1, x2):
                 if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
-                    active = Utility.colorDistance(activeColor, subsample[y][x]) <= threshold
+                    active = Utility.colorDistance_old(activeColor, subsample[y][x]) <= threshold
                     count += 1 if active else 0
                     total += 1
                     mask[y - y1][x - x1] = 255 if active else 0

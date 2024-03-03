@@ -32,7 +32,7 @@ class State:
             for x in range(x1, x2):
                 if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0:
                     total += 1
-                    if Utility.colorDistance(activeColor, subsample[y][x]) <= threshold:
+                    if Utility.colorDistance_old(activeColor, subsample[y][x]) <= threshold:
                         count += 1
 
         activation = count / total * 100
