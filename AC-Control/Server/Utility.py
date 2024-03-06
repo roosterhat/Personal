@@ -79,20 +79,10 @@ def buildStateFrame(frame, states, config):
     scale = config["position"]["scale"]
     w = 0
     h = 0
-    for state in states:
-        shape = state["shape"]
-        w = max(shape["r1"] / scale * 2, w)
-        h += shape["r2"] / scale * 2
-
     padding = 5
-    w += padding * 2
-    h += padding * 2
-    
-    combined = Image.new("RGB", (int(w), int(h)), 0)
-
     buffer = 2
-    offset = padding
-    positions = {}
+    offset = padding    
+    patches = {}
     for state in states:
         shape = state["shape"]             
 
@@ -113,7 +103,18 @@ def buildStateFrame(frame, states, config):
 
         patch = cv2.cvtColor(patch, cv2.COLOR_BGR2RGB)
         patch = np.rot90(patch, -config["rotate"] / 90)
-        combined.paste(Image.fromarray(patch), (int(w / 2 - r1), int(offset)))
-        positions[state["id"]] = { "cx": w / 2, "cy": r2 + offset, "x1": int(w / 2 - r1), "y1": int(offset), "x2": int(w / 2 + r1), "y2": int(offset + r2 * 2) }
-        offset += r2 * 2 + buffer
+        patches[state["id"]] = patch
+        w = max(len(patch[0]), w)
+        h += len(patch) + buffer
+
+    w += padding * 2
+    h += padding * 2
+    positions = {}
+    combined = Image.new("RGB", (int(w), int(h)), 0)
+
+    for id in patches:
+        patch = patches[id]
+        combined.paste(Image.fromarray(patch), (int((w - len(patch[0])) / 2), int(offset)))
+        positions[id] = { "cx": w / 2, "cy": len(patch) / 2 + offset, "x1": int((w - len(patch[0])) / 2), "y1": int(offset), "x2": int((w + len(patch[0])) / 2), "y2": int(offset + len(patch)) }
+        offset += len(patch) + buffer
     return { "frame": combined, "positions": positions }
