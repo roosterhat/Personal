@@ -30,6 +30,7 @@ _Camera = None
 _Debug = None
 _State = None
 OCRModels = {}
+StateModels = {}
 settings = {}
 
 @app.route('/', defaults={'path': ''})
@@ -88,10 +89,12 @@ def listModels():
     if not verifyToken():
         return "Unauthorized", 401
     try:
-        names = []
-        for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
-            names.append(file)
-        return names, 200
+        types = [{"model": "OCR", "dir": "./Data/OCR"}, {"model": "State", "dir": "./Data/State"}]
+        models = { "OCR": [], "State": []}
+        for type in types:
+            for file in ([f for f in listdir(type["dir"]) if Path.isfile(Path.join(type["dir"], f))]):
+                models[type["model"]].append(file)
+        return models, 200
     except Exception as ex:
         print(ex, flush=True)
         return "Failed", 500
@@ -239,7 +242,7 @@ def getState_API(id, section = None):
         else:
             return "Failed to get state", 500
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
 
 @app.route('/api/debug/<type>/<id>', methods=['POST', 'GET'])
@@ -468,7 +471,7 @@ def manageSchedules():
             print(ex)
 
 def appStart():
-    global _State, _Debug, _Camera, OCRModels, settings
+    global _State, _Debug, _Camera, OCRModels, StateModels, settings
     print("Loading Settings", flush=True)
     f = open(f"./Data/settings", 'rb')
     settings = json.loads(f.read())
@@ -482,12 +485,19 @@ def appStart():
     print("Loading Camera", flush=True)
     _Camera = Camera(settings)
     print("Loading OCR Models...", flush=True)
-    for file in ([f for f in listdir('./Data/OCR') if Path.isfile(Path.join('./Data/OCR', f))]):
+    dir = './Data/OCR'
+    for file in ([f for f in listdir(dir) if Path.isfile(Path.join(dir, f))]):
         print("- "+file)
-        OCRModels[file] = YOLO(Path.join('./Data/OCR', file))
+        OCRModels[file] = YOLO(Path.join(dir, file))
+    
+    print("Loading State Models...", flush=True)
+    dir = './Data/State'
+    for file in ([f for f in listdir(dir) if Path.isfile(Path.join(dir, f))]):
+        print("- "+file)
+        StateModels[file] = YOLO(Path.join(dir, file))
 
-    _State = State(_Camera, OCRModels, settings)
-    _Debug = Debug(_Camera, OCRModels, _State)
+    _State = State(_Camera, OCRModels, StateModels, settings)
+    _Debug = Debug(_Camera, OCRModels, StateModels, _State)
     if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
         app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     else:

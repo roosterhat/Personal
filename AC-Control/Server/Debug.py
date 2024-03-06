@@ -5,10 +5,12 @@ from PIL import ImageColor, ImageDraw, Image
 import Utility
 
 class Debug:
-    def __init__(self, camera, OCRModels, State):
+    def __init__(self, camera, OCRModels, StateModels, State):
         self.camera = camera
         self.OCRModels = OCRModels
+        self.StateModels = StateModels
         self.State = State
+        self.colors = ["#B0C5A4", "#D37676", "#EBC49F", "#EADFB4", "#9BB0C1", "#51829B", "#F6995C", "#FFE6E6", "#E1AFD1", "#AD88C6", "#7469B6", "#638889", "#FF90BC"]
 
     def debugSampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
@@ -49,7 +51,7 @@ class Debug:
         mask = np.rot90(mask, -config["rotate"] / 90)
         return mask, patch, activation 
         
-    def debugState(self, config, stateId, request):
+    def debugState(self, config, groupId, request):
         if "frame" not in config:
             return "No frame data", 400
         
@@ -62,13 +64,33 @@ class Debug:
             body = request.get_json(force = True, silent = True)
             if body is None:
                 return 'No config data', 400
-            state = body
+            stateGroup = body
         else:
-            state = next((x for x in config["frame"]["states"] if x["id"] == stateId), None)
+            stateGroup = next((x for x in config["actions"]["stateGroups"] if x["id"] == groupId), None)
             
-        if state:
-            mask, patch, act = self.debugSampleFrameEllipse(frame, state, config["frame"])
-            return {"mask": mask.tolist(), "patch": patch.tolist(), "activation": act}, 200, {'Content-Type':'application/json'} 
+        if stateGroup:
+            #mask, patch, act = self.debugSampleFrameEllipse(frame, state, config["frame"])
+            #return {"mask": mask.tolist(), "patch": patch.tolist(), "activation": act}, 200, {'Content-Type':'application/json'} 
+            states = list(x for x in config["frame"]["states"] if any(x["id"] == s["id"] for s in stateGroup["states"]))
+            combined = Utility.buildStateFrame(frame, states, config["frame"])
+            results = self.StateModels[stateGroup["model"]](combined["frame"], device="cpu", verbose=False, agnostic_nms=True)
+
+            outputImage = combined["frame"]
+            draw = ImageDraw.Draw(outputImage)           
+
+            box = results[0].boxes.data[0].numpy() if len(results[0].boxes.data) > 0 else None
+            for state in states:
+                pos = combined["positions"][state["id"]]
+                active = bool(box is not None and box[0] <= pos["cx"] and box[2] >= pos["cx"] and box[1] <= pos["cy"] and box[3] >= pos["cy"])
+                state["active"] = active
+                radius = 1
+                draw.ellipse((int(pos["cx"]-radius), int(pos["cy"]-radius), int(pos["cx"]+radius), int(pos["cy"]+1)), fill=tuple(np.mod((255 * 2) - np.array(outputImage.getpixel((int(pos["cx"]), int(pos["cy"])))), np.array((255,255,255)))))
+                draw.ellipse([(pos["x1"], pos["y1"]), (pos["x2"], pos["y2"])], outline=(0, 255, 0) if active else (255, 0, 0))
+            
+            for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
+                draw.rectangle([tuple(data[0:2]),tuple(data[2:4])], outline=np.random.choice(self.colors))
+
+            return { "output": np.asarray(outputImage).tolist(), "states": states }, 200, {'Content-Type':'application/json'} 
         else:
             return "No state found", 404
 
@@ -139,9 +161,8 @@ class Debug:
         results = self.OCRModels[body["action"]["model"]](image, device="cpu", verbose=False, agnostic_nms=True)
         value = ""
         draw = ImageDraw.Draw(image)
-        colors = ["#77DD77", "#836953", "#89cff0", "#99c5c4", "#9adedb", "#aa9499", "#aaf0d1", "#b2fba5"]
         for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
-            draw.rectangle([tuple(data[0:2]),tuple(data[2:4])], outline=np.random.choice(colors))
+            draw.rectangle([tuple(data[0:2]),tuple(data[2:4])], outline=np.random.choice(self.colors))
             value += str(int(data[5]))
 
         return {"image": np.asarray(image).tolist(), "value": value}, 200, {"Content-Type": "application/json"}

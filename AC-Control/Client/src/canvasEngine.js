@@ -31,7 +31,7 @@ class CanvasEngine {
         this.RefreshDimensions()
 
         this.canvas.addEventListener("mousemove", event => {
-            this.QueueEvent("mousemove", () => {
+            this.QueueEvent(event, () => {
                     var mouse = this.PageToOriginalBackgroundCoordinates(this.RotateMouse(event));
                     if(this.dragging)
                         this.DragItem(mouse);
@@ -41,7 +41,7 @@ class CanvasEngine {
         })
     
         this.canvas.addEventListener("mouseup", event => {
-            this.QueueEvent("mouseup", () => {
+            this.QueueEvent(event, () => {
                     if(this.dragging) {
                         this.dragging = false;
                         this.currentDrag = null;
@@ -87,8 +87,8 @@ class CanvasEngine {
             )
         })
     
-        this.canvas.addEventListener("mousedown", (event) => {
-            this.QueueEvent("mousedown", () => {
+        this.canvas.addEventListener("mousedown", event => {
+            this.QueueEvent(event, () => {
                     if(this.dragging && this.currentDrag.onDragStop)
                         this.currentDrag.onDragStop(event)
                     this.dragging = this.editing && !this.currentShape && this.canDrag;
@@ -98,8 +98,8 @@ class CanvasEngine {
             )
         });
     
-        this.canvas.addEventListener("wheel", (event) => {
-            this.QueueEvent("wheel", () => {
+        this.canvas.addEventListener("wheel", event => {
+            this.QueueEvent(event, () => {
                     if(this.currentShape && this.currentShape.type === "ellipse"){
                         var delta = event.deltaY / 20;
                         this.currentShape.r1 = Math.max(this.currentShape.r1 - delta, 1);
@@ -111,22 +111,22 @@ class CanvasEngine {
             )
         });
 
-        this.canvas.addEventListener("mouseover", () => {
-            this.QueueEvent("mouseover", () => {
+        this.canvas.addEventListener("mouseover", event => {
+            this.QueueEvent(event, () => {
                     this.mouseInside = true
                 }
             )
         });
 
-        this.canvas.addEventListener("mouseleave", () => {
-            this.QueueEvent("mouseleave", () => {
+        this.canvas.addEventListener("mouseleave", event => {
+            this.QueueEvent(event, () => {
                     this.mouseInside = false;
                 }
             )
         })
     
         document.addEventListener("keydown", event => {
-            this.QueueEvent("keydown", () => {
+            this.QueueEvent(event, () => {
                     if(event.key === "Escape") {
                         if(this.currentShape) {
                             if(this.currentShape.remove)
@@ -153,15 +153,15 @@ class CanvasEngine {
             )
         })
 
-        window.onresize = () => {
-            this.QueueEvent("onresize", () => this.RefreshDimensions())
+        window.onresize = event => {
+            this.QueueEvent(event, () => this.RefreshDimensions())
         };
 
         setInterval(this.ProcessEventQueue, this.refreshRate * 1000, this.eventQueue)
     }
 
-    QueueEvent(name, action) {
-        this.eventQueue.queue[name] = {
+    QueueEvent(event, action) {
+        this.eventQueue.queue[event.type] = {
             time: Date.now(),
             action: action
         }

@@ -277,7 +277,7 @@ class Settings extends React.Component {
                     <div className="debug-container">
                         <div className="debug-header">
                             <select name="buttons" id="toggle-select" onChange={() => this.setState({debugState: null})}>
-                                {this.state.config.frame.states.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                                {this.state.config.actions.stateGroups.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                             </select>
                             <div>
                                 <button className="debug" onClick={() => this.debugState()}>{this.state.loadStateDebug ? <LoadingSpinner id="spinner" /> : "Debug"}</button>
@@ -286,44 +286,29 @@ class Settings extends React.Component {
                         </div>
                         {this.state.debugState ? 
                             <div>
-                                <div className="debug-canvas-container">
-                                    <div className="canvas-container">
-                                        <div>{`Activation (${Math.round(this.state.debugState.activation * 100) / 100}%)`}</div>
-                                        <canvas id="debug-canvas-mask"></canvas>
-                                    </div>
-                                    <div className="canvas-container">
-                                        <div>View</div>
-                                        <canvas id="debug-canvas-patch"></canvas>
+                                <div className="debug-state-results">
+                                    <div className="debug-canvas-container">
+                                        <div className="canvas-container">
+                                            <div>{`View - ${this.state.debugState.executionTime}ms`}</div>
+                                            <div className="debugstate-statecanvas-container">
+                                                <canvas id="debug-canvas-state"></canvas>
+                                                <div className="state-container">
+                                                    { 
+                                                        this.state.debugState.states.map(x => 
+                                                            <div className="state" key={x.name}>
+                                                                <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
+                                                                <div className="name">{x.name}</div>
+                                                            </div>
+                                                        )
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>                                 
                                     </div>                                    
                                 </div>
-                                <div className="debug-status">{"Status: "}
-                                    <span className={(this.state.selectedState.properties.stateActivationPercentage < this.state.debugState.activation ? "active" : "inactive")}>
-                                        {(this.state.selectedState.properties.stateActivationPercentage < this.state.debugState.activation ? "Active" : "Inactive")}
-                                    </span>
-                                </div>
                                 <div className="debug-properties-container">
-                                    <div>
-                                        <div className="debug-property">
-                                            <div>CDT</div>
-                                            <input type="number" min="0" max="200" 
-                                                value={this.state.selectedState.properties.colorDistanceThreshold} 
-                                                onChange={e => this.updateStateProperty("colorDistanceThreshold", Number(e.target.value))}/>
-                                        </div>
-                                        <div className="debug-property">
-                                            <div>SAP</div>
-                                            <input type="number" min="1" max="100" 
-                                                value={this.state.selectedState.properties.stateActivationPercentage}
-                                                onChange={e => this.updateStateProperty("stateActivationPercentage", Number(e.target.value))}/>
-                                        </div>
-                                        <div className="debug-property">
-                                            <div>Scale</div>
-                                            <input type="number" min="1" max="10" 
-                                                value={this.state.selectedState.properties.subsampleScale}
-                                                onChange={e => this.updateStateProperty("subsampleScale", Number(e.target.value))}/>
-                                        </div>
-                                        <div className="debug-active-color" style={{background: this.state.selectedState.properties.activeColor}}></div>
-                                    </div>
-                                    <button className="debug-test" onClick={() => this.debugState(this.state.selectedState)}>{this.state.loadStateDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
+                                    <div />
+                                    <button className="debug-test" onClick={() => this.debugState()}>{this.state.loadStateDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
                                 </div>
                             </div>
                             : null
@@ -397,11 +382,14 @@ class Settings extends React.Component {
         try{
             this.setState({loadStateDebug: true})
             var result = null
+            var start = Date.now()
             if(config) {
                 var body = JSON.stringify(this.state.selectedState)
                 var response = await fetchWithToken(`api/debug/state/${this.state.config.id}/${this.state.selectedState.id}`, "POST", body, {"Content-Type": "application/json"})
                 if(response.status == 200){
+                    var end = Date.now()
                     result = await response.json()
+                    result["executionTime"] = end - start
                     this.setState({debugState: result})
                 }                        
             }
@@ -413,7 +401,9 @@ class Settings extends React.Component {
                         this.setState({selectedState: this.state.config.frame.states.find(x => x.id == id)})
                         var response = await fetchWithToken(`api/debug/state/${this.state.config.id}/${id}`)
                         if(response.status == 200){
+                            var end = Date.now()
                             result = await response.json()
+                            result["executionTime"] = end - start
                             this.setState({debugState: result})
                         }
                     }                    
@@ -422,8 +412,7 @@ class Settings extends React.Component {
 
             if(result){
                 this.UpdateQueue.push(() => {
-                    this.addImageToCanvas("debug-canvas-mask", result["mask"], true);
-                    this.addImageToCanvas("debug-canvas-patch", result["patch"], false);
+                    this.addImageToCanvas("debug-canvas-state", result["output"], false);
                 })
             }
         }

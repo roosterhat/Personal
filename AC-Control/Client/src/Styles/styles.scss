@@ -249,7 +249,14 @@ body {
                 }
             }
         }
-    
+        
+        .debug-state-results {
+            display: flex;       
+            justify-content: center; 
+            border: solid 1px #000;
+            padding: 5px;
+        }
+
         .debug-canvas-container {
             display: flex;
             margin-top: 5px;
@@ -274,16 +281,10 @@ body {
                 .lds-ring {
                     transform: scale(50%)
                 }
-            }
-        }
 
-        .debug-status {
-            .active {
-                color: green;
-            }
-
-            .inactive {
-                color: red;
+                .debugstate-statecanvas-container {
+                    display: flex;
+                }
             }
         }
 
@@ -294,6 +295,8 @@ body {
         .debug-properties-container {
             display: flex;
             justify-content: space-between;
+            margin-top: 5px;
+            min-height: 40px;
 
             &.debug-settings {
                 flex-wrap: wrap;

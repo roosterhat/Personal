@@ -29,9 +29,10 @@ class EditActions extends React.Component {
 
         var defaultButton = this.state.config.buttons[0].id
         var defaultView = this.state.config.frame.ocr[0].id
-        var defaultModel = this.state.models[0]
+        
 
         if(!this.state.config.actions.ocr) {
+            var defaultModel = this.state.models["OCR"][0]
             this.state.config.actions.ocr = [
                 {
                     "name": "Temperature",
@@ -153,6 +154,19 @@ class EditActions extends React.Component {
                                                     </select>
                                                     <button className="close" onClick={() => this.removeItem(this.state.config.actions.stateGroups, groupIndex)}><i className="fa-solid fa-xmark"></i></button>
                                                 </div>
+                                                <div className="group-header">
+                                                    <div className="name">State Model</div>
+                                                    <div className="model-select">
+                                                        {this.state.loadingModels ? 
+                                                            <LoadingSpinner /> : 
+                                                            <select onChange={e => this.setValue(group, "model", e.target.value)}>
+                                                                {this.state.models["State"].map(model => 
+                                                                    <option selected={group.model == model} value={model}>{model}</option>
+                                                                )}
+                                                            </select>
+                                                        }
+                                                    </div>
+                                                </div>
                                                 <div className="group-body">
                                                     <div className="name">States</div>
                                                     <div className="add-state-container">
@@ -215,7 +229,7 @@ class EditActions extends React.Component {
                             {this.state.loadingModels ? 
                                 <LoadingSpinner /> : 
                                 <select onChange={e => this.setValue(ocr, "model", e.target.value)}>
-                                    {this.state.models.map(model => 
+                                    {this.state.models["OCR"].map(model => 
                                         <option selected={ocr.model == model} value={model}>{model}</option>
                                     )}
                                 </select>
@@ -255,7 +269,7 @@ class EditActions extends React.Component {
 
         var defaultButton = this.state.config.buttons[0].id
         var defaultView = this.state.config.frame.ocr[0].id
-        var defaultModel = this.state.models[0]
+        var defaultModel = this.loadingModels ? null : this.state.models["OCR"][0]
 
         this.state.config.actions.ocr.push(
             {
@@ -333,7 +347,9 @@ class EditActions extends React.Component {
         this.state.config.actions.stateGroups.push({
             "states": [],
             "button": defaultButton,
-            "name": "Group " + this.state.config.actions.stateGroups.length
+            "name": "Group " + this.state.config.actions.stateGroups.length,
+            "model": this.loadingModels ? null : this.state.models["State"][0],
+            "id": uuidv4()
         })
         this.setState({config: this.state.config})
     }

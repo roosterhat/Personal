@@ -5,10 +5,11 @@ import numpy as np
 from PIL import ImageColor, Image
 
 class State:
-    def __init__(self, camera, OCRModels, settings):
+    def __init__(self, camera, OCRModels, StateModels, settings):
         self.camera = camera
         self.settings = settings
         self.OCRModels = OCRModels
+        self.StateModels = StateModels
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
@@ -65,8 +66,16 @@ class State:
 
         if "states" in config["frame"] and (sections is None or "states" in sections or "power" in sections):
             currentState["states"] = config["frame"]["states"]
-            for state in config["frame"]["states"]:
-                state["active"] = self.sampleFrameEllipse(frame, state, config["frame"])
+            #for state in config["frame"]["states"]:
+                #state["active"] = self.sampleFrameEllipse(frame, state, config["frame"])
+            for stateGroup in config["actions"]["stateGroups"]:
+                states = list(x for x in config["frame"]["states"] if any(x["id"] == s["id"] for s in stateGroup["states"]))
+                combined = Utility.buildStateFrame(frame, states, config["frame"])
+                results = self.StateModels[stateGroup["model"]](combined["frame"], device="cpu", verbose=False, agnostic_nms=True)
+                box = results[0].boxes.data[0].numpy() if len(results[0].boxes.data) > 0 else None
+                for state in states:
+                    pos = combined["positions"][state["id"]]
+                    state["active"] = bool(box is not None and box[0] <= pos["cx"] and box[2] >= pos["cx"] and box[1] <= pos["cy"] and box[3] >= pos["cy"])
         
         if "ocr" in config["frame"] and (sections is None or "ocr" in sections):
             currentState["ocr"] = config["actions"]["ocr"]

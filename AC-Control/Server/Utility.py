@@ -74,3 +74,46 @@ def reshapeImage(config, frame, vertices):
 def triggerIR(config, action):
     print(f"Trigger: [{config}] [{action}]")
     system(f"irsend SEND_ONCE {config} {action}")
+
+def buildStateFrame(frame, states, config):
+    scale = config["position"]["scale"]
+    w = 0
+    h = 0
+    for state in states:
+        shape = state["shape"]
+        w = max(shape["r1"] / scale * 2, w)
+        h += shape["r2"] / scale * 2
+
+    padding = 5
+    w += padding * 2
+    h += padding * 2
+    
+    combined = Image.new("RGB", (int(w), int(h)), 0)
+
+    buffer = 2
+    offset = padding
+    positions = {}
+    for state in states:
+        shape = state["shape"]             
+
+        x1 = int(max(shape["x"] - shape["r1"], 0) / scale)
+        x2 = int(max(shape["x"] + shape["r1"], 0) / scale)
+        y1 = int(max(shape["y"] - shape["r2"], 0) / scale)
+        y2 = int(max(shape["y"] + shape["r2"], 0) / scale)
+        cx = int(shape["x"] / scale)
+        cy = int(shape["y"] / scale)
+        r1 = int(shape["r1"] / scale)
+        r2 = int(shape["r2"] / scale)
+
+        patch = np.ndarray((y2 - y1, x2 - x1, 3), np.uint8)
+
+        for y in range(y1, y2):
+            for x in range(x1, x2):
+                patch[y - y1][x - x1] = frame[y][x] if pow((x - cx) / r1, 2) + pow((y - cy) / r2, 2) - 1 < 0 else 0                    
+
+        patch = cv2.cvtColor(patch, cv2.COLOR_BGR2RGB)
+        patch = np.rot90(patch, -config["rotate"] / 90)
+        combined.paste(Image.fromarray(patch), (int(w / 2 - r1), int(offset)))
+        positions[state["id"]] = { "cx": w / 2, "cy": r2 + offset, "x1": int(w / 2 - r1), "y1": int(offset), "x2": int(w / 2 + r1), "y2": int(offset + r2 * 2) }
+        offset += r2 * 2 + buffer
+    return { "frame": combined, "positions": positions }
