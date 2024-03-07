@@ -304,7 +304,7 @@ def frame(id = None):
             return bytes(buffer), 200, {'Content-Type':'image/png'}
         
     except Exception as ex:
-        print(ex)
+        print(traceback.format_exc())
         return "Failed", 500
 
 @app.route('/api/trigger/<config>/<id>')
@@ -470,7 +470,7 @@ def manageSchedules():
                 f.write(json.dumps(runs, default=str))
                 f.close()
         except Exception as ex:
-            print(ex)
+            print(traceback.format_exc())
 
 def appStart():
     global _State, _Debug, _Camera, OCRModels, StateModels, settings
