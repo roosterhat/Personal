@@ -76,6 +76,8 @@ def triggerIR(config, action):
     system(f"irsend SEND_ONCE {config} {action}")
 
 def boundingBoxInsideShape(shape, box):
+    if box is None:
+        return False
     boxCenter = {"x": box[0] + (box[2] - box[0]) / 2, "y": box[1] + (box[3] - box[1]) / 2 }
     if shape["type"] == "ellipse":
         return bool(pow((boxCenter["x"] - shape["cx"]) / shape["r1"], 2) + pow((boxCenter["y"] - shape["cy"]) / shape["r2"], 2) - 1 < 0)
