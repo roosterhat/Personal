@@ -74,8 +74,8 @@ class State:
                 results = self.StateModels[stateGroup["model"]](combined["frame"], device="cpu", verbose=False, agnostic_nms=True)
                 box = results[0].boxes.data[0].numpy() if len(results[0].boxes.data) > 0 else None
                 for state in states:
-                    pos = combined["positions"][state["id"]]
-                    state["active"] = bool(box is not None and box[0] <= pos["cx"] and box[2] >= pos["cx"] and box[1] <= pos["cy"] and box[3] >= pos["cy"])
+                    shapes = combined["shapes"][state["id"]]
+                    state["active"] = Utility.boundingBoxInsideShape(shapes, box)
         
         if "ocr" in config["frame"] and (sections is None or "ocr" in sections):
             currentState["ocr"] = config["actions"]["ocr"]

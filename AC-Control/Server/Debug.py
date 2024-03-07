@@ -80,12 +80,10 @@ class Debug:
 
             box = results[0].boxes.data[0].numpy() if len(results[0].boxes.data) > 0 else None
             for state in states:
-                pos = combined["positions"][state["id"]]
-                active = bool(box is not None and box[0] <= pos["cx"] and box[2] >= pos["cx"] and box[1] <= pos["cy"] and box[3] >= pos["cy"])
+                shape = combined["shapes"][state["id"]]
+                active = Utility.boundingBoxInsideShape(shape, box)
                 state["active"] = active
-                radius = 1
-                draw.ellipse((int(pos["cx"]-radius), int(pos["cy"]-radius), int(pos["cx"]+radius), int(pos["cy"]+1)), fill=tuple(np.mod((255 * 2) - np.array(outputImage.getpixel((int(pos["cx"]), int(pos["cy"])))), np.array((255,255,255)))))
-                draw.ellipse([(pos["x1"], pos["y1"]), (pos["x2"], pos["y2"])], outline=(0, 255, 0) if active else (255, 0, 0))
+                draw.ellipse([(shape["cx"] - shape["r1"], shape["cy"] - shape["r2"]), (shape["cx"] + shape["r1"], shape["cy"] + shape["r2"])], outline=(0, 255, 0) if active else (255, 0, 0))
             
             for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
                 draw.rectangle([tuple(data[0:2]),tuple(data[2:4])], outline=np.random.choice(self.colors))

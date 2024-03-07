@@ -75,6 +75,12 @@ def triggerIR(config, action):
     print(f"Trigger: [{config}] [{action}]")
     system(f"irsend SEND_ONCE {config} {action}")
 
+def boundingBoxInsideShape(shape, box):
+    boxCenter = {"x": box[0] + (box[2] - box[0]) / 2, "y": box[1] + (box[3] - box[1]) / 2 }
+    if shape["type"] == "ellipse":
+        return bool(pow((boxCenter["x"] - shape["cx"]) / shape["r1"], 2) + pow((boxCenter["y"] - shape["cy"]) / shape["r2"], 2) - 1 < 0)
+    return False
+
 def buildStateFrame(frame, states, config):
     scale = config["position"]["scale"]
     w = 0
@@ -109,12 +115,18 @@ def buildStateFrame(frame, states, config):
 
     w += padding * 2
     h += padding * 2
-    positions = {}
+    shapes = {}
     combined = Image.new("RGB", (int(w), int(h)), 0)
 
     for id in patches:
         patch = patches[id]
         combined.paste(Image.fromarray(patch), (int((w - len(patch[0])) / 2), int(offset)))
-        positions[id] = { "cx": w / 2, "cy": len(patch) / 2 + offset, "x1": int((w - len(patch[0])) / 2), "y1": int(offset), "x2": int((w + len(patch[0])) / 2), "y2": int(offset + len(patch)) }
+        shapes[id] = { 
+            "type": "ellipse",
+            "cx": int(w / 2),             
+            "cy": int(len(patch) / 2 + offset), 
+            "r1": int(len(patch[0]) / 2),
+            "r2": int(len(patch) / 2)         
+        }
         offset += len(patch) + buffer
-    return { "frame": combined, "positions": positions }
+    return { "frame": combined, "shapes": shapes }
