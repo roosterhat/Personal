@@ -445,10 +445,10 @@ def manageSchedules():
             updated = False
             checkDateTime = datetime.now()
             for schedule in config["schedules"]:                
-                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime):
+                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime):                    
+                    updated = True
                     if schedule["id"] not in runs:
                         runs[schedule["id"]] = {}
-                    updated = True
                     runs[schedule["id"]]["lastAttempt"] = checkDateTime
                     start = datetime.now()
                     result = _State.setState(config, schedule["state"])
