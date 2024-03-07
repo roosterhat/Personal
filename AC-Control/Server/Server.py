@@ -60,7 +60,7 @@ def login():
         else:
             return 'Bad login', 400
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
 
 @app.route('/api/list')
@@ -75,13 +75,13 @@ def listConfigs():
                 data = json.loads(f.read())
                 names.append({'name': data['name'], 'id': data['id']})
             except Exception as ex:
-                print(ex, flush=True)
+                print(traceback.format_exc())
                 return "Failed", 500
             finally:
                 f.close()
         return names, 200
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     
 @app.route('/api/models')
@@ -96,7 +96,7 @@ def listModels():
                 models[type["model"]].append(file)
         return models, 200
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
 
 @app.route('/api/save', methods=["POST"])
@@ -117,7 +117,7 @@ def saveConfig():
         f.write(body["id"])
         return "Success", 200
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -143,7 +143,7 @@ def retrieveConfig(id):
         data = f.read()
         return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -165,7 +165,7 @@ def saveSettings():
         f.write(json.dumps(settings))
         return "Success", 200
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -181,7 +181,7 @@ def retrieveSettings():
             del data[item]
         return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -199,7 +199,7 @@ def upload():
         f.write(file)
         return filename, 200
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -215,7 +215,7 @@ def background(filename):
         data = f.read()
         return data, 200, {'Content-Type':'image'} 
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -322,7 +322,7 @@ def trigger(config, id):
         Utility.triggerIR(data['ir_config'], buttons[0]['action'])
         return "Success", 200
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -342,7 +342,7 @@ def setState_API(config):
         _State.setState(config, body)
         return "Success", 200
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -356,7 +356,7 @@ def getScheduleRuns():
         data = f.read()
         return data, 200, {'Content-Type':'application/json'}
     except Exception as ex:
-        print(ex, flush=True)
+        print(traceback.format_exc())
         return "Failed", 500
     finally:
         f.close()
@@ -383,7 +383,7 @@ def roundToMinutes(datetime):
 def shouldRun(schedule, runs, checkDateTime):
     Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     lastRun = None
-    if schedule["id"] in runs:
+    if schedule["id"] in runs and "lastRun" in runs[schedule["id"]]:
         lastRun = roundToMinutes(datetime.fromisoformat(runs[schedule["id"]]["lastRun"]))
     currentRun = roundToMinutes(checkDateTime)
     scheduleTime = time.fromisoformat(schedule["time"])
