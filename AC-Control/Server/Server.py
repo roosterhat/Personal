@@ -422,11 +422,6 @@ def manageSessions():
         for session in expiredSessions:
             sessions.remove(session)
 
-def decodeObject(obj):
-    for key,value in obj.items():
-        obj[key] = datetime.fromisoformat(value)
-    return obj
-
 def manageSchedules():
     while True:
         Time.sleep(60)

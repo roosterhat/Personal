@@ -273,7 +273,9 @@ body {
     
                 canvas {
                     width: 100%;
+                    height: 100%;
                     border: solid 1px #000;
+                    border-radius: 5px;
                     position: relative;
                     inset: auto;                    
                 }

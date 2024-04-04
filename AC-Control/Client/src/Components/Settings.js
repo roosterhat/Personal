@@ -291,7 +291,7 @@ class Settings extends React.Component {
                                         <div className="canvas-container">
                                             <div>{`View - ${this.state.debugState.executionTime}ms`}</div>
                                             <div className="debugstate-statecanvas-container">
-                                                <canvas id="debug-canvas-state"></canvas>
+                                                <div><canvas id="debug-canvas-state"></canvas></div>                                                
                                                 <div className="state-container">
                                                     { 
                                                         this.state.debugState.states.map(x => 

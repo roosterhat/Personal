@@ -3,7 +3,18 @@ Setup IR Blaster
 
 Create Certificates
     (In Server dir)
-    openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
+    openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 100000
+
+    - or -
+
+    https://deliciousbrains.com/ssl-certificate-authority-for-local-https-development/
+    openssl genrsa -des3 -out ACServerCA.key 2048
+    openssl req -x509 -new -nodes -key ACServerCA.key -sha256 -days 1825 -out ACServerCA.pem
+    openssl genrsa -out ACServer.key 2048
+    openssl req -new -key ACServer.key -out ACServer.csr    
+    nano ACServer.ext
+    openssl x509 -req -in ACServer.csr -CA ACServerCA.pem -CAkey ACServerCA.key -CAcreateserial -out ACServer.crt -days 825 -sha256 -extfile ACServer.ext
+
 
 Build
     (In Client dir)
