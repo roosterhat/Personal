@@ -13,13 +13,13 @@ class State:
         self.StateModels = StateModels
         self.DHT11Sensor = None
         if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
-            #import board
-            #import adafruit_dht
-            #try:                
-            #    self.DHT11Sensor = adafruit_dht.DHT11(board.D4)
-            #    print("Initialized DHT11 Sensor")
-            #except Exception as ex:
-            print("No DHT11 Sensor found")
+            import board
+            import adafruit_dht
+            try:                
+                self.DHT11Sensor = adafruit_dht.DHT11(board.D4)
+                print("Initialized DHT11 Sensor")
+            except Exception as ex:
+                print("No DHT11 Sensor found")
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
@@ -104,12 +104,27 @@ class State:
 
         try:
             if self.DHT11Sensor is not None:
-                currentState["temperature"] = self.DHT11Sensor.temperature
-                currentState["humidity"] = self.DHT11Sensor.humidity
+                temperature, humidity = self.readTemperatureAndHumidty()
+                currentState["temperature"] = temperature
+                currentState["humidity"] = humidity
         except Exception:
             pass
 
         return currentState
+    
+    def readTemperatureAndHumidty(self):
+        while True:
+            try:
+                temperature = self.DHT11Sensor.temperature
+                humidity = self.DHT11Sensor.humidity
+                return (temperature, humidity)
+            except RuntimeError as error:
+                Time.sleep(0.5)
+                continue
+            except Exception as error:
+                print("readTemperatureAndHumidty, Error: " + str(error))
+                self.DHT11Sensor.exit()
+                return (0,0)
 
     def stateChanged(self, newState, oldState):
         try:
