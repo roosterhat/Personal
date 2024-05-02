@@ -473,7 +473,7 @@ class Main extends React.Component {
         else if(this.Settings.temperatureUnit == "C")
             return this.state.currentState.temperature + "ºC"
         else 
-            return (this.state.currentState.temperature * (9 / 5) + 32) + "ºF"
+            return Math.round(this.state.currentState.temperature * (9 / 5) + 32) + "ºF"
     }
 
     getHumidity = () => {
