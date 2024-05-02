@@ -45,4 +45,8 @@ function parseTime(data) {
     return time
 }
 
-export { uuidv4, fetchWithToken, getCookie, setCookie, parseTime }
+function delay(time) {
+    return new Promise(r => setTimeout(r, time));
+}
+
+export { uuidv4, fetchWithToken, getCookie, setCookie, parseTime, delay }
