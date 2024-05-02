@@ -116,8 +116,9 @@ class State:
         retries = 0
         while True:
             try:
-                temperature = self.DHT11Sensor.temperature
-                humidity = self.DHT11Sensor.humidity
+                self.DHT11Sensor.measure()
+                temperature = self.DHT11Sensor._temperature
+                humidity = self.DHT11Sensor._humidity
                 return (temperature, humidity)
             except RuntimeError as error:
                 retries += 1
