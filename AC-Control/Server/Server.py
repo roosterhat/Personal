@@ -378,7 +378,7 @@ def reboot():
 
 def rebootSystem():
     Time.sleep(1)
-    system("systemctl reboot -i")
+    system("sudo reboot")
 
 def verifyToken():
     if "token" in request.headers:
