@@ -80,9 +80,13 @@ class Settings extends React.Component {
                             </div>
                         </div>
                         <div className="setting">
+                            <div className="setting-title">Temperature Unit</div>
+                            <button onClick={e => this.updateSettings("temperatureUnit", this.state.settings.temperatureUnit == "C" ? "F" : "C")}>{"º"+this.state.settings.temperatureUnit}</button>
+                        </div>
+                        <div className="setting">
                             <div className="setting-title">Max OCR Value Change</div>
                             <input type="number" min="1" value={this.state.settings["maxOCRValueChange"]} onChange={e => this.updateSettings("maxOCRValueChange", Number(e.target.value))}/>
-                        </div>
+                        </div>                        
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
                         {this.renderDebugOCR()}

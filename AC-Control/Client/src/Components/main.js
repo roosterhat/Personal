@@ -11,6 +11,7 @@ import Schedules from './EditSchedules';
 import Macros from './EditMacros';
 import { uuidv4, fetchWithToken, getCookie } from '../Utility';
 import '../Styles/styles.scss'
+import Control from './Control';
 
 
 
@@ -23,12 +24,7 @@ class Main extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            editRemote: false,
-            editFrame: false,
-            editSettings: false,
-            editActions: false,
-            editSchedules: false,
-            editMacros: false,
+            view: "main",
             showMacros: false,
             uploading: false,
             hideHeaders: false,
@@ -38,6 +34,7 @@ class Main extends React.Component {
             error: null,
             loadingFrame: false,
             loadingState: false,
+            loadingConfig: false,
             triggeringMacro: false,
             hasFrame: false,
             loggedIn: false,
@@ -62,12 +59,15 @@ class Main extends React.Component {
     }
 
     render () {
-        if(this.state.checkingLogin) {
+        if(this.state.checkingLogin || this.state.loadingConfig) {
             return (
                 <div className="loading-container">
                     <LoadingSpinner id="spinner"/>
                 </div>
             );
+        }
+        else if(this.Settings && this.Settings.UIView == "control") {
+            return <Control Config={this.state.Config} Settings={this.Settings} />
         }
         else if(this.state.loggedIn){
             return (
@@ -87,12 +87,18 @@ class Main extends React.Component {
                                         { this.state.loadingState ?
                                             <LoadingSpinner id="spinner"/>
                                             :
-                                            this.state.currentState.states.map(x => 
-                                                <div className="state">
-                                                    <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
-                                                    <div className="name">{x.name}</div>
+                                            <div>
+                                                {this.state.currentState.states.map(x => 
+                                                    <div className="state" key={x.name}>
+                                                        <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
+                                                        <div className="name">{x.name}</div>
+                                                    </div>
+                                                )}
+                                                <div className="state-container-footer">
+                                                    <div>{this.getTemperature()}</div>
+                                                    <div>{this.getHumidity()}</div>
                                                 </div>
-                                            )
+                                            </div>
                                         }
                                     </div>
                                     : null
@@ -113,7 +119,7 @@ class Main extends React.Component {
                         {this.Config && this.Config.macros.length > 0 && !this.state.editFrame && !this.state.editRemote? 
                             <div className={"btn-container macros-container " + (this.state.showMacros ? "show" : "hidden")}>
                                 {this.Config.macros.map(x => 
-                                    <button className="btn" onClick={() => this.triggerMacro(x)}>
+                                    <button className="btn" onClick={() => this.triggerMacro(x)} key={x.name}>
                                         {this.state.triggeringMacro ? 
                                             <LoadingSpinner id="spinner"/>
                                             : <i className={x.icon}></i>
@@ -137,22 +143,22 @@ class Main extends React.Component {
     }    
 
     renderMenus = () => {
-        if(this.state.editRemote) {
-            return (<EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={() => this.cancelEdit(true)}/>);
+        if(this.state.view == "remote") {
+            return (<EditBackground Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.validateAndComplete} cancel={() => this.cancelEdit(true)}/>);
         }
-        else if (this.state.editFrame) {
-            return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.complete} cancel={() => this.cancelEdit(true)} refresh={this.refreshEditFrame}/>);
+        else if (this.state.view == "frame") {
+            return (<EditFrame Engine={this.Engine} Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.validateAndComplete} cancel={() => this.cancelEdit(true)} refresh={this.refreshEditFrame}/>);
         }
-        else if (this.state.editActions) {
-            return (<EditActions Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeActions} cancel={() => this.cancelEdit()}/>)
+        else if (this.state.view == "actions") {
+            return (<EditActions Config={this.state.EditConfig} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeView} cancel={() => this.cancelEdit()}/>)
         }
-        else if (this.state.editSchedules) {
-            return (<Schedules Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeSchedules} cancel={() => this.cancelEdit()}/>)
+        else if (this.state.view == "schedules") {
+            return (<Schedules Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeView} cancel={() => this.cancelEdit()}/>)
         }
-        else if (this.state.editMacros) {
-            return (<Macros Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeMacros} cancel={() => this.cancelEdit()}/>)
+        else if (this.state.view == "macros") {
+            return (<Macros Config={this.state.EditConfig} Settings={this.state.EditSetting} onConfigChange={x => this.setState({EditConfig: x})} complete={this.completeView} cancel={() => this.cancelEdit()}/>)
         }
-        else if (this.state.editSettings) {
+        else if (this.state.view == "settings") {
             return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} refresh={this.refreshFrameAndState} complete={this.completeSettings} cancel={() => this.cancelEdit()} />)
         }
         else {
@@ -161,13 +167,13 @@ class Main extends React.Component {
                     <button className="btn" onClick={this.newButtons}><i className="fa-solid fa-plus"></i></button>
                     { this.Config ? <button className="btn" onClick={this.editButtons}><i className="fa-solid fa-gamepad"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={this.editFrame}><i className="fa-regular fa-object-group"></i></button> : null }
-                    { this.Config ? <button className="btn" onClick={this.editActions}><i className="fa-solid fa-shapes"></i></button> : null }
-                    { this.Config ? <button className="btn" onClick={this.editSchedules}><i className="fa-regular fa-clock"></i></button> : null }
-                    { this.Config ? <button className="btn" onClick={this.editMacros}><i className="fa-solid fa-clapperboard"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={() => this.switchTo("actions")}><i className="fa-solid fa-shapes"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={() => this.switchTo("schedules")}><i className="fa-regular fa-clock"></i></button> : null }
+                    { this.Config ? <button className="btn" onClick={() => this.switchTo("macros")}><i className="fa-solid fa-clapperboard"></i></button> : null }
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
-                    { this.Settings ? <button className="btn" onClick={this.editSettings}><i className="fa-solid fa-gear"></i></button> : null }
+                    { this.Settings ? <button className="btn" onClick={() => this.switchTo("settings")}><i className="fa-solid fa-gear"></i></button> : null }
                     <div className="spacer"></div>
-                    { this.Settings && this.Config && this.Config.macros.length > 0 ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i class="fa-solid fa-angles-right"></i></button> : null }
+                    { this.Settings && this.Config && this.Config.macros.length > 0 ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i className="fa-solid fa-angles-right"></i></button> : null }
                 </div>
             )
         }
@@ -176,47 +182,29 @@ class Main extends React.Component {
     init = async () => {
         this.setState({loggedIn: true, checkingLogin: false})     
         this.UpdateQueue.push(async () => {   
-            this.Engine.Init();
+            this.setState({loadingConfig: true});
             await this.getSettings();
-            await this.load("default")
-            if(await this.checkHasWebcam()) {
-                this.UpdateQueue.push(this.refreshFrame)       
-                this.refreshState();     
-            }
+            await this.load("default");            
+            this.setState({loadingConfig: false});         
+            if(this.Settings.UIView == "main")   
+                this.UpdateQueue.push(this.setupCanvasAndFrame)
         })
     }
 
-    editMacros = () => {
-        this.checkAuthorized(false)
-        var settings = JSON.parse(JSON.stringify(this.Settings));
-        var config = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editMacros: true, EditConfig: config, EditSetting: settings})
-    }
-
-    completeMacros = async () => {
-        await this.save();
+    setupCanvasAndFrame = async () => {
+        this.Engine.Init();
+        await this.checkHasWebcam();
         this.switchToMainView();
     }
 
-    editSchedules = () => {
+    switchTo = (view) => {
         this.checkAuthorized(false)
         var settings = JSON.parse(JSON.stringify(this.Settings));
         var config = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editSchedules: true, EditConfig: config, EditSetting: settings})
+        this.setState({view: view, EditConfig: config, EditSetting: settings})
     }
 
-    completeSchedules = async () => {
-        await this.save();
-        this.switchToMainView();
-    }
-
-    editActions = () => {
-        this.checkAuthorized(false)
-        var config = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editActions: true, EditConfig: config})
-    }
-
-    completeActions = async () => {
+    completeView = async () => {
         await this.save();
         this.switchToMainView();
     }
@@ -224,7 +212,7 @@ class Main extends React.Component {
     editFrame = () => {
         this.checkAuthorized(false)
         var config = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editFrame: true, hideHeaders: true, EditConfig: config})
+        this.setState({view: "frame", hideHeaders: true, EditConfig: config})
         this.Engine.SetEdit(true);
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
     }
@@ -247,17 +235,10 @@ class Main extends React.Component {
     editButtons = () => {
         this.checkAuthorized(false)
         var editConfig = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editRemote: true, hideHeaders: true, EditConfig: editConfig})
+        this.setState({view: "remote", hideHeaders: true, EditConfig: editConfig})
         this.Engine.shapes = editConfig.buttons.map(x => x.shape);
         this.Engine.SetEdit(true);
         this.UpdateQueue.push(() => this.Engine.RefreshDimensions())
-    }
-
-    editSettings = () => {
-        this.checkAuthorized(false)
-        var settings = JSON.parse(JSON.stringify(this.Settings));
-        var editConfig = JSON.parse(JSON.stringify(this.Config));
-        this.setState({editSettings: true, EditSetting: settings, EditConfig: editConfig});
     }
 
     completeSettings = async (settings) => {
@@ -290,7 +271,7 @@ class Main extends React.Component {
         this.switchToMainView(refresh);
     }
     
-    complete = async () => {
+    validateAndComplete = async () => {
         if(!this.state.EditConfig.name || this.state.EditConfig.name.trim().length == 0) {
             this.setState({error: "Enter a valid config name"})
             return;
@@ -332,9 +313,7 @@ class Main extends React.Component {
             this.setState({showConfigSelect: false})
             const response = await fetchWithToken(`api/retrieve/${name}`)
             if(response.status == 200){
-                this.Config = await response.json();
-                if(!this.state.editRemote)
-                    this.switchToMainView();               
+                this.Config = await response.json();          
             }
         }
         catch(ex) {
@@ -433,7 +412,8 @@ class Main extends React.Component {
     checkHasWebcam = async () => {
         try {
             const response = await fetchWithToken(`api/frame`)
-            this.setState({hasFrame: response.status == 200})
+            this.state.hasFrame = response.status == 200
+            this.setState({hasFrame: this.state.hasFrame})
             return response.status == 200;
         }
         catch(ex) {
@@ -448,7 +428,7 @@ class Main extends React.Component {
         if(menu)
             menu.classList.add("closed")
 
-        setTimeout(() => this.setState({editRemote: false, editFrame: false, editActions: false, editSchedules: false, editMacros: false, editSettings: false, error: null, EditSetting: null, EditConfig: null}), 450)
+        setTimeout(() => this.setState({view: "main", error: null, EditSetting: null, EditConfig: null}), 450)
         const buttons = JSON.parse(JSON.stringify(this.Config && this.Config.buttons ? this.Config.buttons : []))
         const background = this.Config && this.Config.background ? this.Config.background : null
         this.Engine.SetEdit(false);
@@ -485,6 +465,22 @@ class Main extends React.Component {
         catch {
             return false;
         }
+    }
+
+    getTemperature = () => {
+        if(!this.state.currentState.humidity)
+            return "-º" + this.Settings.temperatureUnit
+        else if(this.Settings.temperatureUnit == "C")
+            return this.state.currentState.temperature + "ºC"
+        else 
+            return (this.state.currentState.temperature * (9 / 5) + 32) + "ºF"
+    }
+
+    getHumidity = () => {
+        if(this.state.currentState.humidity)
+            return this.state.currentState.humidity + "%"
+        else
+            return "-%"
     }
 }
 

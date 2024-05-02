@@ -87,6 +87,15 @@ body {
         .lds-ring {
             transform: scale(25%);
         }
+
+        .state-container-footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            position: absolute;
+            bottom: 0;
+            width: calc(100% - 10px);
+        }
     }
 }
 
@@ -214,6 +223,10 @@ body {
 
         input {
             width: 100%;
+        }
+
+        button {
+            width: 50px;
         }
 
         &:not(:last-child){ 

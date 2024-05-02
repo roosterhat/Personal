@@ -5,3 +5,4 @@ numpy
 cryptography
 ultralytics
 gunicorn
+adafruit-circuitpython-dht

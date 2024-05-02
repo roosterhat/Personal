@@ -3,6 +3,7 @@ import time as Time
 import Utility
 import numpy as np
 from PIL import ImageColor, Image
+import sys
 
 class State:
     def __init__(self, camera, OCRModels, StateModels, settings):
@@ -10,6 +11,14 @@ class State:
         self.settings = settings
         self.OCRModels = OCRModels
         self.StateModels = StateModels
+        self.DHT11Sensor = None
+        if sys.argv[1] != 'debug':
+            import board
+            import adafruit_dht
+            try:                
+                self.DHT11Sensor = adafruit_dht.DHT11(board.D4)
+            except Exception as ex:
+                print("No DHT11 Sensor found")
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
@@ -91,6 +100,10 @@ class State:
         
         if sections is None or "power" in sections:
             currentState["power"] = { "active": self.getPowerState(config, currentState) }
+
+        if self.DHT11Sensor is not None:
+            currentState["temperature"] = self.DHT11Sensor.temperature
+            currentState["humidity"] = self.DHT11Sensor.humidity
         return currentState
 
     def stateChanged(self, newState, oldState):
