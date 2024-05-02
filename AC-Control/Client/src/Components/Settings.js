@@ -24,6 +24,7 @@ class Settings extends React.Component {
             loadSetStateDebug: false,
             loadOCRDebug: false,
             loadingScheduleRuns: true,
+            rebooting: false,
             saving: false
         }
 
@@ -91,6 +92,10 @@ class Settings extends React.Component {
                         {this.renderDebugSetState()}
                         {this.renderDebugOCR()}
                         {this.renderScheduleRuns()}
+                        <div className='reboot'>
+                            Reboot
+                            <button onClick={this.reboot}>{this.state.rebooting ? <LoadingSpinner id="spinner" /> : <i class="fa-solid fa-power-off"></i>}</button>
+                        </div>
                     </div>
                 </div>
             </Menu>
@@ -507,6 +512,19 @@ class Settings extends React.Component {
     updateStateProperty = (key, value) => {
         this.state.selectedState.properties[key] = value;
         this.setState({selectedState: this.state.selectedState});
+    }
+
+    reboot = async () => {
+        try {
+            this.setState({rebooting: true})
+            var response = await fetchWithToken('api/reboot')
+            if(response.status == 200){
+                await fetchWithToken('api/test/authorize')
+            } 
+        }
+        finally {
+            this.setState({rebooting: false})
+        }
     }
 }
 

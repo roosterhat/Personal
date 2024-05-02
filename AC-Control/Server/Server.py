@@ -1,7 +1,7 @@
 from flask import Flask, request, send_from_directory
 from flask_cors import CORS
 import re
-from os import listdir, path as Path
+from os import listdir, path as Path, system
 import sys
 import json
 import uuid
@@ -368,6 +368,17 @@ def testAuthorize():
     else:
         return "Success", 200
 
+@app.route('/api/reboot')
+def reboot():
+    if not verifyToken():
+        return "Unauthorized", 401
+    else:
+        Thread(target=rebootSystem).start()
+        return "Success", 200
+
+def rebootSystem():
+    Time.sleep(1)
+    system("shutdown -r now")
 
 def verifyToken():
     if "token" in request.headers:
