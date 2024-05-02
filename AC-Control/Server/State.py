@@ -12,7 +12,7 @@ class State:
         self.OCRModels = OCRModels
         self.StateModels = StateModels
         self.DHT11Sensor = None
-        if sys.argv[1] != 'debug':
+        if len(sys.argv) >= 2 and sys.argv[1] != 'debug':
             import board
             import adafruit_dht
             try:                
