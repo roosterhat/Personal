@@ -1,7 +1,7 @@
 import React from 'react'
 import Menu from './Menu';
 import LoadingSpinner from './Spinners/loading1';
-import { fetchWithToken, parseTime } from '../Utility';
+import { fetchWithToken, parseTime, delay } from '../Utility';
 
 class Settings extends React.Component {
     constructor(props) {
