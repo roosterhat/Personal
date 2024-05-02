@@ -507,6 +507,10 @@ body {
             .lds-ring {
                 width: 200%;
                 transform: scale(50%) translate(-50%, -5px);
+
+                div {
+                    border-color: #fff transparent transparent transparent;
+                }
             }
 
             i {
