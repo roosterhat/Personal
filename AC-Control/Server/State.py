@@ -12,15 +12,14 @@ class State:
         self.OCRModels = OCRModels
         self.StateModels = StateModels
         self.DHT11Sensor = None
-        if len(sys.argv) >= 2 and sys.argv[1] != 'debug':
-            print("Loading AdaFruit packages...")
+        if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
             import board
             import adafruit_dht
             try:                
                 self.DHT11Sensor = adafruit_dht.DHT11(board.D4)
+                print("Initialized DHT11 Sensor")
             except Exception as ex:
                 print("No DHT11 Sensor found")
-            print("Complete")
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]

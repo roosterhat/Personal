@@ -495,6 +495,7 @@ def appStart():
 
     _State = State(_Camera, OCRModels, StateModels, settings)
     _Debug = Debug(_Camera, OCRModels, StateModels, _State)
+    print("Complete")
     if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
         app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     else:
