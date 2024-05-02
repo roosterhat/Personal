@@ -519,4 +519,6 @@ if __name__ == '__main__':
     finally:
         if _Camera:
             _Camera.release()
+        if _State.DHT11Sensor:
+            _State.DHT11Sensor.exit()
 
