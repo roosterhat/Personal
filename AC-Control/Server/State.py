@@ -113,18 +113,22 @@ class State:
         return currentState
     
     def readTemperatureAndHumidty(self):
+        retries = 0
         while True:
             try:
                 temperature = self.DHT11Sensor.temperature
                 humidity = self.DHT11Sensor.humidity
                 return (temperature, humidity)
             except RuntimeError as error:
+                retries += 1
+                if retries > 5:
+                    raise Exception("Maximum retries reached")
                 Time.sleep(0.5)
                 continue
             except Exception as error:
                 print("readTemperatureAndHumidty, Error: " + str(error))
                 self.DHT11Sensor.exit()
-                return (0,0)
+                raise error
 
     def stateChanged(self, newState, oldState):
         try:
