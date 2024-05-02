@@ -102,9 +102,13 @@ class State:
         if sections is None or "power" in sections:
             currentState["power"] = { "active": self.getPowerState(config, currentState) }
 
-        if self.DHT11Sensor is not None:
-            currentState["temperature"] = self.DHT11Sensor.temperature
-            currentState["humidity"] = self.DHT11Sensor.humidity
+        try:
+            if self.DHT11Sensor is not None:
+                currentState["temperature"] = self.DHT11Sensor.temperature
+                currentState["humidity"] = self.DHT11Sensor.humidity
+        except Exception:
+            pass
+        
         return currentState
 
     def stateChanged(self, newState, oldState):
