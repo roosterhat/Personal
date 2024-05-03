@@ -21,23 +21,25 @@ function fetchWithToken(endpoint, method = "GET", body = null, headers = {}, all
     var token = getCookie("ac_token");
     if(!token) throw new Error("No token found");
     headers["token"] = token;
-    var promise = new Promise(async resolve => {
-        var response = await fetch(`https://${window.location.hostname}:3001/${endpoint}`, {
-            method: method,
-            headers: headers,
-            body: body
-        });
-        if(!allowUnauthorized && response.status == 401)
-            window.location.reload();
-        else
-            resolve(response);        
+    return new Promise(async (resolve, reject) => {
+        try{
+            var response = await fetch(`https://${window.location.hostname}:3001/${endpoint}`, {
+                method: method,
+                headers: headers,
+                body: body
+            });
+            if(!allowUnauthorized && response.status == 401)
+                window.location.reload();
+            else
+                resolve(response);
+        }
+        catch(ex) {
+            if(!allowUnauthorized)
+                window.location.reload();
+            else
+                reject(ex);
+        }
     });
-    return promise.catch(error => {
-        if(!allowUnauthorized)
-            window.location.reload();
-        else
-            throw error;
-    })
 }
 
 const TimePattern = /(?:(?<hours>\d{1,2}):)?(?<minutes>\d{1,2}):(?<seconds>\d{1,2})\.?(?<millis>\d+)?/
