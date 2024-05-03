@@ -523,7 +523,7 @@ class Settings extends React.Component {
                 await delay(5000)
                 while(true){
                     try{
-                        await fetchWithToken('api/test/authorize', 'GET', null, null, true)
+                        await fetchWithToken('api/test/authorize', 'GET', null, {}, true)
                     }
                     catch(ex) {}
                 }
