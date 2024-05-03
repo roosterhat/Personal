@@ -31,6 +31,7 @@ class FlaskWrapper(Flask):
         super().__init__(__name__, static_folder='../Client/build')
 
     def cleanup(self):
+        global _Camera, DHT11Sensor
         print("Cleanup", flush=True)
         if _Camera:
             print("Release Camera", flush=True)
@@ -512,6 +513,7 @@ def manageSchedules():
 
 def temperatureWorker():
     while True:
+        global DHT11Sensor
         DHT11Sensor = adafruit_dht.DHT11(board.D4)
         try:
             while True:
