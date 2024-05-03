@@ -491,23 +491,24 @@ def temperatureWorker():
             while True:
                 retries = 0            
                 while True:
-                    print("temperatureWorker attempt")
+                    print("temperatureWorker begin attempt")
                     try:
                         DHT11Sensor.measure()
                         sensor["temperature"] = DHT11Sensor._temperature
                         sensor["humidity"] = DHT11Sensor._humidity
-                        print("temperatureWorker" + str(DHT11Sensor._temperature) + "," + str(DHT11Sensor._humidity))
+                        print("temperatureWorker " + str(DHT11Sensor._temperature) + "," + str(DHT11Sensor._humidity))
                         break
                     except RuntimeError as error:
                         retries += 1
                         if retries > 5:
                             raise Exception("Maximum retries reached")
-                        Time.sleep(0.5)
+                        Time.sleep(1)
                         continue
                     except Exception as error:
                         print("temperatureWorker, Error: " + str(error), flush=True)
                         raise error                    
                 Time.sleep(1)
+                print("temperatureWorker end attempt")
         finally:
             print("temperatureWorker exit")
             if DHT11Sensor:
@@ -544,7 +545,7 @@ def appStart():
 
     _State = State(_Camera, OCRModels, StateModels, settings, sensor)
     _Debug = Debug(_Camera, OCRModels, StateModels, _State)
-    print("Complete", flush=True)
+    print("Loading Complete", flush=True)
     if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
         app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
     else:
