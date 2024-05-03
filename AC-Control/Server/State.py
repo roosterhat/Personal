@@ -104,8 +104,9 @@ class State:
                 temperature, humidity = self.readTemperatureAndHumidty()
                 currentState["temperature"] = temperature
                 currentState["humidity"] = humidity
-        except Exception:
+        except Exception as ex:
             print(traceback.format_exc(), flush=True)
+            print(ex)
             pass
 
         return currentState
