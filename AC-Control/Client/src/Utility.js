@@ -22,15 +22,23 @@ function fetchWithToken(endpoint, method = "GET", body = null, headers = {}, all
     if(!token) throw new Error("No token found");
     headers["token"] = token;
     return new Promise(async resolve => {
-        var response = await fetch(`https://${window.location.hostname}:3001/${endpoint}`, {
-            method: method,
-            headers: headers,
-            body: body
-        });
-        if(!allowUnauthorized && response.status == 401)
-            window.location.reload();
-        else
-            resolve(response);
+        try{
+            var response = await fetch(`https://${window.location.hostname}:3001/${endpoint}`, {
+                method: method,
+                headers: headers,
+                body: body
+            });
+            if(!allowUnauthorized && response.status == 401)
+                window.location.reload();
+            else
+                resolve(response);
+        }
+        catch(ex) {
+            if(!allowUnauthorized && response.status == 401)
+                window.location.reload();
+            else
+                throw ex;
+        }
     });
 }
 
