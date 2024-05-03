@@ -5,17 +5,15 @@ import numpy as np
 from PIL import ImageColor, Image
 import sys
 import traceback
-if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
-    import board
-    import adafruit_dht
+
 
 class State:
-    def __init__(self, camera, OCRModels, StateModels, settings):
+    def __init__(self, camera, OCRModels, StateModels, settings, sensor):
         self.camera = camera
         self.settings = settings
         self.OCRModels = OCRModels
         self.StateModels = StateModels
-        self.DHT11Sensor = None        
+        self.Sensor = sensor;        
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
@@ -98,36 +96,12 @@ class State:
         if sections is None or "power" in sections:
             currentState["power"] = { "active": self.getPowerState(config, currentState) }
 
-        try:
-            temperature, humidity = self.readTemperatureAndHumidty()
-            currentState["temperature"] = temperature
-            currentState["humidity"] = humidity
-        except Exception as ex:
-            print(traceback.format_exc(), flush=True)
-            print(ex)
-            pass
+        if "temperature" in self.Sensor:
+            currentState["temperature"] = self.Sensor["temperature"]
+        if "humidity" in self.Sensor:
+            currentState["humidity"] = self.Sensor["humidity"]
 
         return currentState
-    
-    def readTemperatureAndHumidty(self):
-        retries = 0
-        DHT11Sensor = adafruit_dht.DHT11(board.D4)
-        while True:
-            try:
-                DHT11Sensor.measure()
-                temperature = DHT11Sensor._temperature
-                humidity = DHT11Sensor._humidity
-                return (temperature, humidity)
-            except RuntimeError as error:
-                retries += 1
-                if retries > 5:
-                    raise Exception("Maximum retries reached")
-                Time.sleep(0.5)
-                continue
-            except Exception as error:
-                print("readTemperatureAndHumidty, Error: " + str(error), flush=True)
-                DHT11Sensor.exit()
-                raise error
 
     def stateChanged(self, newState, oldState):
         try:

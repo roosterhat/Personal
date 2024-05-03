@@ -18,6 +18,10 @@ from State import State
 import Utility
 import traceback
 
+if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
+    import board
+    import adafruit_dht
+
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
 
@@ -32,6 +36,7 @@ _State = None
 OCRModels = {}
 StateModels = {}
 settings = {}
+sensor = {}
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -478,6 +483,34 @@ def manageSchedules():
         except Exception as ex:
             print(traceback.format_exc())
 
+def temperatureWorker():
+    DHT11Sensor = None
+    try:
+        while True:
+            retries = 0
+            DHT11Sensor = adafruit_dht.DHT11(board.D4)
+            while True:
+                try:
+                    DHT11Sensor.measure()
+                    sensor["temperature"] = DHT11Sensor._temperature
+                    sensor["humidity"] = DHT11Sensor._humidity
+                    break
+                except RuntimeError as error:
+                    retries += 1
+                    if retries > 5:
+                        raise Exception("Maximum retries reached")
+                    Time.sleep(0.5)
+                    continue
+                except Exception as error:
+                    print("readTemperatureAndHumidty, Error: " + str(error), flush=True)
+                    DHT11Sensor.exit()
+                    Time.sleep(1000)
+                    break
+            Time.sleep(1000)
+    finally:
+        if DHT11Sensor:
+            DHT11Sensor.exit()
+
 def appStart():
     global _State, _Debug, _Camera, OCRModels, StateModels, settings
     print("Loading Settings", flush=True)
@@ -490,6 +523,9 @@ def appStart():
     Thread(target=manageSessions).start()
     print("Starting Schedule Manager", flush=True)
     Thread(target=manageSchedules).start()
+    if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
+        print("Starting Temperature Worker", flush=True)
+        Thread(target=temperatureWorker).start()
     print("Loading Camera", flush=True)
     _Camera = Camera(settings)
     print("Loading OCR Models...", flush=True)
@@ -504,7 +540,7 @@ def appStart():
         print("- "+file)
         StateModels[file] = YOLO(Path.join(dir, file))
 
-    _State = State(_Camera, OCRModels, StateModels, settings)
+    _State = State(_Camera, OCRModels, StateModels, settings, sensor)
     _Debug = Debug(_Camera, OCRModels, StateModels, _State)
     print("Complete", flush=True)
     if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
