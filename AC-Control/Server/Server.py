@@ -27,8 +27,9 @@ ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
 
 class FlaskWrapper(Flask):
-    def __init__():
+    def __init__(self):
         super().__init__(__name__, static_folder='../Client/build')
+        self.test = "test message"
 
     def cleanup(self):
         print("cleanup", flush=True)
@@ -50,7 +51,6 @@ StateModels = {}
 settings = {}
 sensor = {}
 DHT11Sensor = None
-test = "test message"
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
