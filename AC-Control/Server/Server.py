@@ -25,27 +25,7 @@ if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
 
-class FlaskWrapper(Flask):
-    def __init__(self):
-        super().__init__(__name__, static_folder='../Client/build')
-
-    def on_starting(self, server):
-        print("on_starting", flush=True)
-
-    def worker_int(self, server):
-        print("worker_int", flush=True)
-
-    def worker_abort(self, server):
-        print("worker_abort", flush=True)
-
-    def worker_exit(self, server, worker):
-        print("worker_exit", flush=True)
-        if _Camera:
-            _Camera.release()
-        if DHT11Sensor:
-            DHT11Sensor.exit()
-
-app = FlaskWrapper()
+app = Flask(__name__, static_folder='../Client/build')
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 sessions = []
@@ -578,11 +558,17 @@ def appStart():
         try:
             app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))    
         finally:
-            if _Camera:
-                _Camera.release()
+            cleanup()
     else:
         return app
     
+
+def cleanup():
+    print("cleanup", flush=True)
+    if _Camera:
+        _Camera.release()
+    if DHT11Sensor:
+        DHT11Sensor.exit()
     
 
 if __name__ == '__main__':
