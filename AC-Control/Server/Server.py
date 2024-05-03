@@ -380,6 +380,18 @@ def reboot():
     else:
         Thread(target=rebootSystem).start()
         return "Success", 200
+    
+@app.route('/api/restart')
+def restart():
+    if not verifyToken():
+        return "Unauthorized", 401
+    else:
+        Thread(target=restartService).start()
+        return "Success", 200
+
+def restartService():
+    Time.sleep(1)
+    system("sudo systemctl restart ACControl.service")
 
 def rebootSystem():
     Time.sleep(1)

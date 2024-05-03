@@ -92,9 +92,11 @@ class Settings extends React.Component {
                         {this.renderDebugSetState()}
                         {this.renderDebugOCR()}
                         {this.renderScheduleRuns()}
-                        <div className='reboot'>
+                        <div className='system-control'>
+                            Restart
+                            <button className='restart' onClick={this.restart}>{this.state.rebooting ? <LoadingSpinner id="spinner" /> : <i class="fa-solid fa-arrows-rotate"></i>}</button>
                             Reboot
-                            <button onClick={this.reboot}>{this.state.rebooting ? <LoadingSpinner id="spinner" /> : <i class="fa-solid fa-power-off"></i>}</button>
+                            <button className='reboot' onClick={this.reboot}>{this.state.rebooting ? <LoadingSpinner id="spinner" /> : <i class="fa-solid fa-power-off"></i>}</button>
                         </div>
                     </div>
                 </div>
@@ -524,6 +526,28 @@ class Settings extends React.Component {
                 while(true){
                     try{
                         await fetchWithToken('api/test/authorize')
+                    }
+                    catch(ex) {}
+                }
+            } 
+        }
+        finally {
+            this.setState({rebooting: false})
+        }
+    }
+
+    restart = async () => {
+        if(this.state.rebooting) return;
+        try {
+            this.setState({rebooting: true})
+            var response = await fetchWithToken('api/restart')
+            if(response.status == 200){
+                await delay(5000)
+                while(true){
+                    try{
+                        response = await fetchWithToken('api/test/authorize')
+                        if(response.status == 200)
+                            return;
                     }
                     catch(ex) {}
                 }

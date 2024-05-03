@@ -489,7 +489,7 @@ body {
         }
     }
 
-    .reboot {
+    .system-control {
         display: flex;
         justify-content: end;
         align-items: center;
@@ -498,8 +498,7 @@ body {
         button {
             width: 30px;
             height: 30px;
-            aspect-ratio: 1;
-            background: red;
+            aspect-ratio: 1;            
             border-radius: 10px;
             cursor: pointer;
             position: relative;
@@ -516,6 +515,14 @@ body {
             i {
                 color: #fff;
             }
+        }
+
+        .reboot {
+            background: red;
+        }
+
+        .restart {
+            background: rgb(0, 162, 255);
         }
     }
 }
