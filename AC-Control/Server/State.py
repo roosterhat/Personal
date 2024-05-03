@@ -99,10 +99,9 @@ class State:
             currentState["power"] = { "active": self.getPowerState(config, currentState) }
 
         try:
-            if self.DHT11Sensor is not None:
-                temperature, humidity = self.readTemperatureAndHumidty()
-                currentState["temperature"] = temperature
-                currentState["humidity"] = humidity
+            temperature, humidity = self.readTemperatureAndHumidty()
+            currentState["temperature"] = temperature
+            currentState["humidity"] = humidity
         except Exception as ex:
             print(traceback.format_exc(), flush=True)
             print(ex)
@@ -112,19 +111,14 @@ class State:
     
     def readTemperatureAndHumidty(self):
         retries = 0
-        print("readTemperatureAndHumidty", flush=True)
         DHT11Sensor = adafruit_dht.DHT11(board.D4)
-        print("create object", flush=True)
         while True:
             try:
-                print("measure", flush=True)
                 DHT11Sensor.measure()
                 temperature = DHT11Sensor._temperature
                 humidity = DHT11Sensor._humidity
-                print("success", flush=True)
                 return (temperature, humidity)
             except RuntimeError as error:
-                print("RuntimeError", flush=True)
                 retries += 1
                 if retries > 5:
                     raise Exception("Maximum retries reached")
