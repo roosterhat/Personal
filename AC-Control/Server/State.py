@@ -112,14 +112,19 @@ class State:
     
     def readTemperatureAndHumidty(self):
         retries = 0
+        print("readTemperatureAndHumidty", flush=True)
         DHT11Sensor = adafruit_dht.DHT11(board.D4)
+        print("create object", flush=True)
         while True:
             try:
+                print("measure", flush=True)
                 DHT11Sensor.measure()
                 temperature = DHT11Sensor._temperature
                 humidity = DHT11Sensor._humidity
+                print("success", flush=True)
                 return (temperature, humidity)
             except RuntimeError as error:
+                print("RuntimeError", flush=True)
                 retries += 1
                 if retries > 5:
                     raise Exception("Maximum retries reached")
