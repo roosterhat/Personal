@@ -26,7 +26,18 @@ if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
 
-app = Flask(__name__, static_folder='../Client/build')
+class FlaskWrapper(Flask):
+    def __init__():
+        super().__init__(__name__, static_folder='../Client/build')
+
+    def cleanup(self):
+        print("cleanup", flush=True)
+        if _Camera:
+            _Camera.release()
+        if DHT11Sensor:
+            DHT11Sensor.exit()
+
+app = FlaskWrapper()
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 sessions = []
@@ -560,17 +571,9 @@ def appStart():
         try:
             app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))    
         finally:
-            cleanup()
+            app.cleanup()
     else:
         return app
-    
-
-def cleanup():
-    print("cleanup", flush=True)
-    if _Camera:
-        _Camera.release()
-    if DHT11Sensor:
-        DHT11Sensor.exit()
     
 
 if __name__ == '__main__':
