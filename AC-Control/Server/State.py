@@ -104,7 +104,7 @@ class State:
                 currentState["temperature"] = temperature
                 currentState["humidity"] = humidity
         except Exception:
-            print(traceback.format_exc())
+            print(traceback.format_exc(), flush=True)
             pass
 
         return currentState
@@ -125,7 +125,7 @@ class State:
                 Time.sleep(0.5)
                 continue
             except Exception as error:
-                print("readTemperatureAndHumidty, Error: " + str(error))
+                print("readTemperatureAndHumidty, Error: " + str(error), flush=True)
                 DHT11Sensor.exit()
                 raise error
 
