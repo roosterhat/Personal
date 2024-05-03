@@ -515,11 +515,12 @@ class Settings extends React.Component {
     }
 
     reboot = async () => {
+        if(this.state.rebooting) return;
         try {
             this.setState({rebooting: true})
             var response = await fetchWithToken('api/reboot')
             if(response.status == 200){
-                await delay(5000)
+                await delay(20000)
                 await fetchWithToken('api/test/authorize')
             } 
         }
