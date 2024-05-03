@@ -37,6 +37,7 @@ OCRModels = {}
 StateModels = {}
 settings = {}
 sensor = {}
+DHT11Sensor = None
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -554,15 +555,23 @@ def appStart():
     _Debug = Debug(_Camera, OCRModels, StateModels, _State)
     print("Loading Complete", flush=True)
     if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
-        app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))     
+        try:
+            app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))    
+        finally:
+            if _Camera:
+                _Camera.release()
     else:
         return app
     
+def worker_exit(server, worker):
+    print("worker_exit", flush=True)
+    if _Camera:
+        _Camera.release()
+    if DHT11Sensor:
+        DHT11Sensor.exit()
+    
 
 if __name__ == '__main__':
-    try:
-        appStart()
-    finally:
-        if _Camera:
-            _Camera.release()
+    appStart()
+    
 
