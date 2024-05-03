@@ -484,35 +484,34 @@ def manageSchedules():
             print(traceback.format_exc())
 
 def temperatureWorker():
-    DHT11Sensor = None
-    try:
-        while True:
-            retries = 0
-            DHT11Sensor = adafruit_dht.DHT11(board.D4)
+    while True:
+        print("temperatureWorker init")
+        DHT11Sensor = adafruit_dht.DHT11(board.D4)
+        try:
             while True:
-                print("temperatureWorker attempt")
-                try:
-                    DHT11Sensor.measure()
-                    sensor["temperature"] = DHT11Sensor._temperature
-                    sensor["humidity"] = DHT11Sensor._humidity
-                    print("temperatureWorker" + str(DHT11Sensor._temperature) + "," + str(DHT11Sensor._humidity))
-                    break
-                except RuntimeError as error:
-                    retries += 1
-                    if retries > 5:
-                        raise Exception("Maximum retries reached")
-                    Time.sleep(0.5)
-                    continue
-                except Exception as error:
-                    print("temperatureWorker, Error: " + str(error), flush=True)
-                    break
-                finally:
-                    DHT11Sensor.exit()
-            Time.sleep(1000)
-    finally:
-        print("temperatureWorker exit")
-        if DHT11Sensor:
-            DHT11Sensor.exit()
+                retries = 0            
+                while True:
+                    print("temperatureWorker attempt")
+                    try:
+                        DHT11Sensor.measure()
+                        sensor["temperature"] = DHT11Sensor._temperature
+                        sensor["humidity"] = DHT11Sensor._humidity
+                        print("temperatureWorker" + str(DHT11Sensor._temperature) + "," + str(DHT11Sensor._humidity))
+                        break
+                    except RuntimeError as error:
+                        retries += 1
+                        if retries > 5:
+                            raise Exception("Maximum retries reached")
+                        Time.sleep(0.5)
+                        continue
+                    except Exception as error:
+                        print("temperatureWorker, Error: " + str(error), flush=True)
+                        raise error                    
+                Time.sleep(1)
+        finally:
+            print("temperatureWorker exit")
+            if DHT11Sensor:
+                DHT11Sensor.exit()
 
 def appStart():
     global _State, _Debug, _Camera, OCRModels, StateModels, settings
