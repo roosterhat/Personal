@@ -485,32 +485,32 @@ def manageSchedules():
 
 def temperatureWorker():
     while True:
-        print("temperatureWorker init")
+        print("temperatureWorker init", flush=True)
         DHT11Sensor = adafruit_dht.DHT11(board.D4)
         try:
             while True:
                 retries = 0            
                 while True:
-                    print("temperatureWorker begin attempt")
+                    print("temperatureWorker begin attempt", flush=True)
                     try:
                         DHT11Sensor.measure()
                         sensor["temperature"] = DHT11Sensor._temperature
                         sensor["humidity"] = DHT11Sensor._humidity
-                        print("temperatureWorker " + str(DHT11Sensor._temperature) + "," + str(DHT11Sensor._humidity))
+                        print("temperatureWorker " + str(DHT11Sensor._temperature) + "," + str(DHT11Sensor._humidity), flush=True)
                         break
                     except RuntimeError as error:
                         retries += 1
                         if retries > 5:
-                            raise Exception("Maximum retries reached")
+                            raise Exception("Maximum retries reached", flush=True)
                         Time.sleep(1)
                         continue
                     except Exception as error:
                         print("temperatureWorker, Error: " + str(error), flush=True)
                         raise error                    
                 Time.sleep(1)
-                print("temperatureWorker end attempt")
+                print("temperatureWorker end attempt", flush=True)
         finally:
-            print("temperatureWorker exit")
+            print("temperatureWorker exit", flush=True)
             if DHT11Sensor:
                 DHT11Sensor.exit()
 
