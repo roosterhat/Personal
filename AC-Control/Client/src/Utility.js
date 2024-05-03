@@ -34,10 +34,7 @@ function fetchWithToken(endpoint, method = "GET", body = null, headers = {}, all
                 resolve(response);
         }
         catch(ex) {
-            if(!allowUnauthorized)
-                window.location.reload();
-            else
-                reject(ex);
+            reject(ex);
         }
     });
 }
