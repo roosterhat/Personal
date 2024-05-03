@@ -14,6 +14,7 @@ class State:
         self.StateModels = StateModels
         self.DHT11Sensor = None
         if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
+            global board, adafruit_dht
             import board
             import adafruit_dht
 
