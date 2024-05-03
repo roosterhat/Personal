@@ -5,6 +5,5 @@ wsgi_app = "Server:appStart()"
 
 def worker_abort(worker):
     print("worker_abort")
-    print(worker.app.wsgi().test)
     worker.app.wsgi().cleanup()
     

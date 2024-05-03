@@ -29,13 +29,14 @@ fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
 class FlaskWrapper(Flask):
     def __init__(self):
         super().__init__(__name__, static_folder='../Client/build')
-        self.test = "test message"
 
     def cleanup(self):
-        print("cleanup", flush=True)
+        print("Cleanup", flush=True)
         if _Camera:
+            print("Release Camera", flush=True)
             _Camera.release()
         if DHT11Sensor:
+            print("Release DHT11 Sensor", flush=True)
             DHT11Sensor.exit()
 
 app = FlaskWrapper()
