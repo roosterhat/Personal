@@ -4,6 +4,7 @@ import Utility
 import numpy as np
 from PIL import ImageColor, Image
 import sys
+import traceback
 
 class State:
     def __init__(self, camera, OCRModels, StateModels, settings):
@@ -103,18 +104,19 @@ class State:
                 currentState["temperature"] = temperature
                 currentState["humidity"] = humidity
         except Exception:
+            print(traceback.format_exc())
             pass
 
         return currentState
     
     def readTemperatureAndHumidty(self):
         retries = 0
-        self.DHT11Sensor = adafruit_dht.DHT11(board.D4)
+        DHT11Sensor = adafruit_dht.DHT11(board.D4)
         while True:
             try:
-                self.DHT11Sensor.measure()
-                temperature = self.DHT11Sensor._temperature
-                humidity = self.DHT11Sensor._humidity
+                DHT11Sensor.measure()
+                temperature = DHT11Sensor._temperature
+                humidity = DHT11Sensor._humidity
                 return (temperature, humidity)
             except RuntimeError as error:
                 retries += 1
@@ -124,7 +126,7 @@ class State:
                 continue
             except Exception as error:
                 print("readTemperatureAndHumidty, Error: " + str(error))
-                self.DHT11Sensor.exit()
+                DHT11Sensor.exit()
                 raise error
 
     def stateChanged(self, newState, oldState):
