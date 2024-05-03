@@ -19,6 +19,7 @@ import Utility
 import traceback
 
 if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
+    global board, adafruit_dht
     import board
     import adafruit_dht
 
@@ -38,6 +39,7 @@ StateModels = {}
 settings = {}
 sensor = {}
 DHT11Sensor = None
+test = "test message"
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

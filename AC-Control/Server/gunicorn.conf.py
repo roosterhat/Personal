@@ -3,7 +3,8 @@ keyfile = "./certs/ACServer.key"
 certfile = "./certs/ACServer.crt"  
 wsgi_app = "Server:appStart()"
 
-def worker_exit(server, worker):
-    print("worker_exit")
-    server.app.wsgi().cleanup()
+def worker_abort(worker):
+    print("worker_abort")
+    print(worker.app.wsgi().test)
+    worker.app.wsgi().cleanup()
     
