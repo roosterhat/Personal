@@ -34,7 +34,7 @@ function fetchWithToken(endpoint, method = "GET", body = null, headers = {}, all
                 resolve(response);
         }
         catch(ex) {
-            if(!allowUnauthorized && response.status == 401)
+            if(!allowUnauthorized)
                 window.location.reload();
             else
                 throw ex;
