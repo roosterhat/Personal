@@ -5,6 +5,9 @@ import numpy as np
 from PIL import ImageColor, Image
 import sys
 import traceback
+if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
+    import board
+    import adafruit_dht
 
 class State:
     def __init__(self, camera, OCRModels, StateModels, settings):
@@ -12,11 +15,7 @@ class State:
         self.settings = settings
         self.OCRModels = OCRModels
         self.StateModels = StateModels
-        self.DHT11Sensor = None
-        if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
-            global board, adafruit_dht
-            import board
-            import adafruit_dht
+        self.DHT11Sensor = None        
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
