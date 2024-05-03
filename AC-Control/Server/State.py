@@ -15,11 +15,6 @@ class State:
         if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
             import board
             import adafruit_dht
-            try:                
-                self.DHT11Sensor = adafruit_dht.DHT11(board.D4)
-                print("Initialized DHT11 Sensor")
-            except Exception as ex:
-                print("No DHT11 Sensor found")
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
@@ -114,6 +109,7 @@ class State:
     
     def readTemperatureAndHumidty(self):
         retries = 0
+        self.DHT11Sensor = adafruit_dht.DHT11(board.D4)
         while True:
             try:
                 self.DHT11Sensor.measure()
