@@ -525,7 +525,7 @@ class Settings extends React.Component {
                     try{
                         await fetchWithToken('api/test/authorize')
                     }
-                    catch {}
+                    catch(ex) {}
                 }
             } 
         }
