@@ -490,10 +490,12 @@ def temperatureWorker():
             retries = 0
             DHT11Sensor = adafruit_dht.DHT11(board.D4)
             while True:
+                print("temperatureWorker attempt")
                 try:
                     DHT11Sensor.measure()
                     sensor["temperature"] = DHT11Sensor._temperature
                     sensor["humidity"] = DHT11Sensor._humidity
+                    print("temperatureWorker" + str(DHT11Sensor._temperature) + "," + str(DHT11Sensor._humidity))
                     break
                 except RuntimeError as error:
                     retries += 1
@@ -502,12 +504,13 @@ def temperatureWorker():
                     Time.sleep(0.5)
                     continue
                 except Exception as error:
-                    print("readTemperatureAndHumidty, Error: " + str(error), flush=True)
-                    DHT11Sensor.exit()
-                    Time.sleep(1000)
+                    print("temperatureWorker, Error: " + str(error), flush=True)
                     break
+                finally:
+                    DHT11Sensor.exit()
             Time.sleep(1000)
     finally:
+        print("temperatureWorker exit")
         if DHT11Sensor:
             DHT11Sensor.exit()
 
