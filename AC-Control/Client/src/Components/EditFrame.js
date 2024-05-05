@@ -1,7 +1,7 @@
 import React from 'react'
 import LoadingSpinner from './Spinners/loading1';
 import Button from './button';
-import { fetchWithToken, uuidv4 } from '../Utility';
+import { fetchWithToken, uuidv4, delay } from '../Utility';
 import Menu from './Menu';
 
 class EditFrame extends React.Component {
@@ -277,7 +277,7 @@ class EditFrame extends React.Component {
     triggerIr = async (id) => {
         try {
             const response = await fetchWithToken(`api/trigger/${this.Config.id}/${id}`)
-            await new Promise(resolve => setTimeout(resolve, this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100));
+            await delay(this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100);
             this.props.refresh();
         }
         catch(ex) {

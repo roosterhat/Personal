@@ -9,7 +9,7 @@ import Settings from './Settings';
 import EditActions from './EditActions';
 import Schedules from './EditSchedules';
 import Macros from './EditMacros';
-import { uuidv4, fetchWithToken, getCookie } from '../Utility';
+import { uuidv4, fetchWithToken, getCookie, delay } from '../Utility';
 import '../Styles/styles.scss'
 import Control from './Control';
 
@@ -108,7 +108,7 @@ class Main extends React.Component {
                         }
                         
                         <div className="canvas-container" id="canvas-container">
-                            { this.state.editFrame ? 
+                            { this.state.view == "frame" ? 
                                 <div className="editframe-refresh">
                                     <div className={"refresh" + (this.state.loadingFrame ? " loading" : "")} onClick={this.refreshEditFrame}><i className="fa-solid fa-arrows-rotate"></i></div>
                                 </div> : null 
@@ -353,7 +353,7 @@ class Main extends React.Component {
     triggerIr = async (id) => {
         try {
             const response = await fetchWithToken(`api/trigger/${this.Config.id}/${id}`)
-            await new Promise(resolve => setTimeout(resolve, this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100));
+            await delay(this.Settings && this.Settings.frameRefreshDelay ? this.Settings.frameRefreshDelay : 100);
             this.refreshFrameAndState();
         }
         catch(ex) {

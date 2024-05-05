@@ -18,10 +18,6 @@ from State import State
 import Utility
 import traceback
 
-if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
-    global board, adafruit_dht
-    import board
-    import adafruit_dht
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
 fileNamePattern = re.compile(rf'[^{ILLEGAL_CHARS}]+')
@@ -53,6 +49,12 @@ StateModels = {}
 settings = {}
 sensor = {}
 DHT11Sensor = None
+DEBUG = len(sys.argv) >= 2 and sys.argv[1] == 'debug'
+
+if not(DEBUG):
+    global board, adafruit_dht
+    import board
+    import adafruit_dht
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -349,7 +351,7 @@ def trigger(config, id):
         f.close()
 
 @app.route('/api/setstate/<config>', methods=["POST"])
-def setState_API(config):
+def setState(config):
     if not verifyToken():
         return "Unauthorized", 401
     if not Path.isfile('./Data/Configs/'+config):
@@ -550,7 +552,7 @@ def appStart():
     Thread(target=manageSessions).start()
     print("Starting Schedule Manager", flush=True)
     Thread(target=manageSchedules).start()
-    if not(len(sys.argv) >= 2 and sys.argv[1] == 'debug'):
+    if not(DEBUG):
         print("Starting Temperature Manager", flush=True)
         Thread(target=temperatureWorker).start()
     print("Loading Camera", flush=True)
@@ -570,7 +572,7 @@ def appStart():
     _State = State(_Camera, OCRModels, StateModels, settings, sensor)
     _Debug = Debug(_Camera, OCRModels, StateModels, _State)
     print("Loading Complete", flush=True)
-    if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
+    if DEBUG:
         try:
             app.run(host='0.0.0.0', port=3001, ssl_context=('cert.pem', 'key.pem'))    
         finally:
