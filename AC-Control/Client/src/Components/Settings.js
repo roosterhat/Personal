@@ -598,11 +598,11 @@ class Settings extends React.Component {
 
     getUptime = (date) => {
         const time = Date.now() - date.getTime()
-        const total_s = Math.floor(time / 1000) % 60
-        const total_m = Math.floor(total_s / 60) % 60
-        const total_h = Math.floor(total_m / 60) % 60
+        const total_s = Math.floor(time / 1000) 
+        const total_m = Math.floor(total_s / 60)
+        const total_h = Math.floor(total_m / 60)
         const total_d = Math.floor(total_h / 24)
-        return `${String(total_d).padStart(2, "0")}:${String(total_h).padStart(2, "0")}:${String(total_m).padStart(2, "0")}:${String(total_s).padStart(2, "0")}`
+        return `${String(total_d).padStart(2, "0")}:${String(total_h % 24).padStart(2, "0")}:${String(total_m % 60).padStart(2, "0")}:${String(total_s % 60).padStart(2, "0")}`
     }
 }
 
