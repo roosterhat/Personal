@@ -257,7 +257,7 @@ def getState_API(id, section = None):
         if "frame" not in config:
             return "No frame data", 400
         sections = None
-        if section and section in ["states", "power", "ocr"]:
+        if section and section in ["states", "power", "ocr", "basic"]:
             sections = [section]
         state = _State.getState(config, sections)
         if state:
