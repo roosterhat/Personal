@@ -12,6 +12,7 @@ class Settings extends React.Component {
         this.state = {
             settings: props.Settings,
             config: props.Config,
+            currentState: null,
             debugState: null,
             debugSetState: null,
             debugOCR: null,
@@ -25,10 +26,16 @@ class Settings extends React.Component {
             loadOCRDebug: false,
             loadingScheduleRuns: true,
             rebooting: false,
-            saving: false
+            saving: false,
+            systemStartTime: null,
+            serviceStartTime: null,
+            systemUptime: null,
+            serviceUptime: null
         }
 
         this.getScheduleRuns()
+        this.getState()
+        setInterval(this.updateUptime, 1000)
     }
 
     componentDidUpdate () {
@@ -93,6 +100,10 @@ class Settings extends React.Component {
                         {this.renderDebugOCR()}
                         {this.renderScheduleRuns()}
                         <div className='system-control'>
+                            <div style={{width: "100%"}}>
+                                <div>Service: {this.state.serviceUptime ? this.state.serviceUptime : "-"}</div>
+                                <div>System: {this.state.systemUptime ? this.state.systemUptime : "-"}</div>
+                            </div>
                             Restart
                             <button className='restart' onClick={this.restart}>{this.state.rebooting ? <LoadingSpinner id="spinner" /> : <i class="fa-solid fa-arrows-rotate"></i>}</button>
                             Reboot
@@ -379,6 +390,19 @@ class Settings extends React.Component {
         }
     }
 
+    getState = async () => {
+        try {
+            this.setState({loadingState: true});
+            var response = await fetchWithToken(`api/state/${this.state.config.id}/states`)
+            if(response.status == 200){
+                this.setState({currentState: await response.json()})
+            }
+        }
+        finally {
+            this.setState({loadingState: false});
+        }
+    }
+
     updateSettings = (key, value) => {
         this.state.settings[key] = value;
         this.setState({settings: this.state.settings})
@@ -556,6 +580,29 @@ class Settings extends React.Component {
         finally {
             this.setState({rebooting: false})
         }
+    }
+
+    updateUptime = () => {
+        if(this.state.currentState) {
+            if(!this.state.systemStartTime || !this.state.serviceStartTime){
+                this.setState({systemStartTime: new Date(this.state.currentState["systemStartTime"])})
+                this.setState({serviceStartTime: new Date(this.state.currentState["serviceStartTime"])})
+            }
+
+            if(this.state.systemStartTime && this.state.serviceStartTime) {
+                this.setState({systemUptime: this.getUptime(this.state.systemStartTime)})
+                this.setState({serviceUptime: this.getUptime(this.state.serviceStartTime)})
+            }
+        }
+    }
+
+    getUptime = (date) => {
+        const time = Date.now() - date.getTime()
+        const total_s = Math.floor(time / 1000) % 60
+        const total_m = Math.floor(total_s / 60) % 60
+        const total_h = Math.floor(total_m / 60) % 60
+        const total_d = Math.floor(total_h / 24)
+        return `${String(total_d).padStart(2, "0")}:${String(total_h).padStart(2, "0")}:${String(total_m).padStart(2, "0")}:${String(total_s).padStart(2, "0")}`
     }
 }
 

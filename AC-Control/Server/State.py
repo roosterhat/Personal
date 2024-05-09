@@ -14,6 +14,7 @@ class State:
         self.OCRModels = OCRModels
         self.StateModels = StateModels
         self.Sensor = sensor;        
+        self.StartTime = Time.localtime(Time.time())
 
     def sampleFrameEllipse(self, frame, state, config):
         shape = state["shape"]
@@ -101,7 +102,18 @@ class State:
         if "humidity" in self.Sensor:
             currentState["humidity"] = self.Sensor["humidity"]
 
+        currentState["systemStartTime"] = Time.strftime("%Y/%m/%d %H:%M:%S", self.getSystemStartTime())
+        currentState["serviceStartTime"] = Time.strftime("%Y/%m/%d %H:%M:%S", self.StartTime)
+
         return currentState
+
+    def getSystemStartTime(self):
+        if len(sys.argv) >= 2 and sys.argv[1] == 'debug':
+            return Time.localtime(Time.time())
+        
+        with open('/proc/uptime', 'r') as f:
+            uptime_seconds = float(f.readline().split()[0])
+        return Time.localtime(Time.time() - uptime_seconds)
 
     def stateChanged(self, newState, oldState):
         try:
