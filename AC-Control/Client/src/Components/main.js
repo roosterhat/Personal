@@ -118,14 +118,16 @@ class Main extends React.Component {
                         </div>  
                         {this.Config && this.Config.macros.length > 0 && !this.state.editFrame && !this.state.editRemote? 
                             <div className={"btn-container macros-container " + (this.state.showMacros ? "show" : "hidden")}>
-                                {this.Config.macros.map(x => 
-                                    <button className="btn" onClick={() => this.triggerMacro(x)} key={x.name}>
-                                        {this.state.triggeringMacro ? 
-                                            <LoadingSpinner id="spinner"/>
-                                            : <i className={x.icon}></i>
-                                        }                                        
-                                    </button>    
-                                )}
+                                <div className="macros-inner-container">
+                                    {this.Config.macros.map(x => 
+                                        <button className="btn" onClick={() => this.triggerMacro(x)} key={x.name}>
+                                            {this.state.triggeringMacro ? 
+                                                <LoadingSpinner id="spinner"/>
+                                                : <i className={x.icon}></i>
+                                            }                                        
+                                        </button>    
+                                    )}
+                                </div>
                             </div>
                             : null
                         }

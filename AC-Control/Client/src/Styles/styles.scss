@@ -1187,16 +1187,23 @@ body {
     }
 }
 
-.macros-container {
-    justify-content: center;
-    align-items: center;
-    margin-top: 5px;
+.macros-container {    
+    display: block;
     position: fixed;
     bottom: 0;
     width: 100%;
     transition: all 0.2s ease;
     background: #ffffffd6;
     padding: 10px 0px;
+    overflow-x: auto;
+
+    .macros-inner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: max-content;
+        min-width: 100%;
+    }
 
     &.hidden {
         transform: translateY(100%);
@@ -1212,6 +1219,7 @@ body {
 }
 
 .macros {
+    transition: all 0.2s ease;
     &.expand {
         i {
             transform: rotate(-90deg)
@@ -1219,6 +1227,7 @@ body {
     }
 
     &.retract {
+        transform: translateY(-70px);
         i {
             transform: rotate(90deg)
         }
