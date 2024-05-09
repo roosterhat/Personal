@@ -401,7 +401,7 @@ class Main extends React.Component {
         if(!(this.Config.frame && this.Config.frame.states && this.Config.frame.states.length > 0)) return;
         try {
             this.setState({loadingState: true});
-            var response = await fetchWithToken(`api/state/${this.Config.id}/states`)
+            var response = await fetchWithToken(`api/state/${this.Config.id}`)
             if(response.status == 200){
                 this.setState({currentState: await response.json()})
             }

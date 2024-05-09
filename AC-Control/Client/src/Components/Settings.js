@@ -393,7 +393,7 @@ class Settings extends React.Component {
     getState = async () => {
         try {
             this.setState({loadingState: true});
-            var response = await fetchWithToken(`api/state/${this.state.config.id}/states/basic`)
+            var response = await fetchWithToken(`api/state/${this.state.config.id}/basic`)
             if(response.status == 200){
                 this.setState({currentState: await response.json()})
             }
