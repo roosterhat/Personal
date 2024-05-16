@@ -61,15 +61,14 @@ class Control extends React.Component {
 
         window.onmousemove = event => {
             if(this.state.dragging){
-                this.QueueEvent(event, () => {
-                    const currentTemperature = this.getTemperature()
-                    const newTemperature = this.getClosestTemperature(event)
-                    if(currentTemperature != newTemperature) {
-                        this.state.targetState.ocr.find(x => x.name == "Temperature").value = newTemperature
-                        this.setState({targetStateChanged: true})
-                        this.update()
-                    }
-                })
+                this.QueueEvent(event, () => this.onDrag(event))
+            }
+        }
+
+        window.ontouchmove = event => {
+            console.log(event)
+            if(this.state.dragging){
+                this.QueueEvent(event, () => this.onDrag({x: event.touches[0].clientX, y: event.touches[0].clientY}))
             }
         }
 
@@ -77,9 +76,17 @@ class Control extends React.Component {
             this.setState({dragging: false})
         }
 
+        window.ontouchend = event => {
+            this.setState({dragging: false})
+        }
+
         const pointElement = document.getElementById("point")
 
         pointElement.addEventListener("mousedown", event => {
+            this.setState({dragging: true})
+        })
+
+        pointElement.addEventListener("touchstart", event => {
             this.setState({dragging: true})
         })
 
@@ -171,6 +178,16 @@ class Control extends React.Component {
                 </button>    
             </div>
         )
+    }
+
+    onDrag = event => {
+        const currentTemperature = this.getTemperature()
+        const newTemperature = this.getClosestTemperature(event)
+        if(currentTemperature != newTemperature) {
+            this.state.targetState.ocr.find(x => x.name == "Temperature").value = newTemperature
+            this.setState({targetStateChanged: true})
+            this.update()
+        }
     }
 
     isOn = () => {
