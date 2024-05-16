@@ -355,7 +355,7 @@ class Control extends React.Component {
             var body = JSON.stringify(target)
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
             if(response.status == 200){
-                this.setState({currentState: this.state.targetState})
+                this.setState({currentState: JSON.parse(JSON.stringify(this.state.targetState))})
             } 
             else {
                 this.displayError(await response.text())
