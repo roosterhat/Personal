@@ -1454,10 +1454,24 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #86c6ff;
+    flex-direction: column;    
     position: relative;
     width: 100%;
     height: 100%;
+    gap: 24px;
+    transition: all 0.5s ease;
+
+    &.on {
+        background: #86c6ff;
+    }
+
+    &.off {
+        background: #8d8d8d;
+
+        .dial-container {
+            opacity: 0.5;
+        }
+    }
 
     .btn {
         background: #ffffff82;
@@ -1470,6 +1484,7 @@ body {
         width: 100%;
         height: max-content;
         position: relative;
+        transition: all 0.5s ease;
 
         .dial {
             max-width: 500px;
@@ -1480,7 +1495,7 @@ body {
             .track, .arc {
                 position: absolute;
                 width: 100%;
-            }
+            }           
         }
 
         .temperature {
@@ -1530,6 +1545,36 @@ body {
             &.disabled {
                 display: none;
             }
+        }        
+    }
+
+    .power {
+        width: 60px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: solid 1px #494949;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        
+        &.on {
+            background: #57ff94;
+            outline: solid 2px #57ff94;
+        }
+
+        &.off {
+            background: #ff5757;
+            outline: solid 2px #ff5757;
+        }
+
+        &.loading {
+            i {
+                animation: rotate 1s linear infinite;
+            }
+        }
+
+        i {
+            color: white;
+            font-size: 20px;
         }
     }
 

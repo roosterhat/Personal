@@ -22,7 +22,9 @@ class Control extends React.Component {
             loadingState: false,
             initalLoading: true,
             pointCoordinates: null,
-            dragging: false
+            dragging: false,
+            on: false,
+            loadingSetState: false
         }        
         this.UpdateQueue.push(this.init)
         this.refreshState()
@@ -94,11 +96,13 @@ class Control extends React.Component {
         }
         else {
             return (
-                <div className="control">
+                <div className={"control " + (this.isOn() ? "on" : "off")} >
                     {this.renderTemperatureRing()}
-                    <button></button>
                     {this.renderMenu()}
                     {this.renderMacros()}
+                    <button className={"power" + (this.isOn() ? " on" : " off") + (this.state.loadingSetState ? " loading" : "")} onClick={this.togglePower}>
+                        {this.state.loadingSetState ? <i className="fa-solid fa-arrows-rotate"></i> : <i className="fa-solid fa-power-off"></i>}
+                    </button>  
                 </div>
             );
         }
@@ -143,7 +147,7 @@ class Control extends React.Component {
                             </path>
                         </svg>
                     </div>
-                    {this.state.targetState ?
+                    {this.isOn() && this.state.targetState ?
                         <div className="arc">
                             <svg viewBox="0 0 110 110">
                                 <path d={`M 19.645 90.355
@@ -153,20 +157,24 @@ class Control extends React.Component {
                         </div>
                         : null 
                     }
-                    <div className={"point " + (this.state.targetState ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div>
+                    {this.isOn() ? <div className={"point " + (this.state.targetState ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div> : null}                   
                 </div>
                 <div className="temperature">
-                    {this.state.targetState && this.state.targetState.ocr && !this.state.loadingState ? 
+                    {this.isOn() ? (this.state.targetState && this.state.targetState.ocr && !this.state.loadingState ? 
                          this.getTemperature()
-                        : <LoadingSpinner id="spinner"/>}
+                        : <LoadingSpinner id="spinner"/>) : null}
                 </div>
                 <button className="mode">
-                    {this.state.targetState && this.state.targetState.states && !this.state.loadingState ? 
+                    {this.isOn() ? (this.state.targetState && this.state.targetState.states && !this.state.loadingState ? 
                         this.state.targetState.states.find(x => x.active).name 
-                        : <LoadingSpinner id="spinner"/>}
-                </button>
+                        : <LoadingSpinner id="spinner"/>) : null}
+                </button>    
             </div>
         )
+    }
+
+    isOn = () => {
+        return this.state.targetState && this.state.targetState.power.active
     }
 
     getClosestTemperature = (coordinates) => {
@@ -232,6 +240,41 @@ class Control extends React.Component {
         finally {
             this.UpdateQueue.push(this.update)
             this.setState({loadingState: false, initalLoading: false, targetStateChanged: false});
+        }
+    }
+
+    togglePower = async () => {
+        this.state.targetState.power.active = !this.state.targetState.power.active
+        if(!await this.setTargetState()) {
+            this.state.targetState.power.active = !this.state.targetState.power.active
+            this.setState({targetState: this.state.targetState})
+        }
+    }
+
+    setTargetState = async () => {
+        if(this.state.loadingState) return;
+        try{
+            this.setState({loadingSetState: true})
+            var temperature = this.state.targetState.ocr.find(x => x.name == "Temperature")
+            var target = {
+                power: this.state.targetState.power,
+                ocr: [{id: temperature.id, buttons: temperature.buttons, name: temperature.name, target: temperature.value}],
+                states: [this.state.targetState.states.find(x => x.active)]
+            }
+            var body = JSON.stringify(target)
+            var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
+            if(response.status == 200){
+                this.setState({currentState: this.state.targetState})
+                return true
+            } 
+            return false
+        }
+        catch(ex) {
+            console.log(ex)
+            return false
+        }
+        finally {
+            this.setState({loadingSetState: false})
         }
     }
 }
