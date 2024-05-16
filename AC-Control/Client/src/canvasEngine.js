@@ -25,7 +25,6 @@ class CanvasEngine {
     };
 
     Init() {
-        console.log("Init")
         this.canvas = document.getElementById("canvas")
         this.context = this.canvas.getContext("2d");
         this.RefreshDimensions()
