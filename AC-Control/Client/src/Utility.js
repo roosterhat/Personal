@@ -65,7 +65,6 @@ function interpolateColors(colors, percent) {
     const color1 = colors[index]
     const color2 = colors[index + 1]    
     const sectionPercent = (percent - index / sections) / (1 / sections)
-    console.log(percent, sectionPercent, index)
 
     const r1 = parseInt(color1.substring(1, 3), 16);
     const g1 = parseInt(color1.substring(3, 5), 16);
