@@ -67,7 +67,7 @@ class Main extends React.Component {
             );
         }
         else if(this.Settings && this.Settings.UIView == "control") {
-            return <Control Config={this.state.Config} Settings={this.Settings} />
+            return <Control Config={this.Config} Settings={this.Settings} onSwitchView={this.switchView} />
         }
         else if(this.state.loggedIn){
             return (
@@ -173,7 +173,8 @@ class Main extends React.Component {
                     { this.Config ? <button className="btn" onClick={() => this.switchTo("schedules")}><i className="fa-regular fa-clock"></i></button> : null }
                     { this.Config ? <button className="btn" onClick={() => this.switchTo("macros")}><i className="fa-solid fa-clapperboard"></i></button> : null }
                     <button className="btn" onClick={() => this.setState({showConfigSelect: true})}><i className="fa-regular fa-folder-open"></i></button>
-                    { this.Settings ? <button className="btn" onClick={() => this.switchTo("settings")}><i className="fa-solid fa-gear"></i></button> : null }
+                    <button className="btn" onClick={() => this.switchView()}><i className="far fa-clone"></i></button> 
+                    { this.Settings ? <button className="btn" onClick={() => this.switchTo("settings")}><i className="fa-solid fa-gear"></i></button> : null }                    
                     <div className="spacer"></div>
                     { this.Settings && this.Config && this.Config.macros.length > 0 ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i className="fa-solid fa-angles-right"></i></button> : null }
                 </div>
@@ -204,6 +205,14 @@ class Main extends React.Component {
         var settings = JSON.parse(JSON.stringify(this.Settings));
         var config = JSON.parse(JSON.stringify(this.Config));
         this.setState({view: view, EditConfig: config, EditSetting: settings})
+    }
+
+    switchView = async () => {
+        this.Settings.UIView = this.Settings.UIView == "main" ? "control" : "main"
+        if(this.Settings.UIView == "main")   
+            this.UpdateQueue.push(this.setupCanvasAndFrame)
+        this.setState({})
+        await this.saveSettings();        
     }
 
     completeView = async () => {
@@ -401,7 +410,7 @@ class Main extends React.Component {
         if(!(this.Config.frame && this.Config.frame.states && this.Config.frame.states.length > 0)) return;
         try {
             this.setState({loadingState: true});
-            var response = await fetchWithToken(`api/state/${this.Config.id}`)
+            var response = await fetchWithToken(`api/state/${this.Config.id}/states`)
             if(response.status == 200){
                 this.setState({currentState: await response.json()})
             }

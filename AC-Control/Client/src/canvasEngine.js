@@ -154,7 +154,8 @@ class CanvasEngine {
         })
 
         window.onresize = event => {
-            this.QueueEvent(event, () => this.RefreshDimensions())
+            if(this.canvas.offsetParent !== null)
+                this.QueueEvent(event, () => this.RefreshDimensions())
         };
 
         setInterval(this.ProcessEventQueue, this.refreshRate * 1000, this.eventQueue)
