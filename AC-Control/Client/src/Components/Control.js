@@ -228,6 +228,7 @@ class Control extends React.Component {
         if(currentTemperature != newTemperature) {
             this.state.targetState.ocr.find(x => x.name == "Temperature").value = newTemperature
             this.update()
+            navigator.vibrate(200)
         }
     }
 
