@@ -1,6 +1,6 @@
 import React from 'react'
 import LoadingSpinner from './Spinners/loading1';
-import { fetchWithToken } from '../Utility';
+import { fetchWithToken, delay } from '../Utility';
 
 class Control extends React.Component {
     constructor(props){
@@ -24,7 +24,10 @@ class Control extends React.Component {
             pointCoordinates: null,
             dragging: false,
             on: false,
-            loadingSetState: false
+            loadingSetState: false,
+            displayModes: false,
+            displayError: false,
+            errorMessage: null
         }        
         this.UpdateQueue.push(this.init)
         this.refreshState()
@@ -89,29 +92,38 @@ class Control extends React.Component {
             this.setState({dragging: true})
         })
 
+        const controlElement = document.getElementById("control")
+
+        controlElement.addEventListener("click", event => {
+            this.setState({displayModes: false})
+        })
+
+        const modesElement = document.getElementById("modes")
+
+        modesElement.addEventListener("click", event => {
+            if(event.target.tagName !== "BUTTON")
+                event.stopPropagation()
+        })
+
         setInterval(this.ProcessEventQueue, 1 / 24 * 1000, this.eventQueue)
     }
 
     render = () => {
-        if(this.initalLoading) {
-            return (
-                <div className="loading-container">
-                    <LoadingSpinner id="spinner"/>
+        return (
+            <div className={"control " + (this.isOn() ? "on" : "off")} id="control">
+                <div className="sensor">
+                    <div>{this.getSensorTemperature()}</div>
+                    <div>{this.getSensorHumidity()}</div>
                 </div>
-            );
-        }
-        else {
-            return (
-                <div className={"control " + (this.isOn() ? "on" : "off")} >
-                    {this.renderTemperatureRing()}
-                    {this.renderMenu()}
-                    {this.renderMacros()}
-                    <button className={"power" + (this.isOn() ? " on" : " off") + (this.state.loadingSetState ? " loading" : "")} onClick={this.togglePower}>
-                        {this.state.loadingSetState ? <i className="fa-solid fa-arrows-rotate"></i> : <i className="fa-solid fa-power-off"></i>}
-                    </button>  
-                </div>
-            );
-        }
+                {this.renderTemperatureRing()}
+                {this.renderMenu()}
+                {this.renderMacros()}
+                <button className={"power" + (this.isOn() ? " on" : " off") + (this.state.loadingSetState ? " loading" : "")} onClick={this.togglePower}>
+                    {this.state.loadingSetState ? <i className="fa-solid fa-arrows-rotate"></i> : <i className="fa-solid fa-power-off"></i>}
+                </button>  
+                <div className={"error" + (this.state.displayError ? "" : " disabled")}>{this.state.errorMessage}</div>
+            </div>
+        );
     }
 
     renderMacros = () => {
@@ -144,7 +156,7 @@ class Control extends React.Component {
 
     renderTemperatureRing = () => {
         return (
-            <div className="dial-container">
+            <div className="dial-container">                
                 <div className="dial">
                     <div className="track" id="track">
                         <svg viewBox="0 0 110 110">
@@ -166,17 +178,36 @@ class Control extends React.Component {
                     <div className={"point " + (this.isOn() && this.state.targetState ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div>                  
                 </div>
                 <div className="temperature">
-                    {this.isOn() ? (this.state.targetState && this.state.targetState.ocr && !this.state.loadingState ? 
+                    {this.isOn() || this.state.initalLoading ? (!this.state.initalLoading && this.state.targetState && this.state.targetState.ocr && !this.state.loadingState ? 
                          this.getTemperature()
                         : <LoadingSpinner id="spinner"/>) : null}
                 </div>
-                <button className="mode">
-                    {this.isOn() ? (this.state.targetState && this.state.targetState.states && !this.state.loadingState ? 
-                        this.state.targetState.states.find(x => x.active).name 
-                        : <LoadingSpinner id="spinner"/>) : null}
-                </button>    
+                <div className="mode-container">
+                    <button className="mode" onClick={this.setDisplayModes}>
+                        {this.isOn() ? (this.state.targetState && this.state.targetState.states && !this.state.loadingState ? 
+                            this.state.targetState.states.find(x => x.active).name 
+                            : <LoadingSpinner id="spinner"/>) : null}
+                    </button>    
+                    <div className={"modes" + (this.state.displayModes ? "" : " disabled")} id="modes">
+                        {this.state.currentState && this.state.currentState.states ? (this.state.currentState.states.map(x => 
+                            <button key={x.name} onClick={() => this.setMode(x)}>{x.name}</button>
+                        )) : null}
+                    </div>
+                </div>
             </div>
         )
+    }
+
+    setMode = async (mode) => {
+        for(var state of this.state.targetState.states)
+            state.active = state.name == mode.name
+        this.setState({targetState: this.state.targetState, displayModes: false})
+        await this.setTargetState()
+    }
+
+    setDisplayModes = () => {
+        if(this.isOn())
+            this.setState({displayModes: true})
     }
 
     onDrag = event => {
@@ -186,6 +217,7 @@ class Control extends React.Component {
             this.state.targetState.ocr.find(x => x.name == "Temperature").value = newTemperature
             this.setState({targetStateChanged: true})
             this.update()
+            this.setTemperature(newTemperature)
         }
     }
 
@@ -203,7 +235,7 @@ class Control extends React.Component {
         const dy = coordinates.y - (trackDims.y + trackDims.height / 2)
         const angle = Math.atan(dy / dx) * (180 / Math.PI) + (dx > 0 ? 180 : 0)
         const percent = (angle + 45) / 270
-        const temperature = Math.min(Math.max(Math.round((this.Settings.maxTemperature - this.Settings.minTemperature) * percent + this.Settings.minTemperature), this.Settings.minTemperature), this.Settings.maxTemperature)
+        const temperature = this.boundTemperature(Math.round((this.Settings.maxTemperature - this.Settings.minTemperature) * percent + this.Settings.minTemperature))
         return temperature;
     }
 
@@ -213,9 +245,13 @@ class Control extends React.Component {
 
     getTemperature = () => {
         if(this.state.targetState && this.state.targetState.ocr)
-            return this.state.targetState.ocr.find(x => x.name == "Temperature").value
+            return this.boundTemperature(this.state.targetState.ocr.find(x => x.name == "Temperature").value)
         else
             return null
+    }
+
+    boundTemperature = (temperature) => {
+        return Math.min(Math.max(temperature, this.Settings.minTemperature), this.Settings.maxTemperature)
     }
 
     calculatePointCoordinates = () => {
@@ -259,12 +295,16 @@ class Control extends React.Component {
         }
     }
 
+    setTemperature = async (target) => {
+        await delay(2000)
+        if(target == this.getTemperature())
+            await this.setTargetState()
+    }
+
     togglePower = async () => {
+        if(this.state.loadingState) return;
         this.state.targetState.power.active = !this.state.targetState.power.active
-        if(!await this.setTargetState()) {
-            this.state.targetState.power.active = !this.state.targetState.power.active
-            this.setState({targetState: this.state.targetState})
-        }
+        await this.setTargetState()
     }
 
     setTargetState = async () => {
@@ -281,17 +321,40 @@ class Control extends React.Component {
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
             if(response.status == 200){
                 this.setState({currentState: this.state.targetState})
-                return true
             } 
-            return false
+            else {
+                this.displayError(await response.text())
+                await this.refreshState()
+            }
         }
         catch(ex) {
             console.log(ex)
-            return false
         }
         finally {
             this.setState({loadingSetState: false})
         }
+    }
+
+    getSensorTemperature = () => {
+        if(!this.state.currentState || !this.state.currentState.humidity)
+            return null
+        else if(this.Settings.temperatureUnit == "C")
+            return this.state.currentState.temperature + "ºC"
+        else 
+            return Math.round(this.state.currentState.temperature * (9 / 5) + 32) + "ºF"
+    }
+
+    getSensorHumidity = () => {
+        if(this.state.currentState && this.state.currentState.humidity)
+            return this.state.currentState.humidity + "%"
+        else
+            return null
+    }
+
+    displayError = async error => {
+        this.setState({displayError: true, errorMessage: error})
+        await delay(5000)
+        this.setState({displayError: false})
     }
 }
 

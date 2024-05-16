@@ -67,7 +67,7 @@ class Main extends React.Component {
             );
         }
         else if(this.Settings && this.Settings.UIView == "control") {
-            return <Control Config={this.Config} Settings={this.Settings} onSwitchView={this.switchView} />
+            return <Control Config={this.Config} Settings={this.Settings} State={this.state.currentState} onSwitchView={this.switchView} />
         }
         else if(this.state.loggedIn){
             return (

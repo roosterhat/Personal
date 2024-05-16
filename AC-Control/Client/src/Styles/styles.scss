@@ -1460,6 +1460,7 @@ body {
     height: 100%;
     gap: 24px;
     transition: all 0.5s ease;
+    overflow: hidden;
 
     &.on {
         background: #86c6ff;
@@ -1477,14 +1478,21 @@ body {
         background: #ffffff82;
     }
 
+    .sensor {
+        display: flex;
+        color: white;
+        gap: 12px;
+    }
+
     .dial-container {
         display: flex;
         justify-content: center;
         align-items: center;
+        flex-direction: column;
         width: 100%;
         height: max-content;
         position: relative;
-        transition: all 0.5s ease;
+        transition: all 0.5s ease;        
 
         .dial {
             max-width: 500px;
@@ -1509,25 +1517,72 @@ body {
             }
         }
 
-        .mode {
-            position: absolute;
-            font-size: calc(min(100vw / 500, 1px) * 24);
-            font-family: sans-serif;
-            color: white;
-            bottom: 0;
-            border-radius: 15px;
-            background: #fff3;
-            padding: 5px 15px;
-            border: none;
-            min-width: 100px;
-            min-height: 40px;
+        .mode-container {
             display: flex;
-            align-items: center;
             justify-content: center;
-            cursor: pointer;
+            position: absolute;
+            bottom: 0;
 
-            .lds-ring {
-                width: calc(min(100vw / 500, 1px) * 25);
+            .mode {                
+                font-size: calc(min(100vw / 500, 1px) * 24);
+                font-family: sans-serif;
+                color: white;                
+                border-radius: 15px;
+                background: #fff3;
+                padding: 5px 15px;
+                border: none;
+                min-width: 100px;
+                min-height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+
+                .lds-ring {
+                    width: calc(min(100vw / 500, 1px) * 25);
+                }
+            }
+
+            .modes {
+                position: absolute;
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+                min-width: 200px;
+                min-height: 200px;
+                background: #ffffffde;
+                border: solid 6px #ffffffa6;
+                padding: 12px;
+                border-radius: 10px;
+                align-items: center;
+                justify-content: center;
+                transform: translateY(-120%);
+                transition: all 0.25s cubic-bezier(0.18, 0.89, 0.26, 1.06), opacity 0.35s ease-out;
+                z-index: 1;
+        
+                &.disabled { 
+                    min-width: 0px;
+                    min-height: 0px;
+                    width: 100%;
+                    height: 100%;
+                    overflow: hidden;
+                    transform: translateY(0);
+                    opacity: 0;
+                    z-index: -1;
+                    transition: all 0.25s ease-in, opacity 0.2s ease-in;
+                }
+        
+                button {
+                    min-width: 150px;
+                    height: 40px;
+                    background: #ffffffc7;
+                    border: none;
+                    border-radius: 10px;
+                    box-shadow: 0px 0px 3px 0px #0000003d;
+                    font-size: calc(min(0.2vw, 1px) * 24);
+                    font-family: sans-serif;
+                    color: #717171;
+                }
             }
         }
 
@@ -1555,6 +1610,7 @@ body {
         border: solid 1px #494949;
         cursor: pointer;
         transition: all 0.25s ease;
+        box-shadow: 0px 0px 7px 0px #474747;
         
         &.on {
             background: #57ff94;
@@ -1575,6 +1631,26 @@ body {
         i {
             color: white;
             font-size: 20px;
+        }
+    }    
+
+    .error {
+        position: absolute;
+        bottom: 24px;
+        padding: 8px 24px;
+        border-radius: 10px;
+        background: rgb(255, 43, 43);
+        color: white;
+        font-family: sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        transform: translateY(0px);
+        transition: all 0.25s cubic-bezier(0.18, 0.89, 0.26, 1.06), opacity 0.35s ease-out;
+
+        &.disabled { 
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.25s ease-in, opacity 0.2s ease-in;
         }
     }
 

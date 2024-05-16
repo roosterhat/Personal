@@ -362,8 +362,11 @@ def setState(config):
         body = request.get_json(force = True, silent = True)
         if body is None:
             return 'No state data', 400
-        _State.setState(config, body)
-        return "Success", 200
+        error = _State.setState(config, body)
+        if error:
+            return error, 500
+        else:
+            return "Success", 200
     except Exception as ex:
         print(traceback.format_exc())
         return "Failed", 500
