@@ -213,7 +213,7 @@ class Control extends React.Component {
     getBackgroundColor = () => {
         const temperature = this.getSensorTemperatureValue()
         if(!temperature) return "#86c6ff"
-        const percentage = Math.min(Math.max(temperature - 70, 0) / (88 - 70), 1)
+        const percentage = Math.min(Math.max(temperature - 70, 0) / (85 - 70), 1)
         return interpolateColors(["#86c6ff", "#7bffb1", "#f77c7c"], percentage)
     }
 
@@ -228,7 +228,6 @@ class Control extends React.Component {
         if(currentTemperature != newTemperature) {
             this.state.targetState.ocr.find(x => x.name == "Temperature").value = newTemperature
             this.update()
-            //this.setTemperature(newTemperature)
         }
     }
 
@@ -336,8 +335,6 @@ class Control extends React.Component {
     }
 
     togglePower = async () => {
-        console.log("togglePower")
-        console.log(this.state.targetState)
         if(this.state.loadingState) return;
         this.state.targetState.power.active = !this.state.targetState.power.active
         await this.setTargetState(["power"])
