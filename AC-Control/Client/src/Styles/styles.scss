@@ -1556,7 +1556,6 @@ body {
                 flex-direction: column;
                 gap: 24px;
                 min-width: 200px;
-                min-height: 200px;
                 background: #ffffffed;
                 border: solid 6px #ffffffa6;
                 padding: 12px;
@@ -1569,7 +1568,6 @@ body {
         
                 &.disabled { 
                     min-width: 0px;
-                    min-height: 0px;
                     width: 100%;
                     height: 100%;
                     overflow: hidden;
@@ -1585,7 +1583,7 @@ body {
                     background: #ffffffc7;
                     border: none;
                     border-radius: 10px;
-                    box-shadow: 0px 0px 3px 0px #0000003d;
+                    box-shadow: 0px 0px 14px -8px #000;
                     font-size: calc(min(0.2vw, 1px) * 24);
                     font-family: sans-serif;
                     color: #717171;
@@ -1614,19 +1612,17 @@ body {
         width: 60px;
         aspect-ratio: 1;
         border-radius: 50%;
-        border: solid 1px #494949;
+        border: none;
         cursor: pointer;
         transition: all 0.25s ease;
-        box-shadow: 0px 0px 7px 0px #474747;
+        box-shadow: 0px 0px 13px -5px #474747;
         
         &.on {
             background: #57ff94;
-            outline: solid 2px #57ff94;
         }
 
         &.off {
             background: #ff5757;
-            outline: solid 2px #ff5757;
         }
 
         &.loading {

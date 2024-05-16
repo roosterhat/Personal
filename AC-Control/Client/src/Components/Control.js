@@ -1,6 +1,6 @@
 import React from 'react'
 import LoadingSpinner from './Spinners/loading1';
-import { fetchWithToken, delay } from '../Utility';
+import { fetchWithToken, delay, interpolateColors } from '../Utility';
 
 class Control extends React.Component {
     constructor(props){
@@ -114,7 +114,7 @@ class Control extends React.Component {
 
     render = () => {
         return (
-            <div className={"control " + (this.isOn() ? "on" : "off")} id="control">                
+            <div className={"control " + (this.isOn() ? "on" : "off")} id="control" style={{background: this.getBackgroundColor()}}>                
                 {this.renderTemperatureRing()}
                 {this.renderMenu()}
                 {this.renderMacros()}
@@ -201,6 +201,13 @@ class Control extends React.Component {
             </div>
         )
     }    
+
+    getBackgroundColor = () => {
+        const temperature = this.getSensorTemperature()
+        if(!temperature) return "#86c6ff"
+        const percentage = Math.min(Math.max(temperature - 70, 0) / (88 - 70), 1)
+        return interpolateColors(["#86c6ff", "#7bffb1", "#f77c7c"], percentage)
+    }
 
     setDisplayModes = () => {
         if(this.isOn())
@@ -345,9 +352,6 @@ class Control extends React.Component {
                 this.displayError(await response.text())
                 await this.refreshState()
             }
-        }
-        catch(ex) {
-            console.log(ex)
         }
         finally {
             this.setState({loadingSetState: false})
