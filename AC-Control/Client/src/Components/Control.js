@@ -337,7 +337,7 @@ class Control extends React.Component {
     togglePower = async () => {
         if(this.state.loadingState) return;
         this.state.targetState.power.active = !this.state.targetState.power.active
-        await this.setTargetState(["power"])
+        await this.setTargetState(["states"])
     }
 
     setTargetState = async (types) => {
