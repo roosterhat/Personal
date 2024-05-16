@@ -322,7 +322,7 @@ class Control extends React.Component {
     }
 
     setTemperature = async (target) => {
-        await delay(2000)
+        await delay(1000)
         const currentTemperature = this.state.currentState.ocr.find(x => x.name == "Temperature").value
         console.log(this.state.dragging, target, currentTemperature, this.getTemperature())
         if(!this.state.dragging && target != currentTemperature && target == this.getTemperature())
