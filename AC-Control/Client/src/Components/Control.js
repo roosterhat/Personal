@@ -66,7 +66,6 @@ class Control extends React.Component {
         }
 
         window.ontouchmove = event => {
-            console.log(event)
             if(this.state.dragging){
                 this.QueueEvent(event, () => this.onDrag({x: event.touches[0].clientX, y: event.touches[0].clientY}))
             }
