@@ -78,11 +78,19 @@ class Control extends React.Component {
         }
 
         window.onmouseup = event => {
-            this.setState({dragging: false})
+            const dragging = this.state.dragging;
+            this.state.dragging = false;
+            if(dragging){
+                this.QueueEvent(event, () => this.setTemperature(this.getTemperature()))
+            }            
         }
 
         window.ontouchend = event => {
-            this.setState({dragging: false})
+            const dragging = this.state.dragging;
+            this.state.dragging = false;
+            if(dragging){
+                this.QueueEvent(event, () => this.setTemperature(this.getTemperature()))
+            } 
         }
 
         const pointElement = document.getElementById("point")
@@ -219,9 +227,8 @@ class Control extends React.Component {
         const newTemperature = this.getClosestTemperature(event)
         if(currentTemperature != newTemperature) {
             this.state.targetState.ocr.find(x => x.name == "Temperature").value = newTemperature
-            this.setState({targetStateChanged: true})
             this.update()
-            this.setTemperature(newTemperature)
+            //this.setTemperature(newTemperature)
         }
     }
 
@@ -290,7 +297,7 @@ class Control extends React.Component {
             var response = await fetchWithToken(`api/state/${this.Config.id}`)
             if(response.status == 200){
                 var json = await response.json()
-                this.setState({currentState: json, targetState: json, hasSensor: json.temperature != null || json.humidity != null})
+                this.setState({currentState: JSON.parse(JSON.stringify(json)), targetState: json, hasSensor: json.temperature != null || json.humidity != null})
             }
         }
         finally {
@@ -316,7 +323,9 @@ class Control extends React.Component {
 
     setTemperature = async (target) => {
         await delay(2000)
-        if(target == this.getTemperature())
+        const currentTemperature = this.state.currentState.ocr.find(x => x.name == "Temperature").value
+        console.log(this.state.dragging, target, currentTemperature, this.getTemperature())
+        if(!this.state.dragging && target != currentTemperature && target == this.getTemperature())
             await this.setTargetState(["ocr"])
     }
 
