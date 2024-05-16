@@ -29,7 +29,8 @@ class Control extends React.Component {
             displayModes: false,
             displayError: false,
             errorMessage: null,
-            hasSensor: false
+            hasSensor: false,
+            triggeringMacro: false
         }        
         this.UpdateQueue.push(this.init)
         this.refreshState()
@@ -350,6 +351,24 @@ class Control extends React.Component {
         }
         finally {
             this.setState({loadingSetState: false})
+        }
+    }
+
+    triggerMacro = async (macro) => {
+        if(this.state.triggeringMacro) return;
+
+        try{
+            this.setState({triggeringMacro: true})
+            var body = JSON.stringify(macro.state)
+            var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
+            if(response.status != 200){
+                this.displayError(await response.text())
+                this.setState({showMacros: false})
+            }
+            this.refreshState();
+        }
+        finally {
+            this.setState({triggeringMacro: false})
         }
     }
 
