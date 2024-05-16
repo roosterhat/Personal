@@ -1476,13 +1476,7 @@ body {
 
     .btn {
         background: #ffffff82;
-    }
-
-    .sensor {
-        display: flex;
-        color: white;
-        gap: 12px;
-    }
+    }    
 
     .dial-container {
         display: flex;
@@ -1511,6 +1505,19 @@ body {
             font-size: calc(min(100vw / 500, 1px) * 120);
             font-family: sans-serif;
             color: white;
+            display: flex;
+            justify-content: center;
+
+            .sensor {
+                display: flex;
+                color: white;
+                gap: 12px;
+                font-family: sans-serif;
+                font-size: 12px;
+                font-weight: 700;
+                position: absolute;
+                bottom: -12px;
+            }
 
             .lds-ring {
                 width: calc(min(100vw / 500, 1px) * 120);

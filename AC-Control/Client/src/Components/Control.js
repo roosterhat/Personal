@@ -110,11 +110,7 @@ class Control extends React.Component {
 
     render = () => {
         return (
-            <div className={"control " + (this.isOn() ? "on" : "off")} id="control">
-                <div className="sensor">
-                    <div>{this.getSensorTemperature()}</div>
-                    <div>{this.getSensorHumidity()}</div>
-                </div>
+            <div className={"control " + (this.isOn() ? "on" : "off")} id="control">                
                 {this.renderTemperatureRing()}
                 {this.renderMenu()}
                 {this.renderMacros()}
@@ -181,6 +177,10 @@ class Control extends React.Component {
                     {this.isOn() || this.state.initalLoading ? (!this.state.initalLoading && this.state.targetState && this.state.targetState.ocr && !this.state.loadingState ? 
                          this.getTemperature()
                         : <LoadingSpinner id="spinner"/>) : null}
+                    <div className="sensor">
+                        <div>{this.getSensorTemperature()}</div>
+                        <div>{this.getSensorHumidity()}</div>
+                    </div>
                 </div>
                 <div className="mode-container">
                     <button className="mode" onClick={this.setDisplayModes}>
