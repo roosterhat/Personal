@@ -324,7 +324,6 @@ class Control extends React.Component {
     setTemperature = async (target) => {
         await delay(1000)
         const currentTemperature = this.state.currentState.ocr.find(x => x.name == "Temperature").value
-        console.log(this.state.dragging, target, currentTemperature, this.getTemperature())
         if(!this.state.dragging && target != currentTemperature && target == this.getTemperature())
             await this.setTargetState(["ocr"])
     }
@@ -337,6 +336,7 @@ class Control extends React.Component {
     }
 
     togglePower = async () => {
+        console.log(this.state.targetState)
         if(this.state.loadingState) return;
         this.state.targetState.power.active = !this.state.targetState.power.active
         await this.setTargetState(["power"])
