@@ -1467,7 +1467,7 @@ body {
     }
 
     &.off {
-        background: #8d8d8d;
+        background: #8d8d8d !important;
 
         .dial-container {
             opacity: 0.5;
@@ -1556,13 +1556,15 @@ body {
                 flex-direction: column;
                 gap: 24px;
                 min-width: 200px;
+                height: max-content;
+                width: max-content;
                 background: #ffffffed;
                 border: solid 6px #ffffffa6;
                 padding: 12px;
                 border-radius: 10px;
                 align-items: center;
                 justify-content: center;
-                transform: translateY(-120%);
+                transform: translateY(-120%);                
                 transition: all 0.25s cubic-bezier(0.18, 0.89, 0.26, 1.06), opacity 0.35s ease-out;
                 z-index: 1;
         
