@@ -25,9 +25,11 @@ class Control extends React.Component {
             dragging: false,
             on: false,
             loadingSetState: false,
+            loadingSensor: false,
             displayModes: false,
             displayError: false,
-            errorMessage: null
+            errorMessage: null,
+            hasSensor: false
         }        
         this.UpdateQueue.push(this.init)
         this.refreshState()
@@ -106,6 +108,7 @@ class Control extends React.Component {
         })
 
         setInterval(this.ProcessEventQueue, 1 / 24 * 1000, this.eventQueue)
+        setInterval(this.refreshSensor, 5000)
     }
 
     render = () => {
@@ -279,12 +282,27 @@ class Control extends React.Component {
             var response = await fetchWithToken(`api/state/${this.Config.id}`)
             if(response.status == 200){
                 var json = await response.json()
-                this.setState({currentState: json, targetState: json})
+                this.setState({currentState: json, targetState: json, hasSensor: json.temperature != null || json.humidity != null})
             }
         }
         finally {
             this.UpdateQueue.push(this.update)
             this.setState({loadingState: false, initalLoading: false, targetStateChanged: false});
+        }
+    }
+
+    refreshSensor = async () => {
+        if(!this.state.hasSensor || this.state.loadingSensor) return;
+        try {
+            this.setState({loadingSensor: true});
+            var response = await fetchWithToken(`api/state/${this.Config.id}/basic`)
+            if(response.status == 200){
+                var json = await response.json()
+                this.state.currentState.temperature = json.temperature
+            }
+        }
+        finally {
+            this.setState({loadingSensor: false})
         }
     }
 
