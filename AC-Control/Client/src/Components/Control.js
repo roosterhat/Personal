@@ -226,7 +226,7 @@ class Control extends React.Component {
         const currentTemperature = this.getTemperature()
         const newTemperature = this.getClosestTemperature(event)
         if(currentTemperature != newTemperature) {
-            navigator.vibrate(50)
+            navigator.vibrate(100)
             this.state.targetState.ocr.find(x => x.name == "Temperature").value = newTemperature
             this.update()            
         }
@@ -330,7 +330,7 @@ class Control extends React.Component {
 
     setMode = async (mode) => {
         if(this.state.loadingState) return;
-        navigator.vibrate(50)
+        navigator.vibrate(100)
         for(var state of this.state.targetState.states)
             state.active = state.name == mode.name
         this.setState({targetState: this.state.targetState, displayModes: false})
@@ -339,7 +339,7 @@ class Control extends React.Component {
 
     togglePower = async () => {
         if(this.state.loadingState) return;
-        navigator.vibrate(50)
+        navigator.vibrate(100)
         this.state.targetState.power.active = !this.state.targetState.power.active
         await this.setTargetState(["states"])
     }
