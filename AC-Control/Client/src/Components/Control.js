@@ -157,7 +157,7 @@ class Control extends React.Component {
                         </div>
                         : null 
                     }
-                    {this.isOn() ? <div className={"point " + (this.state.targetState ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div> : null}                   
+                    <div className={"point " + (this.isOn() && this.state.targetState ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div>                  
                 </div>
                 <div className="temperature">
                     {this.isOn() ? (this.state.targetState && this.state.targetState.ocr && !this.state.loadingState ? 
