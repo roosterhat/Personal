@@ -225,7 +225,7 @@ class State:
                     return "State not associated with a group"
                 group = stateMap[state["id"]]
                 if not self.walkStateGroup(config, group, state, buttonMap[group["button"]], setting):
-                    return f"Failed to set {config['frame']['states'][state['id']]['name']} [On]"
+                    return f"Failed to set {state['name']} [On]"
             for ocr in targetState["ocr"]:
                 if not ocr["target"]:
                     continue 

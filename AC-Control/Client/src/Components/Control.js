@@ -196,14 +196,7 @@ class Control extends React.Component {
                 </div>
             </div>
         )
-    }
-
-    setMode = async (mode) => {
-        for(var state of this.state.targetState.states)
-            state.active = state.name == mode.name
-        this.setState({targetState: this.state.targetState, displayModes: false})
-        await this.setTargetState()
-    }
+    }    
 
     setDisplayModes = () => {
         if(this.isOn())
@@ -298,24 +291,31 @@ class Control extends React.Component {
     setTemperature = async (target) => {
         await delay(2000)
         if(target == this.getTemperature())
-            await this.setTargetState()
+            await this.setTargetState(["ocr"])
+    }
+
+    setMode = async (mode) => {
+        for(var state of this.state.targetState.states)
+            state.active = state.name == mode.name
+        this.setState({targetState: this.state.targetState, displayModes: false})
+        await this.setTargetState(["states"])
     }
 
     togglePower = async () => {
         if(this.state.loadingState) return;
         this.state.targetState.power.active = !this.state.targetState.power.active
-        await this.setTargetState()
+        await this.setTargetState(["power"])
     }
 
-    setTargetState = async () => {
+    setTargetState = async (types) => {
         if(this.state.loadingState) return;
         try{
             this.setState({loadingSetState: true})
             var temperature = this.state.targetState.ocr.find(x => x.name == "Temperature")
             var target = {
                 power: this.state.targetState.power,
-                ocr: [{id: temperature.id, buttons: temperature.buttons, name: temperature.name, target: temperature.value}],
-                states: [this.state.targetState.states.find(x => x.active)]
+                ocr: !types || types.includes("ocr") ? [{id: temperature.id, buttons: temperature.buttons, name: temperature.name, target: temperature.value}] : [],
+                states: !types || types.includes("states") ? [this.state.targetState.states.find(x => x.active)] : []
             }
             var body = JSON.stringify(target)
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
