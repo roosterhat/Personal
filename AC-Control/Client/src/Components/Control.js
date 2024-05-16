@@ -203,7 +203,7 @@ class Control extends React.Component {
     }    
 
     getBackgroundColor = () => {
-        const temperature = this.getSensorTemperature()
+        const temperature = this.getSensorTemperatureValue()
         if(!temperature) return "#86c6ff"
         const percentage = Math.min(Math.max(temperature - 70, 0) / (88 - 70), 1)
         return interpolateColors(["#86c6ff", "#7bffb1", "#f77c7c"], percentage)
@@ -376,20 +376,36 @@ class Control extends React.Component {
         }
     }
 
-    getSensorTemperature = () => {
+    getSensorTemperatureValue = () => {
         if(!this.state.currentState || !this.state.currentState.humidity)
             return null
         else if(this.Settings.temperatureUnit == "C")
-            return this.state.currentState.temperature + "ºC"
+            return this.state.currentState.temperature 
         else 
-            return Math.round(this.state.currentState.temperature * (9 / 5) + 32) + "ºF"
+            return Math.round(this.state.currentState.temperature * (9 / 5) + 32)
+    }
+
+    getSensorTemperature = () => {
+        var temperature = this.getSensorTemperatureValue()
+        if(!temperature)
+            return null
+        else if(this.Settings.temperatureUnit == "C")
+            return temperature + "ºC"
+        else 
+            return temperature + "ºF"
+    }
+
+    getSensorHumidityValue = () => {
+        if(this.state.currentState && this.state.currentState.humidity)
+            return this.state.currentState.humidity
     }
 
     getSensorHumidity = () => {
-        if(this.state.currentState && this.state.currentState.humidity)
-            return this.state.currentState.humidity + "%"
+        var humidty = this.getSensorHumidityValue()
+        if(!humidty)
+            return null;
         else
-            return null
+            return humidty + "%"
     }
 
     displayError = async error => {
