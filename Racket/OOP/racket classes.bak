@@ -1,5 +1,0 @@
-#lang class/0
-
-(define-class 3D-posn% (fields x y z))
-
-
