@@ -61,37 +61,37 @@ class Control extends React.Component {
     }
 
     init = () => {
-        window.onresize = event => {
+        window.addEventListener("onresize", event => {
             this.QueueEvent(event, () => this.update())
-        };
+        })
 
-        window.onmousemove = event => {
+        window.addEventListener("onmousemove", event => {
             if(this.state.dragging){
                 this.QueueEvent(event, () => this.onDrag(event))
             }
-        }
+        })
 
-        window.ontouchmove = event => {
+        window.addEventListener("ontouchmove", event => {
             if(this.state.dragging){
                 this.QueueEvent(event, () => this.onDrag({x: event.touches[0].clientX, y: event.touches[0].clientY}))
             }
-        }
+        })
 
-        window.onmouseup = event => {
+        window.addEventListener("onmouseup", event => {
             const dragging = this.state.dragging;
             this.state.dragging = false;
             if(dragging){
                 this.QueueEvent(event, () => this.setTemperature(this.getTemperature()))
             }            
-        }
+        })
 
-        window.ontouchend = event => {
+        window.addEventListener("ontouchend", event => {
             const dragging = this.state.dragging;
             this.state.dragging = false;
             if(dragging){
                 this.QueueEvent(event, () => this.setTemperature(this.getTemperature()))
             } 
-        }
+        })
 
         const pointElement = document.getElementById("point")
 
@@ -196,7 +196,7 @@ class Control extends React.Component {
                 </div>
                 <div className="mode-container">
                     <button className="mode" onClick={this.setDisplayModes}>
-                        {this.isOn() ? (this.state.targetState && this.state.targetState.states && !this.state.loadingState ? 
+                        {this.isOn() ? (this.state.targetState && this.state.targetState.states && !this.state.loadingState && this.state.targetState.states.find(x => x.active) ? 
                             this.state.targetState.states.find(x => x.active).name 
                             : <LoadingSpinner id="spinner"/>) : null}
                     </button>    
@@ -349,10 +349,11 @@ class Control extends React.Component {
         try{
             this.setState({loadingSetState: true})
             var temperature = this.state.targetState.ocr.find(x => x.name == "Temperature")
+            var activeState = this.state.targetState.states.find(x => x.active)
             var target = {
                 power: this.state.targetState.power,
                 ocr: !types || types.includes("ocr") ? [{id: temperature.id, buttons: temperature.buttons, name: temperature.name, target: temperature.value}] : [],
-                states: !types || types.includes("states") ? [this.state.targetState.states.find(x => x.active)] : []
+                states: !types || types.includes("states") && activeState ? [activeState] : []
             }
             var body = JSON.stringify(target)
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
