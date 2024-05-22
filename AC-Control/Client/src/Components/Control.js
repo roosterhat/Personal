@@ -341,12 +341,10 @@ class Control extends React.Component {
         if(this.state.loadingState) return;
         navigator.vibrate(100)
         this.state.targetState.power.active = !this.state.targetState.power.active
-        await this.setTargetState(["states"])
-        if(this.state.targetState.power.active && !this.state.targetState.states.find(x => x.active))
-            await this.refreshState()
+        await this.setTargetState(["states"], this.state.targetState.power.active && !this.state.targetState.states.find(x => x.active))
     }
 
-    setTargetState = async (types) => {
+    setTargetState = async (types, forceRefresh = false) => {
         if(this.state.loadingState) return;
         try{
             this.setState({loadingSetState: true})
@@ -360,7 +358,10 @@ class Control extends React.Component {
             var body = JSON.stringify(target)
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
             if(response.status == 200){
-                this.setState({currentState: JSON.parse(JSON.stringify(this.state.targetState))})
+                if(forceRefresh)
+                    await this.refreshState()
+                else
+                    this.setState({currentState: JSON.parse(JSON.stringify(this.state.targetState))})
             } 
             else {
                 this.displayError(await response.text())
