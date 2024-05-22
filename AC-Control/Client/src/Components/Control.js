@@ -20,6 +20,7 @@ class Control extends React.Component {
             targetStateChanged: false,
             showMacros: false,
             loadingState: false,
+            initalLoading: true,
             pointCoordinates: null,
             dragging: false,
             on: false,
@@ -185,7 +186,7 @@ class Control extends React.Component {
                     <div className={"point " + (this.isOn() && this.getTemperature() ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div>                  
                 </div>
                 <div className="temperature">
-                    {this.isOn() ? (!this.state.loadingState && this.getTemperature() ? 
+                    {this.isOn() || this.state.initalLoading ? (!this.state.loadingState && this.getTemperature() ? 
                          this.getTemperature()
                         : <LoadingSpinner id="spinner"/>) : null}
                     <div className="sensor">
@@ -307,7 +308,7 @@ class Control extends React.Component {
         }
         finally {
             this.UpdateQueue.push(this.update)
-            this.setState({loadingState: false, targetStateChanged: false});
+            this.setState({loadingState: false, initalLoading: false, targetStateChanged: false});
         }
     }
 
