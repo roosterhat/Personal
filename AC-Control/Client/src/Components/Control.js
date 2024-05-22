@@ -61,23 +61,23 @@ class Control extends React.Component {
     }
 
     init = () => {
-        window.addEventListener("onresize", event => {
+        window.addEventListener("resize", event => {
             this.QueueEvent(event, () => this.update())
         })
 
-        window.addEventListener("onmousemove", event => {
+        window.addEventListener("mousemove", event => {
             if(this.state.dragging){
                 this.QueueEvent(event, () => this.onDrag(event))
             }
         })
 
-        window.addEventListener("ontouchmove", event => {
+        window.addEventListener("touchmove", event => {
             if(this.state.dragging){
                 this.QueueEvent(event, () => this.onDrag({x: event.touches[0].clientX, y: event.touches[0].clientY}))
             }
         })
 
-        window.addEventListener("onmouseup", event => {
+        window.addEventListener("mouseup", event => {
             const dragging = this.state.dragging;
             this.state.dragging = false;
             if(dragging){
@@ -85,7 +85,7 @@ class Control extends React.Component {
             }            
         })
 
-        window.addEventListener("ontouchend", event => {
+        window.addEventListener("touchend", event => {
             const dragging = this.state.dragging;
             this.state.dragging = false;
             if(dragging){
