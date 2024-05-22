@@ -20,7 +20,6 @@ class Control extends React.Component {
             targetStateChanged: false,
             showMacros: false,
             loadingState: false,
-            initalLoading: true,
             pointCoordinates: null,
             dragging: false,
             on: false,
@@ -173,7 +172,7 @@ class Control extends React.Component {
                             </path>
                         </svg>
                     </div>
-                    {this.isOn() && this.state.targetState ?
+                    {this.isOn() && this.getTemperature() ?
                         <div className="arc">
                             <svg viewBox="0 0 110 110">
                                 <path d={`M 19.645 90.355
@@ -183,10 +182,10 @@ class Control extends React.Component {
                         </div>
                         : null 
                     }
-                    <div className={"point " + (this.isOn() && this.state.targetState ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div>                  
+                    <div className={"point " + (this.isOn() && this.getTemperature() ? "" : "disabled")} id="point" style={this.state.pointCoordinates}></div>                  
                 </div>
                 <div className="temperature">
-                    {this.isOn() || this.state.initalLoading ? (!this.state.initalLoading && this.state.targetState && this.state.targetState.ocr && !this.state.loadingState ? 
+                    {this.isOn() ? (!this.state.loadingState && this.getTemperature() ? 
                          this.getTemperature()
                         : <LoadingSpinner id="spinner"/>) : null}
                     <div className="sensor">
@@ -256,7 +255,13 @@ class Control extends React.Component {
 
     getTemperature = () => {
         if(this.state.targetState && this.state.targetState.ocr)
-            return this.boundTemperature(this.state.targetState.ocr.find(x => x.name == "Temperature").value)
+        {
+            var temperature = this.state.targetState.ocr.find(x => x.name == "Temperature").value
+            if(temperature)
+                return this.boundTemperature(temperature)
+            else
+                return null
+        }
         else
             return null
     }
@@ -302,7 +307,7 @@ class Control extends React.Component {
         }
         finally {
             this.UpdateQueue.push(this.update)
-            this.setState({loadingState: false, initalLoading: false, targetStateChanged: false});
+            this.setState({loadingState: false, targetStateChanged: false});
         }
     }
 
