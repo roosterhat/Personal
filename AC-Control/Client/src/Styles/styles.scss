@@ -308,6 +308,16 @@ input:checked + .slider:before {
         }
     }
 
+    .range-input {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+
+        input {
+            width: 50px;
+        }
+    }
+
     .color-track {
         display: flex;
         width: calc(100% - 40px);
