@@ -161,8 +161,8 @@ class Settings extends React.Component {
                     )}
                 </div>
                 <div className="range-input">
-                    <input type="number" min={this.state.settings.backgroundRange.low} max={this.state.settings.backgroundRange.high} value={this.state.settings.backgroundRange.low} onInput={e => this.updateSettings("backgroundRange", {low: e.target.value, high: Number(this.state.settings.backgroundRange.high)})}/>
-                    <input type="number" min={this.state.settings.backgroundRange.low} max={this.state.settings.backgroundRange.high} value={this.state.settings.backgroundRange.high} onInput={e => this.updateSettings("backgroundRange", {low: Number(this.state.settings.backgroundRange.low), high: e.target.value})}/>
+                    <input type="number" max={this.state.settings.backgroundRange.high} value={this.state.settings.backgroundRange.low} onInput={e => this.updateSettings("backgroundRange", {low: e.target.value, high: Number(this.state.settings.backgroundRange.high)})}/>
+                    <input type="number" min={this.state.settings.backgroundRange.low} value={this.state.settings.backgroundRange.high} onInput={e => this.updateSettings("backgroundRange", {low: Number(this.state.settings.backgroundRange.low), high: e.target.value})}/>
                 </div>
                 <div style={{display: "flex", justifyContent: "end"}}>
                     <button onClick={() => { this.updateSettings("backgroundColors", ["#86c6ff", "#7bffb1", "#f77c7c"]); this.updateSettings("backgroundRange", {low: 70, height: 85});}}>Default</button>
