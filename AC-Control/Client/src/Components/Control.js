@@ -243,7 +243,7 @@ class Control extends React.Component {
                 temperature = this.getHeatIndex()
             }
             const percentage = Math.min(Math.max(temperature - 70, 0) / (85 - 70), 1)
-            return interpolateColors(["#86c6ff", "#7bffb1", "#f77c7c"], percentage)
+            return interpolateColors(this.Settings.backgroundColors, percentage)//["#86c6ff", "#7bffb1", "#f77c7c"]
         }
         else {
             return "#86c6ff"

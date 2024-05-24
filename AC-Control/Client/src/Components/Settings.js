@@ -94,21 +94,28 @@ class Settings extends React.Component {
                         <div className="setting">
                             <div className="setting-title">Max OCR Value Change</div>
                             <input type="number" min="1" value={this.state.settings["maxOCRValueChange"]} onChange={e => this.updateSettings("maxOCRValueChange", Number(e.target.value))}/>
-                        </div>      
-                        <div className="setting">
-                            <div className="setting-title">Use Dynamic Background Color</div>
-                            <label class="switch">
-                                <input type="checkbox" onChange={e => this.updateSettings("useDynamicBackground", !this.state.settings.useDynamicBackground)} checked={this.state.settings.useDynamicBackground}/>
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                        <div className="setting">
-                            <div className="setting-title">Use Heat Index</div>
-                            <label class="switch">
-                                <input type="checkbox" onChange={e => this.updateSettings("useHeatIndex", !this.state.settings.useHeatIndex)} checked={this.state.settings.useHeatIndex}/>
-                                <span class="slider round"></span>
-                            </label>
-                        </div>                  
+                        </div>    
+                        <div className="setting-group">
+                            <div className="setting">
+                                <div className="setting-title">Use Dynamic Background Color</div>
+                                <label class="switch">
+                                    <input type="checkbox" onChange={e => this.updateSettings("useDynamicBackground", !this.state.settings.useDynamicBackground)} checked={this.state.settings.useDynamicBackground}/>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            {this.state.settings.useDynamicBackground ? 
+                                [
+                                    this.renderBackgroundColorSelector(),
+                                    <div className="setting">
+                                        <div className="setting-title">Use Heat Index</div>
+                                        <label class="switch">
+                                            <input type="checkbox" onChange={e => this.updateSettings("useHeatIndex", !this.state.settings.useHeatIndex)} checked={this.state.settings.useHeatIndex}/>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>   
+                                ]
+                                : null }
+                        </div>     
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
                         {this.renderDebugOCR()}
@@ -127,6 +134,54 @@ class Settings extends React.Component {
                 </div>
             </Menu>
         )
+    }
+
+    renderBackgroundColorSelector = () => {
+        var pairs = []
+        for(var i = 0; i < this.state.settings.backgroundColors.length; i++) {
+            pairs.push({c1: this.state.settings.backgroundColors[i], c2: (i + 1) < this.state.settings.backgroundColors.length ? this.state.settings.backgroundColors[i + 1] : null})
+        }
+        return (
+            <div className="setting">
+                <div className="setting-title">Dynamic Background Colors</div>
+                <div className="color-track">
+                    {pairs.map((pair, i) => 
+                        <div className={"color-container" + (pair.c2 ? "" : " end")}>
+                            <div className="color-selector-container">
+                                <input className="color-selector" type="color" value={pair.c1} onInput={e => this.updateColor(i, e.target.value)}/>
+                                {pairs.length > 2 ? <button className="remove-color" onClick={() => this.removeColor(i)}><i className="fa-solid fa-xmark"></i></button> : null}
+                            </div>
+                            {pair.c2 ? 
+                                <div className="color-gradient" style={{background: `linear-gradient(to right, ${pair.c1}, ${pair.c2})`}}>
+                                    <label className="add-color" for={"color" + i} onClick={() => this.addColor(i)}><i className="fa-solid fa-plus"></i></label>
+                                    <input id={"color" + i} type="color" value={pair.c1} onInput={e => this.updateColor(i + 1, e.target.value)}/>
+                                </div> 
+                                : null}
+                        </div>
+                    )}
+                </div>
+                <div style={{display: "flex", justifyContent: "end"}}>
+                    <button onClick={() => { this.state.settings.backgroundColors =["#86c6ff", "#7bffb1", "#f77c7c"]; this.setState({settings: this.state.settings}); }}>Default</button>
+                </div>
+            </div>
+        )
+    }
+
+    removeColor = index => {
+        this.state.settings.backgroundColors.splice(index, 1)
+        this.setState({settings: this.state.settings})
+    }
+
+    updateColor = (index, color) => {
+        console.log(color)
+        this.state.settings.backgroundColors.splice(index, 1, color)
+        this.setState({settings: this.state.settings})
+    }
+
+    addColor = (index) => {
+        const color = this.state.settings.backgroundColors[index]
+        this.state.settings.backgroundColors.splice(index, 0, color)
+        this.setState({settings: this.state.settings})
     }
 
     renderScheduleRuns = () => {

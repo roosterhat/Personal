@@ -2,6 +2,10 @@ body {
     margin: 0;
 }
 
+button {
+    cursor: pointer;
+}
+
 .container {
     display: flex;
     height: 100%;
@@ -286,10 +290,138 @@ input:checked + .slider:before {
 
         button {
             width: 50px;
+            min-width: max-content;
         }
 
         &:not(:last-child){ 
             margin-bottom: 20px;
+        }
+    }
+
+    .setting-group {
+        border: solid 1px #000;
+        padding: 5px;
+        border-radius: 5px;
+
+        &:not(:last-child){ 
+            margin-bottom: 20px;
+        }
+    }
+
+    .color-track {
+        display: flex;
+        width: calc(100% - 40px);
+        overflow-x: auto;
+        align-items: center;
+        height: 80px;
+        padding: 0px 20px;
+
+        .color-container {
+            width: 100%;
+            min-width: 33%;
+            position: relative;
+            display: flex;
+            align-items: center;
+
+            &.end {
+                width: 0;
+                min-width: 0;
+
+                .color-selector-container:hover .remove-color {
+                    top: 5%;
+                    left: 5%;
+                    opacity: 1;
+                    z-index: 3;
+                }
+            }
+        }
+
+        .color-selector-container {
+            position: absolute;
+            z-index: 2;
+            left: 0;
+            transform: translateX(-50%);
+
+            .color-selector {
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+                width: 40px;
+                height: 42px;
+                z-index: 2;
+                cursor: pointer;
+                background-color: transparent;
+                border: none;
+                position: relative;
+
+                &::-webkit-color-swatch {
+                    border-radius: 50%;
+                    border: solid 1px #000;
+                }
+
+                &::-moz-color-swatch {
+                    border-radius: 50%;
+                    border: solid 1px #000;
+                }
+            }
+
+            .remove-color {
+                position: absolute;
+                width: 15px;
+                height: 15px;
+                padding: 0;
+                border: none;
+                background: red;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;                
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 0;
+                transition: all 0.2s ease;
+                cursor: pointer;
+
+                i {
+                    color: white
+                }
+            }
+
+            &:hover .remove-color {
+                top: 5%;
+                left: 95%;
+                opacity: 1;
+                z-index: 3;
+            }
+        }
+
+        .color-gradient {
+            height: 24px;
+            width: 100%;        
+            
+            input[type=color] {
+                width: 0;
+                height: 0;
+                position: absolute;
+            }
+        }
+
+        .add-color {
+            width: 28px;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border: solid 1px #000;
+            cursor: pointer;
+            background: #efefef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     }
 
