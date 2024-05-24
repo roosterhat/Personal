@@ -245,7 +245,7 @@ def background(filename):
 
 @app.route('/api/state/<id>')
 @app.route('/api/state/<id>/<section>')
-def getState_API(id, section = None):
+def getState(id, section = None):
     if not verifyToken():
         return "Unauthorized", 401
     try:

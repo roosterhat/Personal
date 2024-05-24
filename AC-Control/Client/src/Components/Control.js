@@ -210,11 +210,44 @@ class Control extends React.Component {
         )
     }    
 
+    getHeatIndex = () => {
+        const T = this.getSensorTemperatureValue(true)
+        const RH = this.getSensorHumidityValue()
+        var HI_1 = -42.379 + 2.04901523*T + 10.14333127*RH - .22475541*T*RH - .00683783*T*T - .05481717*RH*RH + .00122874*T*T*RH + .00085282*T*RH*RH - .00000199*T*T*RH*RH
+        const HI_2 = 0.5 * (T + 61.0 + ((T-68.0)*1.2) + (RH*0.094))
+        const HI_A = (HI_1 + HI_2) / 2
+        var HI = 0
+
+        if(HI_A >= 80) {
+            if(RH < 13 && T >= 80 && T <= 112)
+                HI_1 += ((13-RH)/4) * Math.sqrt((17-Math.abs(T-95))/17)
+            if(RH > 85 && T >= 80 && T <= 87)
+                HI_1 += ((RH-85)/10) * [(87-T)/5]
+            HI = HI_1
+        }
+        else {
+            HI = HI_A        
+        }
+
+        if(this.Settings.temperatureUnit == "C")
+            return Math.round((HI - 32) * (5 / 9))
+        else 
+            return HI 
+    }
+
     getBackgroundColor = () => {
-        const temperature = this.getSensorTemperatureValue()
-        if(!temperature) return "#86c6ff"
-        const percentage = Math.min(Math.max(temperature - 70, 0) / (85 - 70), 1)
-        return interpolateColors(["#86c6ff", "#7bffb1", "#f77c7c"], percentage)
+        if(this.Settings.useDynamicBackground) {
+            var temperature = this.getSensorTemperatureValue()
+            if(!temperature) return "#86c6ff"
+            if(this.Settings.useHeatIndex) {
+                temperature = this.getHeatIndex()
+            }
+            const percentage = Math.min(Math.max(temperature - 70, 0) / (85 - 70), 1)
+            return interpolateColors(["#86c6ff", "#7bffb1", "#f77c7c"], percentage)
+        }
+        else {
+            return "#86c6ff"
+        }
     }
 
     setDisplayModes = () => {
@@ -397,10 +430,10 @@ class Control extends React.Component {
         }
     }
 
-    getSensorTemperatureValue = () => {
+    getSensorTemperatureValue = (unitOverride = false) => {
         if(!this.state.currentState || !this.state.currentState.humidity)
             return null
-        else if(this.Settings.temperatureUnit == "C")
+        else if(this.Settings.temperatureUnit == "C" && !unitOverride)
             return this.state.currentState.temperature 
         else 
             return Math.round(this.state.currentState.temperature * (9 / 5) + 32)

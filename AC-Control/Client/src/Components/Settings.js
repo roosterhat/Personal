@@ -94,7 +94,21 @@ class Settings extends React.Component {
                         <div className="setting">
                             <div className="setting-title">Max OCR Value Change</div>
                             <input type="number" min="1" value={this.state.settings["maxOCRValueChange"]} onChange={e => this.updateSettings("maxOCRValueChange", Number(e.target.value))}/>
-                        </div>                        
+                        </div>      
+                        <div className="setting">
+                            <div className="setting-title">Use Dynamic Background Color</div>
+                            <label class="switch">
+                                <input type="checkbox" onChange={e => this.updateSettings("useDynamicBackground", !this.state.settings.useDynamicBackground)} checked={this.state.settings.useDynamicBackground}/>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div className="setting">
+                            <div className="setting-title">Use Heat Index</div>
+                            <label class="switch">
+                                <input type="checkbox" onChange={e => this.updateSettings("useHeatIndex", !this.state.settings.useHeatIndex)} checked={this.state.settings.useHeatIndex}/>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>                  
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
                         {this.renderDebugOCR()}
