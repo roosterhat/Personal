@@ -382,8 +382,8 @@ class EditActions extends React.Component {
             const response = await fetchWithToken(`api/models`)
             if(response.status == 200) {
                 var models = await response.json()
-                for(var modelType of models)
-                    modelType.sort()
+                for(const [key, value] of Object.entries(models))
+                    value.sort()
                 this.setState({models: models})
             }
         }
