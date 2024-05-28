@@ -380,8 +380,11 @@ class EditActions extends React.Component {
         try {
             this.setState({loadingModels: true})
             const response = await fetchWithToken(`api/models`)
-            if(response.status == 200)
-                this.setState({models: await response.json()})
+            if(response.status == 200) {
+                var models = await response.json()
+                models.sort()
+                this.setState({models: models})
+            }
         }
         catch(ex) {
             console.error(ex);

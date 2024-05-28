@@ -697,7 +697,7 @@ input:checked + .slider:before {
         gap: 12px;
 
         button {
-            width: 30px;
+            min-width: 30px;
             height: 30px;
             aspect-ratio: 1;            
             border-radius: 10px;
