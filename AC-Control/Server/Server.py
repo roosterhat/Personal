@@ -545,6 +545,8 @@ def temperatureWorker():
                 while True:
                     try:
                         DHT11Sensor.measure()
+                        if not DHT11Sensor._temperature or not DHT11Sensor._humidity:
+                            raise Exception("Empty sensor values", flush=True)
                         sensor["temperature"] = DHT11Sensor._temperature
                         sensor["humidity"] = DHT11Sensor._humidity
                         break
@@ -590,7 +592,7 @@ def historyWorker():
 
         with open("./Data/events", 'w') as f:
             f.write(json.dumps(newData, default=str))
-            
+
         Time.sleep(60)
 
 def appStart():
