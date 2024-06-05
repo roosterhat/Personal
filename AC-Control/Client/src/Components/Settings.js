@@ -713,7 +713,7 @@ class Settings extends React.Component {
                     states: []
                 }
 
-                let stateDiff, currentState = { ocr: [], state: [] }
+                let stateDiff, currentState = { ocr: [], states: [] }
 
                 for(var event of data) {
                     if(event.type == "sensor") {
@@ -865,14 +865,13 @@ class Settings extends React.Component {
                     markers[event.type].x.push(event.x)
                     markers[event.type].y.push(0.5)
                     markers[event.type].hovertext.push(event.value)
-                    markers[event.type].hovertext.push('text+x')
+                    markers[event.type].hoverinfo.push('text+x')
                     markers[event.type].marker.color = event.color
                 }
             }
         }
         const plot = document.getElementById('plot')
         window.Plotly.newPlot(plot, {data: data, layout: layout, config: config});
-        console.log(data, layout, config)
     }
 }
 
