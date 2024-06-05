@@ -17,6 +17,7 @@ from Camera import Camera
 from State import State
 import Utility
 import traceback
+import random
 
 
 ILLEGAL_CHARS = r'\/\.\@\#\$\%\^\&\*\(\)\{\}\[\]\"\'\`\,\<\>\\'
@@ -343,6 +344,7 @@ def trigger(config, id):
         if not any(buttons):
             return 'Button does not exist', 400
         Utility.triggerIR(data['ir_config'], buttons[0]['action'])
+        Utility.AppendEvent("trigger", buttons[0]["name"])
         return "Success", 200
     except Exception as ex:
         print(traceback.format_exc())
@@ -393,6 +395,20 @@ def testAuthorize():
         return "Unauthorized", 401
     else:
         return "Success", 200
+
+@app.route('/api/events')
+def events():
+    if not verifyToken():
+        return "Unauthorized", 401
+    try:
+        f = open('./Data/events', 'rb')
+        data = f.read()
+        return data, 200, {'Content-Type':'application/json'}
+    except Exception as ex:
+        print(traceback.format_exc())
+        return "Failed", 500
+    finally:
+        f.close()
 
 @app.route('/api/reboot')
 def reboot():
@@ -478,10 +494,14 @@ def manageSchedules():
             f = open("./Data/default", 'r')
             id = f.read()
             f.close()
+
             if not Path.isfile(f"./Data/Configs/{id}"):
                 continue
+
             f = open(f"./Data/Configs/{id}", 'rb')
             config = json.loads(f.read())
+            f.close()
+
             f = open("./Data/scheduleRuns", 'rb')
             runs = json.loads(f.read())
             f.close()
@@ -510,9 +530,8 @@ def manageSchedules():
             runs = activeRuns
 
             if updated:
-                f = open("./Data/scheduleRuns", 'w')
-                f.write(json.dumps(runs, default=str))
-                f.close()
+                with open("./Data/scheduleRuns", 'w') as f:
+                    f.write(json.dumps(runs, default=str))
         except Exception as ex:
             print(traceback.format_exc())
 
@@ -543,6 +562,37 @@ def temperatureWorker():
             if DHT11Sensor:
                 DHT11Sensor.exit()
 
+def historyWorker():
+    while True:        
+        with open("./Data/events", 'rb') as f:
+            try:
+                data = json.loads(f.read())
+            except Exception:
+                print(traceback.format_exc())
+                data = []
+        
+        newData = []
+        for event in data:
+            if datetime.now() - datetime.fromisoformat(event["time"]) < timedelta(days=1):
+                newData.append(event)
+        if not(DEBUG):
+            newData.append({
+                "time": datetime.now(),
+                "type": "sensor",
+                "value": sensor
+            })
+        else:
+            newData.append({
+                "time": datetime.now(),
+                "type": "sensor",
+                "value": { "temperature": random.randint(75,80), "humidity": random.randint(50, 65) }
+            })
+
+        with open("./Data/events", 'w') as f:
+            f.write(json.dumps(newData, default=str))
+            
+        Time.sleep(60)
+
 def appStart():
     global _State, _Debug, _Camera, OCRModels, StateModels, settings
     print("Loading Settings", flush=True)
@@ -558,6 +608,8 @@ def appStart():
     if not(DEBUG):
         print("Starting Temperature Manager", flush=True)
         Thread(target=temperatureWorker).start()
+    print("Starting History Manager", flush=True)
+    Thread(target=historyWorker).start()
     print("Loading Camera", flush=True)
     _Camera = Camera(settings)
     print("Loading OCR Models...", flush=True)

@@ -239,3 +239,4 @@ class State:
             if currentState["power"]["active"]:
                 if not self.attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False, setting):
                     return f"Failed to set power [Off]"
+        Utility.AppendEvent("state", targetState)

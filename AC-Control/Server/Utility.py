@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps, ImageCms
 import math
+import json
+from datetime import datetime
+import traceback
 
 def colorDistance_old(c1, c2):
     rBar = 0.5 * (c1[0] + c2[0])
@@ -132,3 +135,18 @@ def buildStateFrame(frame, states, config):
         }
         offset += len(patch) + buffer
     return { "frame": combined, "shapes": shapes }
+
+def AppendEvent(type, value):
+    with open("./Data/events", 'rb') as f:
+        try:
+            data = json.loads(f.read())
+        except Exception:
+            print(traceback.format_exc())
+            data = []
+    data.append({
+        "time": datetime.now(),
+        "type": type,
+        "value": value
+    })
+    with open("./Data/events", 'w') as f:
+        f.write(json.dumps(data, default=str))

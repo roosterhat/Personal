@@ -1,4 +1,5 @@
 import React from 'react'
+import Plot from 'react-plotly.js';
 import Menu from './Menu';
 import LoadingSpinner from './Spinners/loading1';
 import { fetchWithToken, parseTime, delay } from '../Utility';
@@ -30,11 +31,14 @@ class Settings extends React.Component {
             systemStartTime: null,
             serviceStartTime: null,
             systemUptime: null,
-            serviceUptime: null
+            serviceUptime: null,
+            events: null,
+            loadingEvents: false
         }
 
         this.getScheduleRuns()
         this.getState()
+        this.getEvents()
         setInterval(this.updateUptime, 1000)
     }
 
@@ -119,6 +123,7 @@ class Settings extends React.Component {
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
                         {this.renderDebugOCR()}
+                        {this.renderEvents()}
                         {this.renderScheduleRuns()}
                         <div className='system-control'>
                             <div style={{width: "100%"}}>
@@ -133,6 +138,98 @@ class Settings extends React.Component {
                     </div>
                 </div>
             </Menu>
+        )
+    }
+
+    renderEvents = () => {
+        var data = []
+        var layout = {
+            shapes: [],
+            yaxis: {
+                title: "º" + (this.state.settings.temperatureUnit == "F" ? "F" : "C"),
+            },
+            yaxis2: {
+                title: "%H",
+                side: 'right',
+                overlaying: 'y'
+            },
+            yaxis3 : {
+                visible: false,
+                fixedrange: true, 
+                range: [0,1]
+            }
+        }
+        var config = {
+            displayModeBar: false
+        }
+        if(this.state.events) {
+            if(this.state.events.humidity){
+                data.push({
+                    x: this.state.events.humidity.x,
+                    y: this.state.events.humidity.y,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: '#7e868d',
+                        width: 3
+                    },
+                    yaxis: 'y2',
+                    name: 'humidity'
+                })
+            }
+
+            if(this.state.events.temperature){
+                data.push({
+                    x: this.state.events.temperature.x,
+                    y: this.state.events.temperature.y,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: '#3780bf',
+                        width: 3
+                    },
+                    name: 'temperature'
+                })
+            }            
+            
+            var markers = {}
+            for(var type of ['powerOn', 'powerOff', 'state', 'trigger']) {
+                markers[type] = { mode: 'markers', hoverinfo: ['text+x'], x: [], y: [], hovertext: [], marker: {}, showlegend: false, yaxis: 'y3' }
+                data.push(markers[type])
+            }
+
+            if(this.state.events.states){
+                for(var event of this.state.events.states) {
+                    layout.shapes.push({
+                        yref: 'paper',
+                        x0: event.x,
+                        y0: 0,
+                        x1: event.x,
+                        y1: 0.5,
+                        type: 'line',
+                        line: {
+                            color: event.color,
+                            width: 3
+                        }
+                    })
+
+                    markers[event.type].x.push(event.x)
+                    markers[event.type].y.push(0.5)
+                    markers[event.type].hovertext.push(event.value)
+                    markers[event.type].marker.color = event.color
+                }
+            }
+        }
+        return (
+            <div className="setting">
+                <div className="setting-title">History
+                <div className="refresh-container"><div className={"refresh" + (this.state.loadingEvents ? " loading" : "")} onClick={this.getEvents}><i className="fa-solid fa-arrows-rotate"></i></div></div>
+                </div>
+                {this.state.events ? 
+                    <Plot data={data} layout={layout} config={config} />
+                    : null
+                }
+            </div>
         )
     }
 
@@ -676,6 +773,90 @@ class Settings extends React.Component {
         const total_h = Math.floor(total_m / 60)
         const total_d = Math.floor(total_h / 24)
         return `${String(total_d).padStart(2, "0")}:${String(total_h % 24).padStart(2, "0")}:${String(total_m % 60).padStart(2, "0")}:${String(total_s % 60).padStart(2, "0")}`
+    }
+
+    getEvents = async () => {
+        try{
+            this.setState({loadingEvents: true})
+            var response = await fetchWithToken("api/events")
+            if(response.status == 200) {
+                const data = await response.json()
+                const events = {
+                    temperature: { x: [], y: [] },
+                    humidity: { x: [], y: [] },
+                    states: []
+                }
+
+                let stateDiff, currentState = { ocr: [], state: [] }
+
+                for(var event of data) {
+                    if(event.type == "sensor") {
+                        events.temperature.x.push(event.time)
+                        events.temperature.y.push(event.value.temperature)
+                        events.humidity.x.push(event.time)
+                        events.humidity.y.push(event.value.humidity)
+                    }
+                    else if (event.type == "state") {
+                        [stateDiff, currentState] = this.getStateDifference(event.value, currentState)                        
+                        if(stateDiff["ocr"].length > 0)
+                            for(var ocr in stateDiff["ocr"])
+                                events.states.push({type: "state", x: event.time, value: ocr.target, color: '#009fff'})
+                        if(stateDiff["states"].length > 0)
+                            for(var ocr in stateDiff["states"])
+                                events.states.push({type: "state", x: event.time, value: ocr.name, color: '#009fff'})
+                        if(stateDiff["power"])
+                            events.states.push({type: stateDiff["power"] ? "powerOn" : "powerOff", x: event.time, color: stateDiff["power"] ? '#00ff00' : '#ff0000'})
+                    }
+                    else if (event.type == "trigger") {
+                        events.states.push({
+                            type: 'trigger',
+                            x: event.time,
+                            value: event.value,
+                            color: '#999999'
+                        })
+                    }
+                }
+                console.log(events)
+                this.setState({events: events})
+            }
+        }
+        finally {
+            this.setState({loadingEvents: false})
+        }
+    }
+
+    getStateDifference = (state, currentState) => {
+        if(!currentState)
+            return [state, state]
+
+        var diff = { ocr: [], states: [] }
+        if(!currentState["power"] || (state["power"] && state["power"]["active"] != currentState["power"]["active"])) {
+            diff["power"] = state["power"]["active"]
+            currentState["power"] = state["power"]["active"]
+            if(!state["power"]["active"]) 
+                return [diff, { power: false, ocr: [], state: [] }]
+        }
+
+        if(state["ocr"]) {
+            for(var ocr of state["ocr"]) {
+                const currentValue = currentState["ocr"].find(x => x.id == ocr.id)
+                if(!currentValue || currentValue.target != ocr.target) {
+                    diff["ocr"].push(ocr)
+                    currentValue.target = ocr.target
+                }
+            }
+        }
+        if(state["states"]) {
+            for(var s of state["states"]) {
+                const currentValue = currentState["states"].find(x => x.id == s.id)
+                if(!currentValue || currentValue.active != s.active) {
+                    diff["states"].push(s)
+                    currentValue.active = s.active
+                }
+            }
+        }
+
+        return [diff, currentState]
     }
 }
 
