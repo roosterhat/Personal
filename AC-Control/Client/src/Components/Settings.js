@@ -745,10 +745,10 @@ class Settings extends React.Component {
                         if(stateDiff["power"])
                             events.states.push(
                             {
-                                type: stateDiff["power"] ? "powerOn" : "powerOff", 
-                                value: stateDiff["power"] ? "Power On" : "Power Off", 
+                                type: stateDiff["power"]["active"] ? "powerOn" : "powerOff", 
+                                value: stateDiff["power"]["active"] ? "Power On" : "Power Off", 
                                 x: event.time, 
-                                color: stateDiff["power"] ? '#00ff00' : '#ff0000'
+                                color: stateDiff["power"]["active"] ? '#00ff00' : '#ff0000'
                             })
                     }
                     else if (event.type == "trigger") {
@@ -896,7 +896,7 @@ class Settings extends React.Component {
                     x0: event.x,
                     y0: 0,
                     x1: event.x,
-                    y1: 0.33,
+                    y1: 0.15,
                     type: 'line',
                     line: {
                         color: event.color,
@@ -905,7 +905,7 @@ class Settings extends React.Component {
                 })
 
                 markers[event.type].x.push(event.x)
-                markers[event.type].y.push(0.33)
+                markers[event.type].y.push(0.15)
                 markers[event.type].hovertext.push(event.value)
                 markers[event.type].hoverinfo.push('text+x')
                 markers[event.type].marker.color = event.color
