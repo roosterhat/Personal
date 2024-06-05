@@ -694,6 +694,13 @@ class Settings extends React.Component {
         return `${String(total_d).padStart(2, "0")}:${String(total_h % 24).padStart(2, "0")}:${String(total_m % 60).padStart(2, "0")}:${String(total_s % 60).padStart(2, "0")}`
     }
 
+    convertTemperature = (temp) => {
+        if(this.state.settings.temperatureUnit == "C")
+            return temp 
+        else 
+            return Math.round(temp * (9 / 5) + 32)
+    }
+
     getEvents = async () => {
         try{
             this.setState({loadingEvents: true})
@@ -711,7 +718,7 @@ class Settings extends React.Component {
                 for(var event of data) {
                     if(event.type == "sensor") {
                         events.temperature.x.push(event.time)
-                        events.temperature.y.push(event.value.temperature)
+                        events.temperature.y.push(this.convertTemperature(event.value.temperature))
                         events.humidity.x.push(event.time)
                         events.humidity.y.push(event.value.humidity)
                     }
