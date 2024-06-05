@@ -725,7 +725,7 @@ class Settings extends React.Component {
                     else if (event.type == "state") {
                         [stateDiff, currentState] = this.getStateDifference(event.value, currentState)                        
                         if(stateDiff["ocr"].length > 0)
-                            for(var ocr in stateDiff["ocr"])
+                            for(var ocr of stateDiff["ocr"])
                                 events.states.push(
                                 {
                                     type: "state", 
@@ -734,8 +734,7 @@ class Settings extends React.Component {
                                     color: '#009fff'
                                 })
                         if(stateDiff["states"].length > 0)
-                            for(var state in stateDiff["states"]) {
-                                console.log(state)
+                            for(var state of stateDiff["states"])
                                 events.states.push(
                                 {
                                     type: "state", 
@@ -743,7 +742,6 @@ class Settings extends React.Component {
                                     value: state.name, 
                                     color: '#009fff'
                                 })
-                            }
                         if(stateDiff["power"])
                             events.states.push(
                             {
