@@ -1,5 +1,4 @@
 import React from 'react'
-import Plot from 'react-plotly.js';
 import Menu from './Menu';
 import LoadingSpinner from './Spinners/loading1';
 import { fetchWithToken, parseTime, delay } from '../Utility';
@@ -223,7 +222,7 @@ class Settings extends React.Component {
                     }
                 }
             }
-            Plotly.newPlot('plot', data, layout, config);
+            window.Plotly.newPlot('plot', data, layout, config);
         })
         return (
             <div className="setting">
