@@ -813,11 +813,17 @@ class Settings extends React.Component {
     }
 
     plotData = (events) => { 
-        var humidityRange = null
+        const buffer = 20
+        var humidityRange = null, temperatureRange = null
+
+        if(events.temperature) {
+            const average = events.temperature.y.reduce((a, b) => a + b) / events.temperature.y.length;
+            temperatureRange = [Math.round(average - buffer), Math.round(average + buffer)]
+        }
+
         if(events.humidity) {
-            const average = events.humidity.reduce((a, b) => a + b) / events.humidity.length;
-            const temperatureRange = this.state.settings.maxTemperature - this.state.settings.minTemperature
-            humidityRange = [Math.round(average - temperatureRange / 2), Math.round(average + temperatureRange / 2)]
+            const average = events.humidity.y.reduce((a, b) => a + b) / events.humidity.y.length;
+            humidityRange = [Math.round(average - buffer), Math.round(average + buffer)]
         }
 
 
@@ -830,7 +836,7 @@ class Settings extends React.Component {
             shapes: [],
             yaxis: {
                 title: "º" + (this.state.settings.temperatureUnit == "F" ? "F" : "C"),
-                range: [this.state.settings.minTemperature, this.state.settings.maxTemperature]
+                range: temperatureRange
             },
             yaxis2: {
                 title: "%H",
