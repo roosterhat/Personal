@@ -775,8 +775,8 @@ class Settings extends React.Component {
 
         var diff = { ocr: [], states: [] }
         if(!currentState["power"] || (state["power"] && state["power"]["active"] != currentState["power"]["active"])) {
-            diff["power"] = state["power"]["active"]
-            currentState["power"] = state["power"]["active"]
+            diff["power"] = state["power"]
+            currentState["power"] = state["power"]
             if(!state["power"]["active"]) 
                 return [diff, { power: false, ocr: [], state: [] }]
         }
@@ -785,6 +785,7 @@ class Settings extends React.Component {
             for(var ocr of state["ocr"]) {
                 const currentValue = currentState["ocr"].find(x => x.id == ocr.id)
                 if(!currentValue) {
+                    diff["ocr"].push(ocr)
                     currentState["ocr"].push(ocr)
                 }
                 else if (currentValue.target != ocr.target) {
@@ -800,6 +801,7 @@ class Settings extends React.Component {
                 console.log(s)
                 console.log(currentValue)
                 if(!currentValue) {
+                    diff["states"].push(s)
                     currentState["states"].push(s)
                 } 
                 else if(currentValue.active != s.active) {
