@@ -270,6 +270,7 @@ input:checked + .slider:before {
 
     .setting {
         width: 100%;
+        overflow: hidden;
 
         .setting-title {
             font-size: 20px;
