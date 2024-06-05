@@ -730,18 +730,20 @@ class Settings extends React.Component {
                                 {
                                     type: "state", 
                                     x: event.time, 
-                                    value: ocr.target, 
+                                    value: ocr.target + " º" + (this.state.settings.temperatureUnit == "F" ? "F" : "C"), 
                                     color: '#009fff'
                                 })
                         if(stateDiff["states"].length > 0)
-                            for(var ocr in stateDiff["states"])
+                            for(var state in stateDiff["states"]) {
+                                console.log(state)
                                 events.states.push(
                                 {
                                     type: "state", 
                                     x: event.time, 
-                                    value: ocr.name, 
+                                    value: state.name, 
                                     color: '#009fff'
                                 })
+                            }
                         if(stateDiff["power"])
                             events.states.push(
                             {
@@ -795,11 +797,8 @@ class Settings extends React.Component {
             }
         }
         if(state["states"]) {
-            console.log("states")
             for(var s of state["states"]) {                
                 const currentValue = currentState["states"].find(x => x.id == s.id)
-                console.log(s)
-                console.log(currentValue)
                 if(!currentValue) {
                     diff["states"].push(s)
                     currentState["states"].push(s)
@@ -899,7 +898,7 @@ class Settings extends React.Component {
                     x0: event.x,
                     y0: 0,
                     x1: event.x,
-                    y1: 0.5,
+                    y1: 0.33,
                     type: 'line',
                     line: {
                         color: event.color,
@@ -908,7 +907,7 @@ class Settings extends React.Component {
                 })
 
                 markers[event.type].x.push(event.x)
-                markers[event.type].y.push(0.5)
+                markers[event.type].y.push(0.33)
                 markers[event.type].hovertext.push(event.value)
                 markers[event.type].hoverinfo.push('text+x')
                 markers[event.type].marker.color = event.color
