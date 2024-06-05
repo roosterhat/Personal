@@ -1,7 +1,7 @@
 import React from 'react'
 import Menu from './Menu';
 import LoadingSpinner from './Spinners/loading1';
-import { fetchWithToken, parseTime, delay } from '../Utility';
+import { fetchWithToken, parseTime, delay, loess } from '../Utility';
 
 class Settings extends React.Component {
     constructor(props) {
@@ -835,12 +835,14 @@ class Settings extends React.Component {
             shapes: [],
             yaxis: {
                 title: "º" + (this.state.settings.temperatureUnit == "F" ? "F" : "C"),
+                autorange: false,
                 range: temperatureRange
             },
             yaxis2: {
                 title: "%H",
                 side: 'right',
                 overlaying: 'y',
+                autorange: false,
                 range: humidityRange
             },
             yaxis3 : {
@@ -867,6 +869,21 @@ class Settings extends React.Component {
                 yaxis: 'y2',
                 name: 'humidity'
             })
+
+            const trendline = this.getLoessData(events.humidity.y)
+
+            data.push({
+                x: events.humidity.x,
+                y: trendline,
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#cdcdcd',
+                    width: 3,
+                    dash: 'longdashdot'
+                },
+                yaxis: 'y2'
+            })
         }
 
         if(events.temperature){
@@ -880,6 +897,21 @@ class Settings extends React.Component {
                     width: 3
                 },
                 name: 'temperature'
+            })
+
+            const trendline = this.getLoessData(events.temperature.y)
+
+            data.push({
+                x: events.temperature.x,
+                y: trendline,
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#cdcdcd',
+                    width: 3,
+                    dash: 'longdashdot'
+                },
+                yaxis: 'y2'
             })
         }            
         
@@ -914,6 +946,11 @@ class Settings extends React.Component {
 
         const plot = document.getElementById('plot')
         window.Plotly.newPlot(plot, {data: data, layout: layout, config: config});
+    }
+
+    getLoessData = (data) => {
+        const xval = data.map((x,i) => i)
+        return loess(xval, data, 0.6666);
     }
 }
 
