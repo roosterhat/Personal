@@ -222,7 +222,8 @@ class Settings extends React.Component {
                     }
                 }
             }
-            window.Plotly.newPlot('plot', data, layout, config);
+            const plot = document.getElementById('plot')
+            window.Plotly.newPlot(plot, data, layout, config);
         })
         return (
             <div className="setting">
