@@ -726,12 +726,30 @@ class Settings extends React.Component {
                         [stateDiff, currentState] = this.getStateDifference(event.value, currentState)                        
                         if(stateDiff["ocr"].length > 0)
                             for(var ocr in stateDiff["ocr"])
-                                events.states.push({type: "state", x: event.time, value: ocr.target, color: '#009fff'})
+                                events.states.push(
+                                {
+                                    type: "state", 
+                                    x: event.time, 
+                                    value: ocr.target, 
+                                    color: '#009fff'
+                                })
                         if(stateDiff["states"].length > 0)
                             for(var ocr in stateDiff["states"])
-                                events.states.push({type: "state", x: event.time, value: ocr.name, color: '#009fff'})
+                                events.states.push(
+                                {
+                                    type: "state", 
+                                    x: event.time, 
+                                    value: ocr.name, 
+                                    color: '#009fff'
+                                })
                         if(stateDiff["power"])
-                            events.states.push({type: stateDiff["power"] ? "powerOn" : "powerOff", x: event.time, color: stateDiff["power"] ? '#00ff00' : '#ff0000'})
+                            events.states.push(
+                            {
+                                type: stateDiff["power"] ? "powerOn" : "powerOff", 
+                                value: stateDiff["power"] ? "Power On" : "Power Off", 
+                                x: event.time, 
+                                color: stateDiff["power"] ? '#00ff00' : '#ff0000'
+                            })
                     }
                     else if (event.type == "trigger") {
                         events.states.push({
