@@ -778,7 +778,7 @@ class Settings extends React.Component {
             diff["power"] = state["power"]
             currentState["power"] = state["power"]
             if(!state["power"]["active"]) 
-                return [diff, { power: false, ocr: [], state: [] }]
+                return [diff, { power: state["power"], ocr: [], states: [] }]
         }
 
         if(state["ocr"]) {
