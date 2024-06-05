@@ -794,8 +794,11 @@ class Settings extends React.Component {
             }
         }
         if(state["states"]) {
-            for(var s of state["states"]) {
+            console.log("states")
+            for(var s of state["states"]) {                
                 const currentValue = currentState["states"].find(x => x.id == s.id)
+                console.log(s)
+                console.log(currentValue)
                 if(!currentValue) {
                     currentState["states"].push(s)
                 } 
@@ -810,6 +813,14 @@ class Settings extends React.Component {
     }
 
     plotData = (events) => { 
+        var humidityRange = null
+        if(events.humidity) {
+            const average = events.humidity.reduce((a, b) => a + b) / events.humidity.length;
+            const temperatureRange = this.state.settings.maxTemperature - this.state.settings.minTemperature
+            humidityRange = [Math.round(average - temperatureRange / 2), Math.round(average + temperatureRange / 2)]
+        }
+
+
         var data = []
         var layout = {
             autosize: true,
@@ -819,11 +830,13 @@ class Settings extends React.Component {
             shapes: [],
             yaxis: {
                 title: "º" + (this.state.settings.temperatureUnit == "F" ? "F" : "C"),
+                range: [this.state.settings.minTemperature, this.state.settings.maxTemperature]
             },
             yaxis2: {
                 title: "%H",
                 side: 'right',
-                overlaying: 'y'
+                overlaying: 'y',
+                range: humidityRange
             },
             yaxis3 : {
                 visible: false,
@@ -835,65 +848,65 @@ class Settings extends React.Component {
         var config = {
             displayModeBar: false
         }
-        if(events) {
-            if(events.humidity){
-                data.push({
-                    x: events.humidity.x,
-                    y: events.humidity.y,
-                    type: 'scatter',
-                    mode: 'lines',
+
+        if(events.humidity){
+            data.push({
+                x: events.humidity.x,
+                y: events.humidity.y,
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#cdcdcd',
+                    width: 3
+                },
+                yaxis: 'y2',
+                name: 'humidity'
+            })
+        }
+
+        if(events.temperature){
+            data.push({
+                x: events.temperature.x,
+                y: events.temperature.y,
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#3780bf',
+                    width: 3
+                },
+                name: 'temperature'
+            })
+        }            
+        
+        var markers = {}
+        for(var type of ['powerOn', 'powerOff', 'state', 'trigger']) {
+            markers[type] = { mode: 'markers', hoverinfo: [], x: [], y: [], hovertext: [], marker: {}, showlegend: false, yaxis: 'y3' }
+            data.push(markers[type])
+        }
+
+        if(events.states){
+            for(var event of events.states) {
+                layout.shapes.push({
+                    yref: 'paper',
+                    x0: event.x,
+                    y0: 0,
+                    x1: event.x,
+                    y1: 0.5,
+                    type: 'line',
                     line: {
-                        color: '#cdcdcd',
+                        color: event.color,
                         width: 3
-                    },
-                    yaxis: 'y2',
-                    name: 'humidity'
+                    }
                 })
-            }
 
-            if(events.temperature){
-                data.push({
-                    x: events.temperature.x,
-                    y: events.temperature.y,
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: {
-                        color: '#3780bf',
-                        width: 3
-                    },
-                    name: 'temperature'
-                })
-            }            
-            
-            var markers = {}
-            for(var type of ['powerOn', 'powerOff', 'state', 'trigger']) {
-                markers[type] = { mode: 'markers', hoverinfo: [], x: [], y: [], hovertext: [], marker: {}, showlegend: false, yaxis: 'y3' }
-                data.push(markers[type])
-            }
-
-            if(events.states){
-                for(var event of events.states) {
-                    layout.shapes.push({
-                        yref: 'paper',
-                        x0: event.x,
-                        y0: 0,
-                        x1: event.x,
-                        y1: 0.5,
-                        type: 'line',
-                        line: {
-                            color: event.color,
-                            width: 3
-                        }
-                    })
-
-                    markers[event.type].x.push(event.x)
-                    markers[event.type].y.push(0.5)
-                    markers[event.type].hovertext.push(event.value)
-                    markers[event.type].hoverinfo.push('text+x')
-                    markers[event.type].marker.color = event.color
-                }
+                markers[event.type].x.push(event.x)
+                markers[event.type].y.push(0.5)
+                markers[event.type].hovertext.push(event.value)
+                markers[event.type].hoverinfo.push('text+x')
+                markers[event.type].marker.color = event.color
             }
         }
+
         const plot = document.getElementById('plot')
         window.Plotly.newPlot(plot, {data: data, layout: layout, config: config});
     }
