@@ -766,7 +766,10 @@ class Settings extends React.Component {
         if(state["ocr"]) {
             for(var ocr of state["ocr"]) {
                 const currentValue = currentState["ocr"].find(x => x.id == ocr.id)
-                if(!currentValue || currentValue.target != ocr.target) {
+                if(!currentValue) {
+                    currentState["ocr"].push(ocr)
+                }
+                else if (currentValue.target != ocr.target) {
                     diff["ocr"].push(ocr)
                     currentValue.target = ocr.target
                 }
@@ -775,7 +778,10 @@ class Settings extends React.Component {
         if(state["states"]) {
             for(var s of state["states"]) {
                 const currentValue = currentState["states"].find(x => x.id == s.id)
-                if(!currentValue || currentValue.active != s.active) {
+                if(!currentValue) {
+                    currentState["states"].push(s)
+                } 
+                else if(currentValue.active != s.active) {
                     diff["states"].push(s)
                     currentValue.active = s.active
                 }
