@@ -296,6 +296,10 @@ input:checked + .slider:before {
         &:not(:last-child){ 
             margin-bottom: 20px;
         }
+
+        #plot {
+            margin: 0px -30px;
+        }
     }
 
     .setting-group {
