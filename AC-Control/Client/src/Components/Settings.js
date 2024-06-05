@@ -142,93 +142,94 @@ class Settings extends React.Component {
     }
 
     renderEvents = () => {
-        var data = []
-        var layout = {
-            shapes: [],
-            yaxis: {
-                title: "º" + (this.state.settings.temperatureUnit == "F" ? "F" : "C"),
-            },
-            yaxis2: {
-                title: "%H",
-                side: 'right',
-                overlaying: 'y'
-            },
-            yaxis3 : {
-                visible: false,
-                fixedrange: true, 
-                range: [0,1]
-            }
-        }
-        var config = {
-            displayModeBar: false
-        }
-        if(this.state.events) {
-            if(this.state.events.humidity){
-                data.push({
-                    x: this.state.events.humidity.x,
-                    y: this.state.events.humidity.y,
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: {
-                        color: '#7e868d',
-                        width: 3
-                    },
-                    yaxis: 'y2',
-                    name: 'humidity'
-                })
-            }
-
-            if(this.state.events.temperature){
-                data.push({
-                    x: this.state.events.temperature.x,
-                    y: this.state.events.temperature.y,
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: {
-                        color: '#3780bf',
-                        width: 3
-                    },
-                    name: 'temperature'
-                })
-            }            
-            
-            var markers = {}
-            for(var type of ['powerOn', 'powerOff', 'state', 'trigger']) {
-                markers[type] = { mode: 'markers', hoverinfo: ['text+x'], x: [], y: [], hovertext: [], marker: {}, showlegend: false, yaxis: 'y3' }
-                data.push(markers[type])
-            }
-
-            if(this.state.events.states){
-                for(var event of this.state.events.states) {
-                    layout.shapes.push({
-                        yref: 'paper',
-                        x0: event.x,
-                        y0: 0,
-                        x1: event.x,
-                        y1: 0.5,
-                        type: 'line',
-                        line: {
-                            color: event.color,
-                            width: 3
-                        }
-                    })
-
-                    markers[event.type].x.push(event.x)
-                    markers[event.type].y.push(0.5)
-                    markers[event.type].hovertext.push(event.value)
-                    markers[event.type].marker.color = event.color
+        this.UpdateQueue.push(() => {
+            var data = []
+            var layout = {
+                autosize: true,
+                legend: {x: 0.4, y: 1.2},
+                shapes: [],
+                yaxis: {
+                    title: "º" + (this.state.settings.temperatureUnit == "F" ? "F" : "C"),
+                },
+                yaxis2: {
+                    title: "%H",
+                    side: 'right',
+                    overlaying: 'y'
+                },
+                yaxis3 : {
+                    visible: false,
+                    fixedrange: true, 
+                    range: [0,1]
                 }
             }
-        }
+            var config = {
+                displayModeBar: false
+            }
+            if(this.state.events) {
+                if(this.state.events.humidity){
+                    data.push({
+                        x: this.state.events.humidity.x,
+                        y: this.state.events.humidity.y,
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: {
+                            color: '#7e868d',
+                            width: 3
+                        },
+                        yaxis: 'y2',
+                        name: 'humidity'
+                    })
+                }
+
+                if(this.state.events.temperature){
+                    data.push({
+                        x: this.state.events.temperature.x,
+                        y: this.state.events.temperature.y,
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: {
+                            color: '#3780bf',
+                            width: 3
+                        },
+                        name: 'temperature'
+                    })
+                }            
+                
+                var markers = {}
+                for(var type of ['powerOn', 'powerOff', 'state', 'trigger']) {
+                    markers[type] = { mode: 'markers', hoverinfo: ['text+x'], x: [], y: [], hovertext: [], marker: {}, showlegend: false, yaxis: 'y3' }
+                    data.push(markers[type])
+                }
+
+                if(this.state.events.states){
+                    for(var event of this.state.events.states) {
+                        layout.shapes.push({
+                            yref: 'paper',
+                            x0: event.x,
+                            y0: 0,
+                            x1: event.x,
+                            y1: 0.5,
+                            type: 'line',
+                            line: {
+                                color: event.color,
+                                width: 3
+                            }
+                        })
+
+                        markers[event.type].x.push(event.x)
+                        markers[event.type].y.push(0.5)
+                        markers[event.type].hovertext.push(event.value)
+                        markers[event.type].marker.color = event.color
+                    }
+                }
+            }
+            Plotly.newPlot('plot', data, layout, config);
+        })
         return (
             <div className="setting">
                 <div className="setting-title">History
-                <div className="refresh-container"><div className={"refresh" + (this.state.loadingEvents ? " loading" : "")} onClick={this.getEvents}><i className="fa-solid fa-arrows-rotate"></i></div></div>
-                </div>
-                {this.state.events ? 
-                    <Plot data={data} layout={layout} config={config} />
-                    : null
-                }
+                <div className="refresh-container"><div className={"refresh" + (this.state.loadingEvents ? " loading" : "")} onClick={this.getEvents}><i className="fa-solid fa-arrows-rotate"></i></div></div></div>
+                <div id="plot"></div>                
             </div>
         )
     }
