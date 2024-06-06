@@ -193,7 +193,6 @@ class Settings extends React.Component {
     }
 
     updateColor = (index, color) => {
-        console.log(color)
         this.state.settings.backgroundColors.splice(index, 1, color)
         this.setState({settings: this.state.settings})
     }
@@ -760,7 +759,6 @@ class Settings extends React.Component {
                         })
                     }
                 }
-                console.log(events)
                 this.plotData(events)
             }
         }
@@ -816,15 +814,14 @@ class Settings extends React.Component {
         var humidityRange = null, temperatureRange = null
 
         if(events.temperature) {
-            const average = events.temperature.y.reduce((a, b) => a + b) / events.temperature.y.length;
+            const average = events.temperature.y.map(x => isNaN(x) ? 0 : x).reduce((a, b) => a + b) / events.temperature.y.length;
             temperatureRange = [Math.round(average - buffer), Math.round(average + buffer)]
         }
 
         if(events.humidity) {
-            const average = events.humidity.y.reduce((a, b) => a + b) / events.humidity.y.length;
+            const average = events.humidity.y.map(x => isNaN(x) ? 0 : x).reduce((a, b) => a + b) / events.humidity.y.length;
             humidityRange = [Math.round(average - buffer), Math.round(average + buffer)]
         }
-
 
         var data = []
         var layout = {
@@ -863,22 +860,21 @@ class Settings extends React.Component {
                 type: 'scatter',
                 mode: 'lines',
                 line: {
-                    color: '#cdcdcd',
+                    color: '#adadad55',
                     width: 3
                 },
                 yaxis: 'y2',
                 name: 'humidity'
             })
 
-            const trendline = this.getLoessData(events.humidity.y)
-
             data.push({
                 x: events.humidity.x,
-                y: trendline,
+                y: this.getLoessData(events.humidity.y),
+                showlegend: false,
                 type: 'scatter',
                 mode: 'lines',
-                line: {
-                    color: '#cdcdcd',
+                line: {                    
+                    color: '#adadad',
                     width: 3,
                     dash: 'longdashdot'
                 },
@@ -893,25 +889,23 @@ class Settings extends React.Component {
                 type: 'scatter',
                 mode: 'lines',
                 line: {
-                    color: '#3780bf',
+                    color: '#3780bf55',
                     width: 3
                 },
                 name: 'temperature'
             })
 
-            const trendline = this.getLoessData(events.temperature.y)
-
             data.push({
                 x: events.temperature.x,
-                y: trendline,
+                y: this.getLoessData(events.temperature.y),
+                showlegend: false,
                 type: 'scatter',
                 mode: 'lines',
                 line: {
-                    color: '#cdcdcd',
+                    color: '#3780bf',
                     width: 3,
                     dash: 'longdashdot'
-                },
-                yaxis: 'y2'
+                }
             })
         }            
         
@@ -950,7 +944,18 @@ class Settings extends React.Component {
 
     getLoessData = (data) => {
         const xval = data.map((x,i) => i)
-        return loess(xval, data, 0.6666);
+        var lastGoodValue = data.map(x => isNaN(x) ? 0 : x).reduce((a, b) => a + b) / data.length
+        const yval = []
+        for(var x of data){
+            if(isNaN(x))
+                yval.push(lastGoodValue)
+            else {
+                yval.push(x)
+                lastGoodValue = x
+            }
+        }
+        const res = loess(xval, yval, 0.05);
+        return res
     }
 }
 
