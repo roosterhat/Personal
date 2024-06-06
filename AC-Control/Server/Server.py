@@ -566,6 +566,7 @@ def temperatureWorker():
 
 def historyWorker():
     while True:        
+        Time.sleep(60)
         with open("./Data/events", 'rb') as f:
             try:
                 data = json.loads(f.read())
@@ -598,8 +599,7 @@ def historyWorker():
 
         with open("./Data/events", 'w') as f:
             f.write(json.dumps(newData, default=str))
-
-        Time.sleep(60)
+        
 
 def appStart():
     global _State, _Debug, _Camera, OCRModels, StateModels, settings
