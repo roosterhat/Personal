@@ -572,11 +572,17 @@ def historyWorker():
             except Exception:
                 print(traceback.format_exc())
                 data = []
+
+        with open("./Data/settings", 'rb') as f:
+            settings = json.loads(f.read())
         
         newData = []
+        pastCutoff = False        
         for event in data:
-            if datetime.now() - datetime.fromisoformat(event["time"]) < timedelta(days=1):
+            if pastCutoff or datetime.now() - datetime.fromisoformat(event["time"]) < timedelta(days=settings["historyLength"]):
+                pastCutoff = True
                 newData.append(event)
+
         if not(DEBUG):
             newData.append({
                 "time": datetime.now(),

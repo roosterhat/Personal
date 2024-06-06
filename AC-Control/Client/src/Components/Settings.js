@@ -147,7 +147,11 @@ class Settings extends React.Component {
             <div className="setting">
                 <div className="setting-title">History
                 <div className="refresh-container"><div className={"refresh" + (this.state.loadingEvents ? " loading" : "")} onClick={this.getEvents}><i className="fa-solid fa-arrows-rotate"></i></div></div></div>
-                <div id="plot"></div>                
+                <div id="plot"></div>  
+                <div class="history">
+                    <div>History Length (Days)</div>
+                    <input type="number" min="1" value={this.state.settings["historyLength"]} onChange={e => this.updateSettings("historyLength", Number(e.target.value))}/> 
+                </div>                  
             </div>
         )
     }
@@ -916,13 +920,14 @@ class Settings extends React.Component {
         }
 
         if(events.states){
+            const pinHeight = 0.08
             for(var event of events.states) {
                 layout.shapes.push({
                     yref: 'paper',
                     x0: event.x,
                     y0: 0,
                     x1: event.x,
-                    y1: 0.15,
+                    y1: pinHeight,
                     type: 'line',
                     line: {
                         color: event.color,
@@ -931,7 +936,7 @@ class Settings extends React.Component {
                 })
 
                 markers[event.type].x.push(event.x)
-                markers[event.type].y.push(0.15)
+                markers[event.type].y.push(pinHeight)
                 markers[event.type].hovertext.push(event.value)
                 markers[event.type].hoverinfo.push('text+x')
                 markers[event.type].marker.color = event.color

@@ -301,6 +301,17 @@ input:checked + .slider:before {
         #plot {
             margin: 0px -30px;
         }
+
+        .history {
+            display: flex;
+            align-items: center;
+            justify-content: end;
+            gap: 8px;
+
+            input {
+                width: 50px;
+            }
+        }
     }
 
     .setting-group {
