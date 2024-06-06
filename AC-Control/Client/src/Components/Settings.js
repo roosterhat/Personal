@@ -823,9 +823,10 @@ class Settings extends React.Component {
                 var x = events.temperature.y[i]
                 if(isNaN(x))
                     x = average / (i + 1)
-                else
+                else {
                     max = Math.max(max, x)
                     min = Math.min(min, x)
+                }
                 average += x
             }
             average /= events.temperature.y.length
@@ -838,9 +839,10 @@ class Settings extends React.Component {
                 var x = events.humidity.y[i]
                 if(isNaN(x))
                     x = average / (i + 1)
-                else
+                else {
                     max = Math.max(max, x)
                     min = Math.min(min, x)
+                }
                 average += x
             }
             average /= events.humidity.y.length
