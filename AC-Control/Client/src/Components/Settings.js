@@ -818,13 +818,25 @@ class Settings extends React.Component {
         var humidityRange = null, temperatureRange = null
 
         if(events.temperature) {
-            const average = events.temperature.y.map(x => isNaN(x) ? 0 : x).reduce((a, b) => a + b) / events.temperature.y.length;
-            temperatureRange = [Math.round(average - buffer), Math.round(average + buffer)]
+            var average = 0, max = -200, min = 200
+            for(var x of events.temperature.y) {
+                average += x
+                max = Math.max(max, x)
+                min = Math.min(min, x)
+            }
+            average /= events.temperature.y.length
+            temperatureRange = [Math.min(Math.round(average - buffer), min), Math.max(Math.round(average + buffer), max)]
         }
 
         if(events.humidity) {
-            const average = events.humidity.y.map(x => isNaN(x) ? 0 : x).reduce((a, b) => a + b) / events.humidity.y.length;
-            humidityRange = [Math.round(average - buffer), Math.round(average + buffer)]
+            var average = 0, max = -200, min = 200
+            for(var x of events.humidity.y) {
+                average += x
+                max = Math.max(max, x)
+                min = Math.min(min, x)
+            }
+            average /= events.humidity.y.length
+            humidityRange = [Math.min(Math.round(average - buffer), min), Math.max(Math.round(average + buffer), max)]
         }
 
         var data = []
