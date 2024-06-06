@@ -820,6 +820,7 @@ class Settings extends React.Component {
         if(events.temperature) {
             var average = 0, max = -200, min = 200
             for(var x of events.temperature.y) {
+                x = isNaN(x) ? average : x
                 average += x
                 max = Math.max(max, x)
                 min = Math.min(min, x)
@@ -831,6 +832,7 @@ class Settings extends React.Component {
         if(events.humidity) {
             var average = 0, max = -200, min = 200
             for(var x of events.humidity.y) {
+                x = isNaN(x) ? average : x
                 average += x
                 max = Math.max(max, x)
                 min = Math.min(min, x)
