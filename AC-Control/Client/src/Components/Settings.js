@@ -826,6 +826,7 @@ class Settings extends React.Component {
                 max = Math.max(max, x)
                 min = Math.min(min, x)
             }
+            average /= events.temperature.y.length
             temperatureRange = [Math.min(Math.round(average - buffer), min), Math.max(Math.round(average + buffer), max)]
         }
 
