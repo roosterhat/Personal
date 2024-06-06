@@ -849,6 +849,12 @@ class Settings extends React.Component {
             humidityRange = [Math.min(Math.round(average - buffer), min), Math.max(Math.round(average + buffer), max)]
         }
 
+        var values = events.temperature || events.humidity
+        var firstX = Date.parse(values.x[0])
+        var lastX = Date.parse(values.x[values.x.length - 1])
+        var minX = lastX > (firstX + 8.64e+7) ? (lastX - 8.64e+7) : firstX
+        var maxX = lastX
+
         var data = []
         var layout = {
             autosize: true,
@@ -873,6 +879,10 @@ class Settings extends React.Component {
                 fixedrange: true, 
                 range: [0,1],
                 overlaying: 'y'
+            },
+            xaxis: {
+                autorange: false,
+                range: [new Date().setTime(minX), new Date().setTime(maxX)]
             }
         }
         var config = {
