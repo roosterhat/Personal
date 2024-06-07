@@ -546,14 +546,14 @@ def temperatureWorker():
                     try:
                         DHT11Sensor.measure()
                         if not DHT11Sensor._temperature or not DHT11Sensor._humidity:
-                            raise Exception("Empty sensor values", flush=True)
+                            raise Exception("Empty sensor values")
                         sensor["temperature"] = DHT11Sensor._temperature
                         sensor["humidity"] = DHT11Sensor._humidity
                         break
                     except RuntimeError as error:
                         retries += 1
                         if retries > 5:
-                            raise Exception("Maximum retries reached", flush=True)
+                            raise Exception("Maximum retries reached")
                         Time.sleep(1)
                         continue
                     except Exception as error:
