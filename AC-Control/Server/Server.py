@@ -546,7 +546,7 @@ def temperatureWorker():
                     try:
                         DHT11Sensor.measure()
                         if not DHT11Sensor._temperature or not DHT11Sensor._humidity:
-                            raise Exception("Empty sensor values")
+                            raise RuntimeError("Empty sensor values")
                         sensor["temperature"] = DHT11Sensor._temperature
                         sensor["humidity"] = DHT11Sensor._humidity
                         break
