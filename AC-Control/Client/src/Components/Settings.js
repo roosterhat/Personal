@@ -995,7 +995,7 @@ class Settings extends React.Component {
                 lastGoodValue = x
             }
         }
-        const res = loess(xval, yval, this.Settings.trendlineAccuracy);
+        const res = loess(xval, yval, this.state.settings.trendlineAccuracy);
         return res
     }
 }
