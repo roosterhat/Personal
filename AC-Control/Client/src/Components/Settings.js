@@ -151,7 +151,11 @@ class Settings extends React.Component {
                 <div class="history">
                     <div>History Length (Days)</div>
                     <input type="number" min="1" value={this.state.settings["historyLength"]} onChange={e => this.updateSettings("historyLength", Number(e.target.value))}/> 
-                </div>                  
+                </div>
+                <div class="history">
+                    <div>Trendline Accuracy</div>
+                    <input type="number" min="0" max="1" value={this.state.settings["trendlineAccuracy"]} onChange={e => this.updateSettings("trendlineAccuracy", Number(e.target.value))}/> 
+                </div>
             </div>
         )
     }
@@ -991,7 +995,7 @@ class Settings extends React.Component {
                 lastGoodValue = x
             }
         }
-        const res = loess(xval, yval, 0.05);
+        const res = loess(xval, yval, this.Settings.trendlineAccuracy);
         return res
     }
 }
