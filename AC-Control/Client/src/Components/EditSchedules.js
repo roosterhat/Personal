@@ -114,13 +114,14 @@ class Schedules extends React.Component {
             schedule.state.states.splice(index, 1)
         }
         if(id){
-            var state = group.states.find(x => x.id = id)
+            var state = group.states.find(x => x.id == id)
             schedule.state.states.push({
                 "id": id,
                 "groupId": group.id,
                 "active": true,
                 "name": state.name
             })
+            this.setState({config: this.state.config})
         }
     }
 
