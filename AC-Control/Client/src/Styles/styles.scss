@@ -307,6 +307,7 @@ input:checked + .slider:before {
             align-items: center;
             justify-content: end;
             gap: 8px;
+            margin-bottom: 8px;
 
             input {
                 width: 50px;
