@@ -13,6 +13,7 @@ class Control extends React.Component {
             queue: {},
             actionQueued: false
         }
+        this.actionPromise = null;
 
         this.state = {
             targetState: null,
@@ -368,7 +369,6 @@ class Control extends React.Component {
     }
 
     setMode = async (mode) => {
-        if(this.state.loadingState) return;
         navigator.vibrate(100)
         for(var state of this.state.targetState.states)
             state.active = state.name == mode.name
@@ -384,32 +384,40 @@ class Control extends React.Component {
     }
 
     setTargetState = async (types, forceRefresh = false) => {
-        if(this.state.loadingState) return;
-        try{
-            this.setState({loadingSetState: true})
-            var temperature = this.state.targetState.ocr.find(x => x.name == "Temperature")
-            var activeState = this.state.targetState.states.find(x => x.active)
-            var target = {
-                power: this.state.targetState.power,
-                ocr: !types || types.includes("ocr") ? [{id: temperature.id, buttons: temperature.buttons, name: temperature.name, target: temperature.value}] : [],
-                states: !types || types.includes("states") && activeState ? [activeState] : []
-            }
-            var body = JSON.stringify(target)
-            var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
-            if(response.status == 200){
-                if(forceRefresh)
+        const lastAction = this.actionPromise;
+        var action = null
+        action = new Promise(async resolve => {
+            try{
+                if(lastAction)
+                    await lastAction
+                this.setState({loadingSetState: true})
+                var temperature = this.state.targetState.ocr.find(x => x.name == "Temperature")
+                var activeState = this.state.targetState.states.find(x => x.active)
+                var target = {
+                    power: this.state.targetState.power,
+                    ocr: !types || types.includes("ocr") ? [{id: temperature.id, buttons: temperature.buttons, name: temperature.name, target: temperature.value}] : [],
+                    states: !types || types.includes("states") && activeState ? [activeState] : []
+                }
+                var body = JSON.stringify(target)
+                var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
+                if(response.status == 200){
+                    if(forceRefresh)
+                        await this.refreshState()
+                    else
+                        this.setState({currentState: JSON.parse(JSON.stringify(this.state.targetState))})
+                } 
+                else if(action == this.actionPromise) {
+                    this.displayError(await response.text())
                     await this.refreshState()
-                else
-                    this.setState({currentState: JSON.parse(JSON.stringify(this.state.targetState))})
-            } 
-            else {
-                this.displayError(await response.text())
-                await this.refreshState()
+                }
             }
-        }
-        finally {
-            this.setState({loadingSetState: false})
-        }
+            finally {
+                this.setState({loadingSetState: false})
+                resolve()
+            }
+        })        
+        this.actionPromise = action;        
+        await action     
     }
 
     triggerMacro = async (macro) => {
