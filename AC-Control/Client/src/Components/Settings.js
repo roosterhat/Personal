@@ -951,7 +951,7 @@ class Settings extends React.Component {
         
         var markers = {}
         for(var type of ['powerOn', 'powerOff', 'state', 'trigger']) {
-            markers[type] = { mode: 'markers', hoverinfo: [], x: [], y: [], hovertext: [], marker: {}, showlegend: false, yaxis: 'y3' }
+            markers[type] = { mode: 'markers', hoverinfo: [], x: [], y: [], hovertext: [], marker: { size: 9 }, showlegend: false, yaxis: 'y3' }
             data.push(markers[type])
         }
 
