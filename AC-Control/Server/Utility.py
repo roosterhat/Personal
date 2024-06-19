@@ -6,6 +6,7 @@ import math
 import json
 from datetime import datetime
 import traceback
+import re
 
 def colorDistance_old(c1, c2):
     rBar = 0.5 * (c1[0] + c2[0])
@@ -75,6 +76,8 @@ def reshapeImage(config, frame, vertices):
     return image
 
 def triggerIR(config, action):
+    config = re.sub(r'[^\d\w-]+', '', config)
+    action = re.sub(r'[^\d\w-]+', '', action)
     print(f"Trigger: [{config}] [{action}]")
     system(f"irsend SEND_ONCE {config} {action}")
 
