@@ -343,7 +343,7 @@ def trigger(config, id):
         buttons = [b for b in data['buttons'] if b['id'] == id]
         if not any(buttons):
             return 'Button does not exist', 400
-        Utility.triggerIR(data['ir_config'], buttons[0]['action'])
+        Utility.triggerIR(data['ir_config'], re.sub(r'[^\d\w-]+', buttons[0]['action'], ''))
         Utility.AppendEvent("trigger", buttons[0]["name"])
         return "Success", 200
     except Exception as ex:
