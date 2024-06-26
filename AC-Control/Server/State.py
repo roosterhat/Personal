@@ -235,8 +235,10 @@ class State:
                 else:
                     if not self.setOCRValue(config, ocr["id"], ocr["target"], buttonMap[ocr["buttons"][0]["button"]], setting):
                         return f"Failed to set {ocr['name']} to [{ocr['target']}]"
+            Utility.AppendEvent("state", targetState)
         else:
             if currentState["power"]["active"]:
                 if not self.attemptSetPower(config, buttonMap[config["actions"]["power"]["button"]], False, setting):
                     return f"Failed to set power [Off]"
-        Utility.AppendEvent("state", targetState)
+            Utility.AppendEvent("state", { "power": targetState["power"] })
+        
