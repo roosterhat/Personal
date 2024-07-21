@@ -500,6 +500,8 @@ class Settings extends React.Component {
     }
 
     updateSettings = (key, value) => {
+        console.log(key + ": " + value)
+        console.log(this.state.settings)
         this.state.settings[key] = value;
         this.setState({settings: this.state.settings})
     }

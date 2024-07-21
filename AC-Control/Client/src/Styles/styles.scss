@@ -61,45 +61,45 @@ button {
         #frame {
             height: 100%;
         }
+    }    
+}
+
+.state-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    border: solid 1px #000;
+    border-radius: 5px;
+    margin-left: 5px;
+    min-width: 150px;
+    position: relative;
+
+    .state {
+        display: flex;
+        align-items: center;
+        padding: 5px;
+
+        .active-color {
+            background: rgb(9, 170, 11);
+            width: 15px;
+            border-radius: 50%;
+            aspect-ratio: 1;
+            margin-right: 5px;
+            border: solid 1px #000;
+        }
     }
 
-    .state-container {
+    .lds-ring {
+        transform: scale(25%);
+    }
+
+    .state-container-footer {
         display: flex;
-        flex-direction: column;
-        flex-wrap: wrap;
-        border: solid 1px #000;
-        border-radius: 5px;
-        margin-left: 5px;
-        min-width: 150px;
-        position: relative;
-
-        .state {
-            display: flex;
-            align-items: center;
-            padding: 5px;
-
-            .active-color {
-                background: rgb(9, 170, 11);
-                width: 15px;
-                border-radius: 50%;
-                aspect-ratio: 1;
-                margin-right: 5px;
-                border: solid 1px #000;
-            }
-        }
-
-        .lds-ring {
-            transform: scale(25%);
-        }
-
-        .state-container-footer {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px;
-            position: absolute;
-            bottom: 0;
-            width: calc(100% - 10px);
-        }
+        justify-content: space-between;
+        padding: 5px;
+        position: absolute;
+        bottom: 0;
+        width: calc(100% - 10px);
     }
 }
 
@@ -504,7 +504,6 @@ input:checked + .slider:before {
     
                 canvas {
                     width: 100%;
-                    height: 100%;
                     border: solid 1px #000;
                     border-radius: 5px;
                     position: relative;
