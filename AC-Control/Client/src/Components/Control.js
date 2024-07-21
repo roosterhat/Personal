@@ -237,7 +237,10 @@ class Control extends React.Component {
     }
 
     switchToMainView = () => {
-        this.setState({view: "main"})
+        var menu = document.getElementById("menu");
+        if(menu)
+            menu.classList.add("closed")
+        setTimeout(() => this.setState({view: "main", error: null, EditSetting: null, EditConfig: null}), 450)
     }
 
     getHeatIndex = () => {
