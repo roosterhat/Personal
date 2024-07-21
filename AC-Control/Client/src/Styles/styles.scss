@@ -136,6 +136,7 @@ button {
     display: flex;
     position: fixed;
     right: 0;
+    top: 0;
     height: 100%;
     transition: transform 0.5s ease;
     max-width: calc(100vw - 40px);

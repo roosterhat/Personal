@@ -1,5 +1,6 @@
 import React from 'react'
 import LoadingSpinner from './Spinners/loading1';
+import Settings from './Settings';
 import { fetchWithToken, delay, interpolateColors } from '../Utility';
 
 class Control extends React.Component {
@@ -153,14 +154,20 @@ class Control extends React.Component {
     }
 
     renderMenu = () => {
-        return (
-            <div className="btn-container vertical" id="normal">
-                <button className={"btn " + (this.state.loadingState ? "loading" : "")} onClick={this.refreshState}><i className="fa-solid fa-arrows-rotate"></i></button>                
-                <button className="btn" onClick={this.switchView}><i className="far fa-clone"></i></button> 
-                <div className="spacer"></div>
-                { this.Settings && this.Config && this.Config.macros.length > 0 ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i className="fa-solid fa-angles-right"></i></button> : null }
-            </div>
-        )
+        if(this.state.view == "settings") {
+            return (<Settings Settings={this.state.EditSetting} Config={this.state.EditConfig} refresh={this.refreshState} complete={this.completeSettings} cancel={() => this.cancelEdit()} />)
+        }
+        else {
+            return (
+                <div className="btn-container vertical" id="normal">
+                    <button className={"btn " + (this.state.loadingState ? "loading" : "")} onClick={this.refreshState}><i className="fa-solid fa-arrows-rotate"></i></button>                                 
+                    <button className="btn" onClick={this.switchView}><i className="far fa-clone"></i></button>
+                    { this.Settings ? <button className="btn" onClick={() => this.switchTo("settings")}><i className="fa-solid fa-gear"></i></button> : null }
+                    <div className="spacer"></div>
+                    { this.Settings && this.Config && this.Config.macros.length > 0 ? <button className={"btn macros " + (this.state.showMacros ? "retract" : "expand")} onClick={() => this.setState({showMacros: !this.state.showMacros})}><i className="fa-solid fa-angles-right"></i></button> : null }
+                </div>
+            )
+        }
     }
 
     renderTemperatureRing = () => {
@@ -210,6 +217,28 @@ class Control extends React.Component {
             </div>
         )
     }    
+
+    switchTo = (view) => {
+        this.checkAuthorized(false)
+        var settings = JSON.parse(JSON.stringify(this.Settings));
+        var config = JSON.parse(JSON.stringify(this.Config));
+        this.setState({view: view, EditConfig: config, EditSetting: settings})
+    }
+
+    completeSettings = async (settings) => {
+        this.Settings = settings
+        await this.saveSettings()
+        await this.save()
+        this.switchToMainView()
+    }
+
+    cancelEdit = () => {
+        this.switchToMainView()
+    }
+
+    switchToMainView = () => {
+        this.setState({view: "main"})
+    }
 
     getHeatIndex = () => {
         const T = this.getSensorTemperatureValue("F")
@@ -475,6 +504,45 @@ class Control extends React.Component {
         this.setState({displayError: true, errorMessage: error})
         await delay(5000)
         this.setState({displayError: false})
+    }
+
+    saveSettings = async() => {
+        try {
+            const response = await fetchWithToken(`api/settings`, "POST", JSON.stringify(this.Settings), { "Content-Type": "application/json" });
+        }
+        catch(ex) {
+            console.error(ex);
+        }
+    }
+
+    save = async (name) => {
+        if(name)
+            this.state.EditConfig.name = name
+        try{
+            if(Object.prototype.toString.call(this.state.EditConfig.background.file) === "[object File]"){
+                const response = await fetchWithToken("api/upload", "POST", this.state.EditConfig.background.file, { "Content-Type": "image" })
+                if(response.status == 200)
+                    this.state.EditConfig.background.file = await response.text()
+            }
+            const response = await fetchWithToken(`api/save`, "POST", JSON.stringify(this.state.EditConfig), { "Content-Type": "application/json" });
+            if(response.status == 200){
+                this.setState({showNameInput: false})
+                this.Config = JSON.parse(JSON.stringify(this.state.EditConfig))
+            }
+        }
+        catch(ex) {
+            console.error(ex);
+        }       
+    }
+
+    checkAuthorized = async(allowUnauthorized = true) => {
+        try{
+            const response = await fetchWithToken(`api/test/authorize`, "GET", null, {}, allowUnauthorized)
+            return response.status == 200
+        }
+        catch {
+            return false;
+        }
     }
 }
 
