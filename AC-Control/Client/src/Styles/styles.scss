@@ -140,7 +140,7 @@ button {
     height: 100%;
     transition: transform 0.5s ease;
     max-width: calc(100vw - 40px);
-    z-index: 2;
+    z-index: 5;
     border-left: solid 1px #000;
 
     .expand {
