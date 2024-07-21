@@ -1,5 +1,6 @@
 import React from 'react'
 import Menu from './Menu';
+import Switch from './Switch';
 import LoadingSpinner from './Spinners/loading1';
 import { fetchWithToken, parseTime, delay, loess } from '../Utility';
 
@@ -103,20 +104,14 @@ class Settings extends React.Component {
                         <div className="setting-group">
                             <div className="setting">
                                 <div className="setting-title">Use Dynamic Background Color</div>
-                                <label class="switch" for="dynamicBackgroundInput">   
-                                    <input id="dynamicBackgroundInput" type="checkbox" onChange={e => this.updateSettings("useDynamicBackground", !this.state.settings.useDynamicBackground)} checked={this.state.settings.useDynamicBackground}/>                                 
-                                    <span class="slider round"></span>
-                                </label>                                
+                                <Switch State={this.state.settings.useDynamicBackground} OnSelect={x => this.updateSettings("useDynamicBackground", x)}/>
                             </div>
                             {this.state.settings.useDynamicBackground ? 
                                 [
                                     this.renderBackgroundColorSelector(),
                                     <div className="setting">
                                         <div className="setting-title">Use Heat Index</div>
-                                        <label class="switch" for="heatIndexInput">
-                                            <input id="heatIndexInput" type="checkbox" onChange={e => this.updateSettings("useHeatIndex", !this.state.settings.useHeatIndex)} checked={this.state.settings.useHeatIndex}/>
-                                            <span class="slider round"></span>
-                                        </label>
+                                        <Switch State={this.state.settings.useHeatIndex} OnSelect={x => this.updateSettings("useHeatIndex", x)}/>
                                     </div>   
                                 ]
                                 : null }
