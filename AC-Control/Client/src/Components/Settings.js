@@ -103,18 +103,18 @@ class Settings extends React.Component {
                         <div className="setting-group">
                             <div className="setting">
                                 <div className="setting-title">Use Dynamic Background Color</div>
-                                <label class="switch">
-                                    <input type="checkbox" onChange={e => this.updateSettings("useDynamicBackground", !this.state.settings.useDynamicBackground)} checked={this.state.settings.useDynamicBackground}/>
+                                <label class="switch" for="dynamicBackgroundInput">   
+                                    <input id="dynamicBackgroundInput" type="checkbox" onChange={e => this.updateSettings("useDynamicBackground", !this.state.settings.useDynamicBackground)} checked={this.state.settings.useDynamicBackground}/>                                 
                                     <span class="slider round"></span>
-                                </label>
+                                </label>                                
                             </div>
                             {this.state.settings.useDynamicBackground ? 
                                 [
                                     this.renderBackgroundColorSelector(),
                                     <div className="setting">
                                         <div className="setting-title">Use Heat Index</div>
-                                        <label class="switch">
-                                            <input type="checkbox" onChange={e => this.updateSettings("useHeatIndex", !this.state.settings.useHeatIndex)} checked={this.state.settings.useHeatIndex}/>
+                                        <label class="switch" for="heatIndexInput">
+                                            <input id="heatIndexInput" type="checkbox" onChange={e => this.updateSettings("useHeatIndex", !this.state.settings.useHeatIndex)} checked={this.state.settings.useHeatIndex}/>
                                             <span class="slider round"></span>
                                         </label>
                                     </div>   
