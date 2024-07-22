@@ -522,14 +522,8 @@ class Control extends React.Component {
         if(name)
             this.state.EditConfig.name = name
         try{
-            if(Object.prototype.toString.call(this.state.EditConfig.background.file) === "[object File]"){
-                const response = await fetchWithToken("api/upload", "POST", this.state.EditConfig.background.file, { "Content-Type": "image" })
-                if(response.status == 200)
-                    this.state.EditConfig.background.file = await response.text()
-            }
             const response = await fetchWithToken(`api/save`, "POST", JSON.stringify(this.state.EditConfig), { "Content-Type": "application/json" });
             if(response.status == 200){
-                this.setState({showNameInput: false})
                 this.Config = JSON.parse(JSON.stringify(this.state.EditConfig))
             }
         }
