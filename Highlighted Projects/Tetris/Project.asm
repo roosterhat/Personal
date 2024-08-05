@@ -21,13 +21,14 @@ file_board:	.asciiz	"Project/gameBoarder.txt"
 file_pieces:	.asciiz	"Project/gamePieces.txt"
 file_palette:	.asciiz	"Project/colorPalette.txt"
 file_digits:	.asciiz "Project/gameDigits.txt"
-palette:	.word 0x00000000 0xFFFFFFFF 0xED1C24 0xFF7F27 0X00FF00 0X0080FF 0X8000FF 0XFFFF80 0X880015 #black, white, red, orange, green, blue, purple, yellow
+palette:	.word 0x000000 0xFFFFFF 0xED1C24 0xFF7F27 0X00FF00 0X0080FF 0X8000FF 0XFFFF80 0X880015 #black, white, red, orange, green, blue, purple, yellow
 board_width:	.word 40
 board_height:	.word 80
 board:		.space 2048
 frame: 		.space 2048
 frame_size:	.word 394
-pieces: 	.space 2048
+pieces: 	.space 3000
+ghost_pieces: 	.space 3000
 pieces_size:	.word 670
 buffer:		.space 2048
 digits_size:	.word 248
@@ -38,19 +39,27 @@ key_input:	.word 0x41E
 
 
 .text
-	#main loop
+	#main loop	
 	jal 	clear_canvas		# clear canvas
 	la 	$a0 file_pieces
 	lw 	$a1 pieces_size
 	la 	$a2 pieces
+	li	$a3 0
 	jal 	read_file		# read game pieces from file
+	la 	$a0 file_pieces
+	lw 	$a1 pieces_size
+	la 	$a2 ghost_pieces
+	li	$a3 0x555555		# set color override
+	jal 	read_file		# read ghost pieces from file
 	la	$a0 file_board
 	lw	$a1 frame_size
 	la	$a2 frame
+	li	$a3 0
 	jal 	read_file		# read game board from file
 	la	$a0 file_digits
 	lw	$a1 digits_size
 	la	$a2 digits
+	li	$a3 0
 	jal 	read_file		# read score board digits from file
 	jal	init_board		# initialize the board
 	li	$s6 0			# $s6: score, set to 0
@@ -67,15 +76,31 @@ while:	jal 	clear_canvas		# === Main Game loop ===
 	syscall				# generate random integer
 	lw	$t0 ($sp)		# load next piece index from stack
 	addiu	$sp $sp 4
-	li 	$s0 4			# $s0: x
-	li 	$s1 0			# $s1: y	
 	move	$s2 $t0			# $s2: index, set to previously generated random number
-	move	$t0 $a0
+	li 	$s0 4			# $s0: x
+	li 	$s1 0			# $s1: y
 	li 	$s3 0			# $s3: rotation
-	li	$s5 10			# $s5: number of loop iterations
+	li	$s4 0			# $s4: ghost piece y
+	li 	$t0 10
+	div 	$t6 $t0
+	mflo	$t4
+	sub	$s5 $t0 $t4 		# $s5: number of loop iterations	
+	move	$t0 $a0	
 	addiu	$sp $sp -4
 	sw	$t0 ($sp)		# save next piece index to stack
 	jal	draw_board		# draw game pieces
+	move 	$a0 $s0
+	move 	$a1 $s1
+	move 	$a2 $s2
+	move 	$a3 $s3
+	jal	move_down
+	move	$s4 $v0
+	move 	$a0 $s0
+	move 	$a1 $s4
+	move 	$a2 $s2
+	move 	$a3 $s3
+	li	$v1 0
+	jal 	draw_ghost_piece
 	move 	$a0 $s0
 	move 	$a1 $s1
 	move 	$a2 $s2
@@ -90,16 +115,16 @@ while:	jal 	clear_canvas		# === Main Game loop ===
 	jal 	draw_piece		# draw next piece
 	move	$a0 $s6
 	jal	draw_score		# draw current score
-	move 	$a0 $s0
+	move 	$a0 $s0			# $s4: ghost piece y
 	move 	$a1 $s1
 	move 	$a2 $s2
 	move 	$a3 $s3
 	jal	check			# check to see if new piece is colliding with any pieces on the board, signifies the end of game
 	beqz	$v0 gameover
 	
+	
 while_p:				# ===Player Control Loop===
 	li	$s7 0			# $s7: update flag, signifies if canvas should update
-	li	$s4 30			# $s4: loop wait time
   	lbu     $t0, 0xffff0000		# read ready bit for key input
 	beqz	$t0 out			# if not ready skip key check
 	lbu     $t0 0xffff0004		# if read load key
@@ -120,6 +145,12 @@ up:	li	$t1 0x77
 	li 	$t0 4		
 	div	$s3 $t0			# rotation = rotation % 4
 	mfhi	$s3
+	move	$a0 $s0
+	move	$a1 $s1
+	move 	$a2 $s2
+	move	$a3 $s3
+	jal	move_down
+	move	$s4 $v0
 	li	$s7 1			# set update flag
 left:	li	$t1 0x61		
 	bne	$t0 $t1 down		# left 'a'
@@ -130,14 +161,18 @@ left:	li	$t1 0x61
 	jal 	check			# check if move is valid
 	beqz	$v0 out			# if not 'out'
 	move	$s0 $v1			# set x value to return value from 'check'
+	move	$a0 $s0
+	move	$a1 $s1
+	move 	$a2 $s2
+	move	$a3 $s3
+	jal	move_down
+	move	$s4 $v0
 	li	$s7 1			# set update flag
 down:	li	$t1 0x73
-	bne	$t0 $t1 right		# down 's' !!!(DOES NOT WORK, LONG PRESSING KEYS CAUSES IDE TO CRASH)!!!
-	li	$t1 2	
-	div	$s4 $t1			# LoopTime = LoopTime / 2
-	mflo	$s4
+	bne	$t0 $t1 right		# down 's' 
+	li 	$s5 1
 right:	li	$t1 0x64		
-	bne	$t0 $t1 out		# right 'd'
+	bne	$t0 $t1 space		# right 'd'
 	addi	$a0 $s0 1		# increment x value to check next state
 	move	$a1 $s1
 	move 	$a2 $s2
@@ -145,30 +180,53 @@ right:	li	$t1 0x64
 	jal 	check			# check if move is valid
 	beqz	$v0 out			# if not 'out'
 	move	$s0 $v1			# set x value to return value from 'check'
+	move	$a0 $s0
+	move	$a1 $s1
+	move 	$a2 $s2
+	move	$a3 $s3
+	jal	move_down
+	move	$s4 $v0
 	li	$s7 1			# set update flag
+space:	li	$t1 0x20		
+	bne	$t0 $t1 out
+	move	$a0 $s0		
+	move	$a1 $s1
+	move 	$a2 $s2
+	move	$a3 $s3
+	jal 	move_down
+	addi	$s1 $v0 -1
+	li 	$s5 1
 out:	li 	$v0, 32			
-	move 	$a0, $s4
-	syscall				# wait for loop time ($s4)
+	li 	$a0, 30
+	syscall				# wait for loop time ($s5)
 	addi	$s5 $s5 -1		# decrement loop iterations
 	bgt 	$s5 $0 update		# if loop iteration is greater than zero go to 'update'
 	move 	$a0 $s0			# if not move piece down
-	move 	$a1 $s1
-	addi	$a1 $a1 1		# increment y value to check next state
+	addi	$a1 $s1 1		# increment y value to check next state
 	move	$a2 $s2
 	move 	$a3 $s3
 	jal 	check			# check if move is valid
 	beqz	$v0 done		# if not piece is done go to 'done'
 	addi 	$s1 $s1 1		# else increment y value
-	li	$s5 10			# reset loop iterations 
+	li 	$t0 10
+	div 	$t6 $t0
+	mflo	$t4
+	sub	$s5 $t0 $t4		# reset loop iterations 
 	li	$s7 1			# set update flag
 update:	beqz	$s7 while_p		# if update flag is 0 skip draw, go to top of player control loop
 	jal	draw_board		# else draw board pieces
+	move 	$a0 $s0
+	move 	$a1 $s4
+	move 	$a2 $s2
+	move 	$a3 $s3
+	li	$v1 0
+	jal	draw_ghost_piece
 	move 	$a0 $s0
 	move 	$a1 $s1
 	move 	$a2 $s2
 	move 	$a3 $s3
 	li	$v1 0
-	jal 	draw_piece		# draw current piece
+	jal 	draw_piece		# draw current piece		
 	j 	while_p			# go to top of player control loop
 done:	move 	$a0 $s0			# ===End of Player Control Loop===
 	move 	$a1 $s1
@@ -197,46 +255,55 @@ init_board:				# adds a bottom to the board so that pieces collide and stop at t
 	mul	$t0 $t0 $t1		# go to the bottom of the board
 	li	$t1 0
 loop1:	add	$t2 $t1 $t0
-	li	$t3 0xFFFFFFFF		# white
+	li	$t3 0xFFFFFF		# white
 	sw	$t3 board($t2)
 	addi	$t1 $t1 4
 	li	$t3 40
 	blt	$t1 $t3 loop1
 	jr	$ra
 
-read_file:	#$a0: file path (address), $a1: read size (word), $a2: destination array (address)
+read_file:	#$a0: file path (address), $a1: read size (word), $a2: destination array (address), $a3 color override
 	addiu	$sp $sp -4
 	sw	$ra ($sp)		# store jump address to stack
-	move 	$s0 $a0			# path
-	move 	$s1 $a1			# size
-	move	$s2 $a2			# destinations
+	move 	$t0 $a0			# path
+	move 	$t1 $a1			# size
+	move	$t2 $a2			# destinations	
+	move	$t5 $a3
 	
-	li	$v0, 13	
-	move	$a0, $s0		
-	add	$a1, $0, $0		
-	add	$a2, $0, $0		
+	li	$v0 13	
+	move	$a0 $t0		
+	add	$a1 $0, $0		
+	add	$a2 $0, $0		
 	syscall				# Open FIle
-	add	$s3, $v0, $0		# store file descriptor in $s3
+	add	$t3 $v0 $0		# store file descriptor
 	move	$a0 $s0			# move file name to parameter incase error opening file
-	blt 	$s3 $0 file_read_err
+	blt 	$t3 $0 file_read_err
 
-	li	$v0, 14			
-	add	$a0, $s3, $0		
-	la	$a1, buffer		
-	move	$a2, $s1		# Read entire file into buffer
+	li	$v0 14			
+	add	$a0 $t3 $0		
+	la	$a1 buffer		
+	move	$a2 $t1			# Read entire file into buffer
 	syscall
-	li 	$s4 0
-loop:	lb 	$a0 buffer($s4)		# load 
-	addi 	$a0 $a0 -48		# subtract 48 to get integer value
-	blt 	$a0 $0 skip0		# skip 0, because 0 is black
-	jal	get_palette_color	# otherwise convert integer to color word value
-	sw 	$v0, ($s2)		# store in memory address 
-	addi 	$s2 $s2 4		# increment memory address
-skip0:	addi 	$s4, $s4, 1		# increment buffer offset
-	ble 	$s4,$s1,loop		# break if offset is greater than or equal to file size
 	
-	li	$v0, 16			
-	add	$a0, $s3, $0		
+	li	$t4 0
+loop:	lb 	$a0 buffer($t4)		# load 
+	addi 	$a0 $a0 -48		# subtract 48 to get integer value	
+	blt	$a0 $0 skip0
+	bnez	$t5 color_override
+	jal	get_palette_color	# otherwise convert integer to color word value		
+	j	load_color	
+color_override:
+	li	$v0 0
+	beqz 	$a0 load_color		# skip if black
+	move	$v0 $t5
+load_color:
+	sw 	$v0 ($t2)		# store in memory address 
+	addi 	$t2 $t2 4		# increment memory address
+skip0:	addi 	$t4 $t4 1		# increment buffer offset
+	blt 	$t4 $t1 loop		# break if offset is greater than or equal to file size
+	
+	li	$v0 16			
+	add	$a0 $t3 $0		
 	syscall				# close file
 	lw	$ra ($sp)
 	addiu	$sp $sp 4		# load jump address from stack
@@ -245,10 +312,28 @@ skip0:	addi 	$s4, $s4, 1		# increment buffer offset
 get_palette_color:	#$a0: index (word)	return	$v0: hex color value (word)
 	li	$t0 4
 	mul	$t0 $t0	$a0
-	lw	$v0, palette($t0)	# gets the word value for the corresponding integer
+	lw	$v0 palette($t0)	# gets the word value for the corresponding integer
 	jr 	$ra
 	
-draw_piece:	#$a0: x (word), $a1: y (word), $a2: piece index (word), $a3: piece rotation (word)
+draw_ghost_piece:	# $a0: x (word), $a1: y (word), $a2: piece index (word), $a3: piece rotation (word)
+	addiu	$sp $sp -4
+	sw 	$ra ($sp)		
+	la	$v0 ghost_pieces	
+	jal 	draw_piece_base
+	lw	$ra ($sp)
+	addiu	$sp $sp 4		
+	jr	$ra
+	
+draw_piece:	# $a0: x (word), $a1: y (word), $a2: piece index (word), $a3: piece rotation (word)
+	addiu	$sp $sp -4
+	sw 	$ra ($sp)		
+	la	$v0 pieces	
+	jal 	draw_piece_base
+	lw	$ra ($sp)
+	addiu	$sp $sp 4		
+	jr	$ra
+
+draw_piece_base:	#$a0: x (word), $a1: y (word), $a2: piece index (word), $a3: piece rotation (word), $v0 address
 	addiu	 $sp $sp -4
 	sw 	 $ra ($sp)		# save jump address
 	addi	 $a0 $a0 1		# increment x value to represent position on canvas rather than board
@@ -258,11 +343,9 @@ draw_piece:	#$a0: x (word), $a1: y (word), $a2: piece index (word), $a3: piece r
 	li	 $t2 64			# 16 * 4
 	mul	 $t1 $a3 $t2
 	add	 $t0 $t0 $t1		# $t0: piece offset = (index * 64 * 4) + (rotation * 16 * 4)
-	la	 $t1 pieces	
-	add	 $v0 $t0 $t1		# piece address
+	add	 $v0 $t0 $v0		# piece address
 	li	 $a2 4			# width
 	li	 $a3 4			# height
-	#li	 $v1 0			# dont draw black
 	jal 	 draw
 	lw	 $ra ($sp)
 	addiu	 $sp $sp 4		# load jump address
@@ -322,7 +405,6 @@ loop4:	div	$t8 $t9			# score / value
 	lw	$ra ($sp)
 	addiu	$sp $sp 4
 	jr	$ra
-
 	
 draw:	# $a0: xpos, $a1: ypos, $a2: width, $a3: height, $v0: address, $v1: draw black	( Copies the given memory location to a space in the canvas memory segment specified by the x,y coordinates )
 	li	 $t1 0			# y 
@@ -351,7 +433,19 @@ skip1:	addi	 $t2 $t2 1
 	blt 	 $t1 $a3 for_y
 	jr	 $ra
 
-check: # $a0: x, $a1: y, $a2: index, $a3: rotation	return $v0: 0-invalid/1-valid, $v1: new x coordinate ( Checks whether the piece is colliding with any pixels in the board, and attempts to move the piece into the boudns of the board )
+move_down: # $a0: x, $a1: y, $a2: index, $a3: rotation    return $v0: new y coordinate
+	addiu	$sp $sp -4
+	sw	$ra ($sp)
+loop7:	addi	$a1 $a1 1
+	jal	check
+	beqz	$v0 skip4
+	j	loop7
+skip4:  addi 	$v0 $a1 -1
+	lw	$ra ($sp)
+	addiu	$sp $sp 4
+	jr	$ra
+
+check: # $a0: x, $a1: y, $a2: index, $a3: rotation	return $v0: bool valid, $v1: new x coordinate ( Checks whether the piece is colliding with any pixels in the board, and attempts to move the piece into the bounds of the board )
 	li	$v0 1
 	li	$t2 256			# 64 * 4		
 	mul	$t0 $a2 $t2
@@ -382,7 +476,7 @@ for_x2:	li	$t3 16
 	li	$v0 0
 skip3:	li	$t3 5			
 	add	$t5 $a0 $t2		# x position + x
-	bgt	$t5 $t3 rhalf		# if greater than 5 right half or board else left half
+	bgt	$t5 $t3 rhalf		# if greater than 5 right half of board else left half
 	bgez	$t5 skip2		# if greater equal to 0 skip
 	addi	$a0 $a0 1		# increment x position to move toward bounds
 	j 	check
