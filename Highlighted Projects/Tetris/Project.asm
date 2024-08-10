@@ -14,69 +14,114 @@
 
 
 .data
-canvas:		.space 2048
-width:		.word 64
-height:		.word 128
+canvas:		.space 2048 # required to be at start of data segment
+
 file_board:	.asciiz	"Project/gameBoarder.txt"
 file_pieces:	.asciiz	"Project/gamePieces.txt"
 file_palette:	.asciiz	"Project/colorPalette.txt"
 file_digits:	.asciiz "Project/gameDigits.txt"
+file_gameover:	.asciiz	"Project/gameOver.txt"
+file_err:	.asciiz "Failed to read file: {s}"
+game_over:	.asciiz "Game Over"
+falsetrue:	.asciiz	"false\0true"
+read_file_msg:	.asciiz "Read file: {s:1}, size: {i:0}b\n"
+test_msg:	.asciiz	"Test {s} {s} {i}\n"
+test_msg2:	.asciiz	"{s:1} {s:0} {s:0} {i:2} {b}"
+test_msg3:	.asciiz	"\nTest {i:0} {f:1} {f1:1} {f0:1} {fi:1} {f2:2}\n"
+test_1:		.asciiz	"test1"
+test_2:		.asciiz	"test2"
+float1:		.float 12.34
+float2:		.float 2
+float3:		.float 3
+
 palette:	.word 0x000000 0xFFFFFF 0xED1C24 0xFF7F27 0X00FF00 0X0080FF 0X8000FF 0XFFFF80 0X880015 #black, white, red, orange, green, blue, purple, yellow
 board_width:	.word 40
 board_height:	.word 80
+width:		.word 64
+height:		.word 128
+
+sys_print_int:	.word 1
+sys_print_flt:	.word 2
+sys_print_dbl:	.word 3
+sys_print_str:	.word 4
+sys_exit:	.word 10
+sys_file_open:	.word 13
+sys_file_read:	.word 14
+sys_file_close:	.word 16
+sys_sleep:	.word 32
+sys_rand_range:	.word 42
+
 board:		.space 2048
 frame: 		.space 2048
-frame_size:	.word 394
-pieces: 	.space 3000
-ghost_pieces: 	.space 3000
-pieces_size:	.word 670
+pieces: 	.space 4096
+ghost_pieces: 	.space 4096
 buffer:		.space 2048
-digits_size:	.word 248
 digits:		.space 2048
-file_err:	.asciiz "Failed to read file: "
-game_over:	.asciiz "Game Over"
-key_input:	.word 0x41E
+format_arg:	.space 128
 
 
 .text
+		
+	li	$a0 1
+	addi	$sp $sp -4
+	sw	$a0 ($sp)
+	li	$a0 123
+	addi	$sp $sp -4
+	sw	$a0 ($sp)
+	la	$a0 test_2
+	addi	$sp $sp -4
+	sw	$a0 ($sp)
+	la	$a0 test_1
+	addi	$sp $sp -4
+	sw	$a0 ($sp)	
+	la	$a0 test_msg
+	jal	print_formatted_str
+	la	$a0 test_msg2
+	jal	print_formatted_str
+	lwc1	$f0 float2
+	lwc1	$f2 float3
+	div.s	$f4 $f0 $f2
+	addi	$sp $sp -4
+	swc1	$f4 ($sp)
+	lw	$a0 float1	
+	addi	$sp $sp -4
+	sw	$a0 ($sp)
+	li	$a0 123
+	addi	$sp $sp -4
+	sw	$a0 ($sp)
+	la	$a0 test_msg3
+	jal	print_formatted_str
+
 	#main loop	
 	jal 	clear_canvas		# clear canvas
 	la 	$a0 file_pieces
-	lw 	$a1 pieces_size
-	la 	$a2 pieces
-	li	$a3 0
+	la 	$a1 pieces
+	li	$a2 0
 	jal 	read_file		# read game pieces from file
 	la 	$a0 file_pieces
-	lw 	$a1 pieces_size
-	la 	$a2 ghost_pieces
-	li	$a3 0x555555		# set color override
+	la 	$a1 ghost_pieces
+	li	$a2 0x555555		# set color override
 	jal 	read_file		# read ghost pieces from file
 	la	$a0 file_board
-	lw	$a1 frame_size
-	la	$a2 frame
-	li	$a3 0
+	la	$a1 frame
+	li	$a2 0
 	jal 	read_file		# read game board from file
 	la	$a0 file_digits
-	lw	$a1 digits_size
-	la	$a2 digits
-	li	$a3 0
+	la	$a1 digits
+	li	$a2 0
 	jal 	read_file		# read score board digits from file
 	jal	init_board		# initialize the board
 	li	$s6 0			# $s6: score, set to 0
 	li	$a1 7			
-	li	$v0 42
-	syscall				
+	lw 	$v0 sys_rand_range
+	syscall	
 	addiu	$sp $sp -4
 	sw	$a0 ($sp)		# store next piece index to stack
 	
 while:	jal 	clear_canvas		# === Main Game loop ===
-	jal	draw_frame		# draw game frame
-	li	$a1 7			
-	li	$v0 42
-	syscall				# generate random integer
-	lw	$t0 ($sp)		# load next piece index from stack
-	addiu	$sp $sp 4
-	move	$s2 $t0			# $s2: index, set to previously generated random number
+	jal	draw_frame		# draw game frame	
+	lw	$s2 ($sp)		# $s2: index, set to previously generated random number
+	addiu	$sp $sp 4		
 	li 	$s0 4			# $s0: x
 	li 	$s1 0			# $s1: y
 	li 	$s3 0			# $s3: rotation
@@ -85,9 +130,11 @@ while:	jal 	clear_canvas		# === Main Game loop ===
 	div 	$t6 $t0
 	mflo	$t4
 	sub	$s5 $t0 $t4 		# $s5: number of loop iterations	
-	move	$t0 $a0	
+	li	$a1 7			
+	lw	$v0 sys_rand_range
+	syscall				# generate random integer
 	addiu	$sp $sp -4
-	sw	$t0 ($sp)		# save next piece index to stack
+	sw	$a0 ($sp)		# save next piece index to stack
 	jal	draw_board		# draw game pieces
 	move 	$a0 $s0
 	move 	$a1 $s1
@@ -196,7 +243,7 @@ space:	li	$t1 0x20
 	jal 	move_down
 	addi	$s1 $v0 -1
 	li 	$s5 1
-out:	li 	$v0, 32			
+out:	lw 	$v0, sys_sleep			
 	li 	$a0, 30
 	syscall				# wait for loop time ($s5)
 	addi	$s5 $s5 -1		# decrement loop iterations
@@ -262,28 +309,34 @@ loop1:	add	$t2 $t1 $t0
 	blt	$t1 $t3 loop1
 	jr	$ra
 
-read_file:	#$a0: file path (address), $a1: read size (word), $a2: destination array (address), $a3 color override
+read_file:	#$a0: file path (address), $a1: destination array (address), $a2 color override
 	addiu	$sp $sp -4
 	sw	$ra ($sp)		# store jump address to stack
+	addiu	$sp $sp -4
+	sw	$a0 ($sp)
 	move 	$t0 $a0			# path
-	move 	$t1 $a1			# size
-	move	$t2 $a2			# destinations	
-	move	$t5 $a3
+	move	$t2 $a1			# destinations	
+	move	$t5 $a2			# color override
 	
-	li	$v0 13	
+	lw	$v0 sys_file_open	
 	move	$a0 $t0		
-	add	$a1 $0, $0		
-	add	$a2 $0, $0		
-	syscall				# Open FIle
-	add	$t3 $v0 $0		# store file descriptor
-	move	$a0 $s0			# move file name to parameter incase error opening file
-	blt 	$t3 $0 file_read_err
-
-	li	$v0 14			
-	add	$a0 $t3 $0		
+	li	$a1 0		
+	li	$a2 0	
+	syscall				# Open file
+	move	$t3 $v0			# store file descriptor
+	bgez	$t3 read_f
+	addiu	$sp $sp -4
+	sw	$t0 ($sp)
+	la	$a0 file_err
+	jal	print_formatted_str
+	j terminate
+read_f:
+	lw	$v0 sys_file_read			
+	move	$a0 $t3		
 	la	$a1 buffer		
-	move	$a2 $t1			# Read entire file into buffer
-	syscall
+	li	$a2 2048
+	syscall				# Read entire file into buffer
+	move 	$t1 $v0
 	
 	li	$t4 0
 loop:	lb 	$a0 buffer($t4)		# load 
@@ -302,9 +355,15 @@ load_color:
 skip0:	addi 	$t4 $t4 1		# increment buffer offset
 	blt 	$t4 $t1 loop		# break if offset is greater than or equal to file size
 	
-	li	$v0 16			
-	add	$a0 $t3 $0		
+	lw	$v0 sys_file_close			
+	move	$a0 $t3		
 	syscall				# close file
+	
+	addiu	$sp $sp -4
+	sw	$t1 ($sp)
+	la	$a0 read_file_msg
+	jal	print_formatted_str
+	addiu	$sp $sp 8
 	lw	$ra ($sp)
 	addiu	$sp $sp 4		# load jump address from stack
 	jr	$ra
@@ -532,7 +591,7 @@ for_y4:	li	$t1 10			# x, start at the right and work left
 	addi 	$t0 $t0 -1		# decrement y 
 	bnez	$t0 for_x4
 	move	$t7 $v0
-	li 	$v0, 32			
+	lw 	$v0, sys_sleep
 	li 	$a0, 200
 	syscall
 	move	$v0 $t7
@@ -570,21 +629,170 @@ loop5:
 	addi 	$t0 $t0 1		# increment y to start at new moved row
 	j	for_y4
 
-file_read_err:	# $a0: file name	( Prints error message 'Failed to read file: FILENAME' )
-	move 	$t0 $a0			# save file name
-	li 	$v0 4		
-	la 	$a0 file_err		# load error message 
-	syscall				# print
-	move	$a0 $t0			# load file name
-	syscall				# print
-	j terminate
+print_formatted_str: 	# $a0: string format, $sp: string format arguments
+	move	$t0 $a0
+	move	$t1 $sp			# argument index
+	li	$t2 0			# reading formatter 
+	li	$t3 0			# formatter type (1: int, 2: float, 3: double, 4: string)
+	li	$t4 0			# formatter arg index
+	li	$t5 0			# buffer index
+	li	$t8 0			# formatter index count
+pfs_loop:
+	lb	$t6 ($t0)
+	addi	$t0 $t0 1
+	beqz	$t6 format_complete
+	bnez	$t2 formatter_read
+open_formatter:	
+	bne	$t6 123 char_read
+	li 	$t2 1	
+	li	$t3 0
+	li	$t4 0
+	li	$t8 0
+	sb	$0 buffer($t5)	
+	li	$t5 0
+	la	$a0 buffer
+	lw	$v0 sys_print_str
+	syscall	
+	j	pfs_loop
+formatter_read:
+	bnez	$t3 close_formatter
+	move	$t3 $t6
+	j	pfs_loop
+close_formatter:
+	bne	$t6 125 formatter_index
+	sb	$0 format_arg($t4)
+	lw	$a0 ($t1)
+formatter_int:
+	bne	$t3 105 formatter_float
+	lw	$v0 sys_print_int
+	syscall
+	j	close_formatter_complete
+formatter_float:
+	bne	$t3 102 formatter_bool
+	mtc1	$a0 $f12
+	lw	$a0 format_arg
+	beq	$a0 105 print_int
+	beqz	$a0 print_float
+	addi	$a0 $a0 -48
+	li	$a1 1
+	beqz	$a0 round_to_decimal	
+power_loop:	
+	mul	$a1 $a1 10
+	addi	$a0 $a0 -1
+	bnez	$a0 power_loop
+round_to_decimal:		
+	mtc1	$a1 $f0
+	cvt.s.w	$f0 $f0
+	mul.s	$f12 $f12 $f0
+	cvt.w.s $f12 $f12
+	cvt.s.w $f12 $f12
+	div.s	$f12 $f12 $f0
+print_float:
+	lw	$v0 sys_print_flt
+	syscall
+	j	close_formatter_complete
+print_int:
+	cvt.w.s $f12 $f12
+	mfc1 	$a0 $f12
+	lw	$v0 sys_print_int
+	syscall
+	j	close_formatter_complete
+formatter_bool:
+	bne	$t3 98 formatter_str
+	andi	$a0 1
+	mul	$a0 $a0 6
+	la	$a0 falsetrue($a0)
+	lw	$v0 sys_print_str
+	syscall
+	j	close_formatter_complete
+formatter_str:
+	bne	$t3 115 invalid_formatter	
+	lw	$v0 sys_print_str
+	syscall
+	j	close_formatter_complete
+close_formatter_complete:
+	li 	$t2 0
+	addi	$t1 $t1 4
+	j	pfs_loop
+formatter_index:
+	bnez	$t8 read_formatter_index
+	bne	$t6 58 formatter_args
+	li	$t8 1
+	move	$t1 $sp
+	j	pfs_loop
+read_formatter_index:
+	addi	$t6 $t6 -48
+	li	$a0 1
+formatter_index_loop:
+	beq	$a0 $t8 formatter_index_loop_end
+	mul	$t6 $t6 10
+	addi	$a0 $a0 1
+	j 	formatter_index_loop
+formatter_index_loop_end:
+	mul	$t6 $t6 4
+	add	$t1 $t1 $t6
+	addi	$t8 $t8 1
+	j	pfs_loop
+formatter_args:	
+	bge	$t4 128 formatter_args_too_long
+	sb	$t6 format_arg($t4)
+	addi	$t4 $t4 1
+	j	pfs_loop	
+char_read:
+	bge	$t5 2048 format_too_long
+	sb	$t6 buffer($t5)
+	addi	$t5 $t5 1
+	j	pfs_loop
+format_complete:
+	sb	$0 buffer($t5)
+	la	$a0 buffer
+	lw	$v0 sys_print_str
+	syscall
+	li	$v0 1
+	jr	$ra
+invalid_formatter:
+	li	$v0 -3
+	jr	$ra
+formatter_args_too_long:
+	li	$v0 -2
+	jr	$ra
+format_too_long:
+	li	$v0 -1
+	jr	$ra
+default_formatter_error:
+	li	$v0 0
+	jr 	$ra
    
 gameover:	# ( Prints message 'Game Over' )
+	la	$a0 file_gameover	
+	li	$a1 0		
+	li	$a2 0	
+	lw	$v0 sys_file_open
+	syscall				# Open file
+	move	$t0 $v0			# store file descriptor
+	bltz	$t0 default_msg
+
+	lw	$v0 sys_file_read			
+	move	$a0 $t0	
+	la	$a1 buffer		
+	li	$a2 2048
+	syscall				# Read entire file into buffer
+	sb	$0 buffer($v0)
+	
+	lw 	$v0 sys_print_str		
+	la 	$a0 buffer		
+	syscall	
+	
+	lw	$v0 sys_file_close			
+	move	$a0 $t0	
+	syscall		
+	j 	terminate 
+default_msg:	
 	la	$a0 game_over		# load game over message
-	li	$v0 4	
+	lw	$v0 sys_print_str
 	syscall				# print
 	j 	terminate 	
     	
 terminate: 	# exit cleanly
-   	li $v0, 10
+   	lw 	$v0 sys_exit
         syscall
