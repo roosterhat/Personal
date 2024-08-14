@@ -1783,8 +1783,18 @@ button {
                     color: #c1c1c1;
                     transition: all 0.15s ease;
 
+                    &.active {
+                        background: #bde0ff;
+                        color: #fff;
+
+                        i {
+                            color: #fff !important;
+                        }
+                    }
+
                     &:active {
                         transform: translate(3px, 3px);
+                        box-shadow: 4px 3px 11px 0px #dbdbdb;
                     }
 
                     i {
