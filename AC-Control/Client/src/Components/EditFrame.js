@@ -13,7 +13,8 @@ class EditFrame extends React.Component {
             saving: false,
             toggle: false,
             showIconList: false,
-            targetState: null
+            targetState: null,
+            iconFilter: null
         }
 
         this.Config = props.Config;
@@ -109,7 +110,7 @@ class EditFrame extends React.Component {
                                                 </div>
                                                 <div>
                                                     <div>Icon</div>
-                                                    <button onClick={() => this.setState({showIconList: true, targetState: button})}><i className={button.properties.icon}></i></button>
+                                                    <button onClick={() => this.setState({showIconList: true, targetState: button, iconFilter: null})}><i className={button.properties.icon}></i></button>
                                                 </div>
                                             </div>
                                         </Button>

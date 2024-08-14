@@ -210,7 +210,7 @@ class Control extends React.Component {
                     </button>    
                     <div className={"modes" + (this.state.displayModes ? "" : " disabled")} id="modes">
                         {this.state.currentState && this.state.currentState.states ? (this.state.currentState.states.map(x => 
-                            <button key={x.name} onClick={() => this.setMode(x)}><i className={x.properties.icon} style={{color: (this.Settings.useActiveColor ? x.properties.activeColor : "#757575")}}></i>{x.name}</button>
+                            <button key={x.name} style={{background: (x.active ? "#86c6ff30" : "#FFF")}} onClick={() => this.setMode(x)}><i className={x.properties.icon} style={{color: (this.Settings.useActiveColor ? x.properties.activeColor : "#757575")}}></i>{x.name}</button>
                         )) : null}
                     </div>
                 </div>
