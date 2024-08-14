@@ -804,15 +804,22 @@ button {
     border: solid 1px #000;
 }
 
+.edit-container {
+    overflow: auto;
+    border: solid 1px #000;
+    border-radius: 4px;
+    padding: 4px;
+}
+
 .main-crop,
 .item-crop {
     border: solid 1px #000;
     border-radius: 5px;
     margin: 0px 5px 10px;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     background: #fff;
+    overflow: hidden;
 
     .crop-header {
         font-size: 20px;
@@ -885,22 +892,11 @@ button {
                 margin-right: 5px;
             }
         }
-    }
-}
 
-.item-crop {
-    height: 100%;
-
-    &.minimal {
-        height: 50%;
-    }
-}
-
-.main-crop {
-    flex-shrink: 0;
-
-    .items {
-        height: max-content;
+        button {
+            width: 27px;
+            height: 27px;
+        }
     }
 }
 
@@ -1746,7 +1742,7 @@ button {
             .modes {
                 position: absolute;
                 display: flex;
-                flex-direction: column;
+                flex-wrap: wrap;
                 gap: 24px;
                 min-width: 200px;
                 width: max-content;
@@ -1756,15 +1752,13 @@ button {
                 border-radius: 10px;
                 align-items: center;
                 justify-content: center;
-                transform: translateY(-120%);                
+                transform: translateY(-120%) scale(1);                
                 transition: all 0.25s cubic-bezier(0.18, 0.89, 0.26, 1.06), opacity 0.35s ease-out;
                 z-index: 1;
         
                 &.disabled { 
-                    min-width: 0px;
-                    width: 100%;
                     overflow: hidden;
-                    transform: translateY(0);
+                    transform: translateY(0) scale(0.2);
                     opacity: 0;
                     z-index: -1;
                     transition: all 0.25s ease-in, opacity 0.2s ease-in;
@@ -1772,15 +1766,24 @@ button {
                 }
         
                 button {
-                    min-width: 150px;
-                    height: 40px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-direction: column;
+                    gap: 4px;
+                    height: 70px;
+                    width: 70px;
                     background: #ffffffc7;
                     border: none;
                     border-radius: 10px;
                     box-shadow: 0px 0px 14px -8px #000;
-                    font-size: calc(min(0.2vw, 1px) * 24);
+                    font-size: calc(min(0.2vw, 1px) * 12);
                     font-family: sans-serif;
-                    color: #717171;
+                    color: #c1c1c1;
+
+                    i {
+                        font-size: calc(min(0.2vw, 1px) * 48);
+                    }
                 }
             }
         }

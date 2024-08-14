@@ -116,6 +116,10 @@ class Settings extends React.Component {
                                 ]
                                 : null }
                         </div>     
+                        <div className="setting">
+                            <div className="setting-title">Use State Active Color in Icon</div>
+                            <Switch State={this.state.settings.useActiveColor} OnSelect={x => this.updateSettings("useActiveColor", x)}/>
+                        </div>
                         {this.renderDebugState()}
                         {this.renderDebugSetState()}
                         {this.renderDebugOCR()}

@@ -3,6 +3,7 @@ import LoadingSpinner from './Spinners/loading1';
 import Button from './button';
 import { fetchWithToken, uuidv4, delay } from '../Utility';
 import Menu from './Menu';
+import { Icons } from '../Assets/Icons';
 
 class EditFrame extends React.Component {
     constructor(props) {
@@ -10,7 +11,9 @@ class EditFrame extends React.Component {
 
         this.state = {
             saving: false,
-            toggle: false
+            toggle: false,
+            showIconList: false,
+            targetState: null
         }
 
         this.Config = props.Config;
@@ -33,93 +36,104 @@ class EditFrame extends React.Component {
                         <button className='btn cancel' onClick={this.cancel}><i className="fa-solid fa-xmark"></i></button>
                         <button className="btn confirm" onClick={this.complete}>{this.state.saving ? <LoadingSpinner /> : <i className="fa-solid fa-check"></i>}</button>
                     </div>
-                    <div className="main-crop">
-                        <div className="crop-header">Main Crop</div>
-                        <div className="items">
-                            {this.Config.frame.crop ? 
-                                <Button 
-                                    key={this.Config.frame.crop.id} 
-                                    button={this.Config.frame.crop} 
-                                    update={() => this.Engine.Update()}
-                                    showName={false}
-                                    showRemove={false}
-                                    showAction={false}
-                                /> : null 
-                            }
-                        </div>
-                    </div>
-                    <div className="item-crop minimal">
-                        <div className="crop-header">
-                            <div className="header-title">
-                                <span>OCR View</span>
-                                <button className="btn" onClick={this.addOCRView}><i className="fa-solid fa-plus"></i></button>
-                            </div>                            
-                        </div>
-                        <div className="items">
-                            {
-                                this.Config.frame.ocr ? this.Config.frame.ocr.map(button => 
+                    <div className="edit-container">
+                        <div className="main-crop">
+                            <div className="crop-header">Main Crop</div>
+                            <div className="items">
+                                {this.Config.frame.crop ? 
                                     <Button 
-                                        key={button.id} 
-                                        button={button} 
+                                        key={this.Config.frame.crop.id} 
+                                        button={this.Config.frame.crop} 
                                         update={() => this.Engine.Update()}
-                                        remove={() => this.removeButton(button, this.Config.frame.ocr)}
+                                        showName={false}
+                                        showRemove={false}
                                         showAction={false}
-                                    >
-                                    </Button>
-                                ) : null
-                            }
-                        </div>
-                    </div>
-                    <div className="item-crop">
-                        <div className="crop-header">
-                            <div className="header-title">
-                                <span>State Indicators</span>
-                                <button className="btn" onClick={this.addState}><i className="fa-solid fa-plus"></i></button>
-                            </div>
-                            <div className="header-action">
-                                <select name="buttons" id="toggle-select">
-                                    {this.Config.buttons.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
-                                </select>
-                                <button onClick={this.toggleState}>{this.state.toggle ? <LoadingSpinner id="spinner" /> : "Trigger"}</button>
+                                    /> : null 
+                                }
                             </div>
                         </div>
-                        <div className="items">
-                            {
-                                this.Config.frame.states ? this.Config.frame.states.map((button, index) => 
-                                    <Button 
-                                        key={button.id} 
-                                        button={button} 
-                                        update={() => this.Engine.Update()}
-                                        remove={() => this.removeButton(button, this.Config.frame.states)}
-                                        showAction={false}
-                                        showSampler={true}
-                                        Reorder={{index: index, max: this.Config.frame.states.length, onReorder: dir => this.reorder(index, dir)}}
-                                    >
-                                        <div className="state-properties">
-                                            <div>
-                                                <div>CDT</div>
-                                                <input type="number" min="0" max="50" 
-                                                    value={button.properties.colorDistanceThreshold} 
-                                                    onChange={e => this.updateStateProperty(button, "colorDistanceThreshold", Number(e.target.value))}/>
-                                            </div>
-                                            <div>
-                                                <div>SAP</div>
-                                                <input type="number" min="1" max="100" 
-                                                    value={button.properties.stateActivationPercentage}
-                                                    onChange={e => this.updateStateProperty(button, "stateActivationPercentage", Number(e.target.value))}/>
-                                            </div>
-                                            <div>
-                                                <div>Active Color</div>
-                                                <div className="sample">
-                                                    <div className="sample-color" style={{background: button.properties.activeColor}}></div>
-                                                    <button onClick={() => this.sampleColor(button)}><i className="fa-solid fa-eye-dropper"></i></button>
+                        <div className="item-crop">
+                            <div className="crop-header">
+                                <div className="header-title">
+                                    <span>OCR View</span>
+                                    <button className="btn" onClick={this.addOCRView}><i className="fa-solid fa-plus"></i></button>
+                                </div>                            
+                            </div>
+                            <div className="items">
+                                {
+                                    this.Config.frame.ocr ? this.Config.frame.ocr.map(button => 
+                                        <Button 
+                                            key={button.id} 
+                                            button={button} 
+                                            update={() => this.Engine.Update()}
+                                            remove={() => this.removeButton(button, this.Config.frame.ocr)}
+                                            showAction={false}
+                                        >
+                                        </Button>
+                                    ) : null
+                                }
+                            </div>
+                        </div>
+                        <div className="item-crop">
+                            <div className="crop-header">
+                                <div className="header-title">
+                                    <span>State Indicators</span>
+                                    <button className="btn" onClick={this.addState}><i className="fa-solid fa-plus"></i></button>
+                                </div>
+                                <div className="header-action">
+                                    <select name="buttons" id="toggle-select">
+                                        {this.Config.buttons.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                                    </select>
+                                    <button onClick={this.toggleState}>{this.state.toggle ? <LoadingSpinner id="spinner" /> : "Trigger"}</button>
+                                </div>
+                            </div>
+                            <div className="items">
+                                {
+                                    this.Config.frame.states ? this.Config.frame.states.map((button, index) => 
+                                        <Button 
+                                            key={button.id} 
+                                            button={button} 
+                                            update={() => this.Engine.Update()}
+                                            remove={() => this.removeButton(button, this.Config.frame.states)}
+                                            showAction={false}
+                                            showSampler={true}
+                                            Reorder={{index: index, max: this.Config.frame.states.length, onReorder: dir => this.reorder(index, dir)}}
+                                        >
+                                            <div className="state-properties">
+                                                <div>
+                                                    <div>Active Color</div>
+                                                    <div className="sample">
+                                                        <div className="sample-color" style={{background: button.properties.activeColor}}></div>
+                                                        <button onClick={() => this.sampleColor(button)}><i className="fa-solid fa-eye-dropper"></i></button>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div>Icon</div>
+                                                    <button onClick={() => this.setState({showIconList: true, targetState: button})}><i className={button.properties.icon}></i></button>
                                                 </div>
                                             </div>
+                                        </Button>
+                                    ) : null
+                                }
+                            </div>
+                            {this.state.showIconList ? 
+                                <div className="icons-background">
+                                    <div className="icons-container">
+                                        <div className="icons-header">
+                                            <div className="name">Icons</div>
+                                            <input onChange={e => this.setState({iconFilter: e.target.value})} placeholder="Search"></input>
+                                            <button className="close" onClick={() => this.setState({showIconList: false})}><i className="fa-solid fa-xmark"></i></button>
                                         </div>
-                                    </Button>
-                                ) : null
+                                        <div className="icons">
+                                            {Icons.filter(x => !this.state.iconFilter || x.includes(this.state.iconFilter)).map(x => 
+                                                <button onClick={() => this.setIcon(x)}><i className={x}></i></button>    
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                : null
                             }
-                        </div>
+                        </div> 
                     </div>
                 </div>
             </Menu>
@@ -164,6 +178,11 @@ class EditFrame extends React.Component {
             this.Engine.Update();
             this.setConfig(this.Config);
         }
+    }
+
+    setIcon = (icon) => {
+        this.updateStateProperty(this.state.targetState, 'icon', icon)
+        this.setState({showIconList: false, targetState: null})
     }
 
     updateOCRProperty = (ocr, key, value) => {
@@ -221,7 +240,7 @@ class EditFrame extends React.Component {
             shape: shape,
             id: uuidv4(),
             name: '', 
-            properties: { "colorDistanceThreshold": 100, "stateActivationPercentage": 10, "activeColor": null },
+            properties: { "icon": null, "activeColor": null },
             index: this.Config.frame.states.length + 1            
         }
 
