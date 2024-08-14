@@ -1778,13 +1778,13 @@ button {
                     border: none;
                     border-radius: 10px;
                     box-shadow: 7px 6px 11px 0px #dbdbdb;
-                    font-size: calc(min(0.2vw, 1px) * 12);
+                    font-size: calc(min(0.2vw, 1px) * 10);
                     font-family: sans-serif;
                     color: #c1c1c1;
                     transition: all 0.25s ease, transform 0.15s ease;
 
                     &.active {
-                        background: #bde0ff;
+                        background: #2498ff;
                         color: #fff;
 
                         i {
