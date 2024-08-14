@@ -209,7 +209,7 @@ class Control extends React.Component {
                             : <LoadingSpinner id="spinner"/>) : null}
                     </button>    
                     <div className={"modes" + (this.state.displayModes ? "" : " disabled")} id="modes">
-                        {this.state.currentState && this.state.currentState.states ? (this.state.currentState.states.map(x => 
+                        {this.state.targetState && this.state.targetState.states ? (this.state.targetState.states.map(x => 
                             <button className={(x.active ? "active" : "")} key={x.name} onClick={() => this.setMode(x)}><i className={x.properties.icon} style={{color: (this.Settings.useActiveColor ? x.properties.activeColor : "#757575")}}></i>{x.name}</button>
                         )) : null}
                     </div>
