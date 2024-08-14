@@ -1781,7 +1781,7 @@ button {
                     font-size: calc(min(0.2vw, 1px) * 12);
                     font-family: sans-serif;
                     color: #c1c1c1;
-                    transition: all 0.15s ease;
+                    transition: all 0.25s ease, transform 0.15s ease;
 
                     &.active {
                         background: #bde0ff;

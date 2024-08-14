@@ -97,7 +97,7 @@ class Macros extends React.Component {
                                 <button className="close" onClick={() => this.setState({showIconList: false})}><i className="fa-solid fa-xmark"></i></button>
                             </div>
                             <div className="icons">
-                                {Icons.filter(x => !this.state.iconFilter || x.includes(this.state.iconFilter)).map(x => 
+                                {Icons.filter(x => !this.state.iconFilter || x.includes(this.state.iconFilter.toLowerCase())).map(x => 
                                     <button onClick={() => this.selectIcon(x)}><i className={x}></i></button>    
                                 )}
                             </div>
