@@ -120,9 +120,9 @@ class Settings extends React.Component {
                             <div className="setting-title">Use State Active Color in Icon</div>
                             <Switch State={this.state.settings.useActiveColor} OnSelect={x => this.updateSettings("useActiveColor", x)}/>
                         </div>
-                        {this.renderDebugState()}
-                        {this.renderDebugSetState()}
+                        {this.renderDebugState()}                        
                         {this.renderDebugOCR()}
+                        {this.renderDebugSetState()}
                         {this.renderEvents()}
                         {this.renderScheduleRuns()}
                         <div className='system-control'>
@@ -289,13 +289,13 @@ class Settings extends React.Component {
                                             <div>Gray Scale</div>
                                             <input type="checkbox"
                                                 checked={this.state.selectedOCR.view.properties.grayscale}
-                                                onChange={e => this.updateOCRProperty("grayscale", !this.state.selectedOCR.view.properties.grayscale)}/>
+                                                onClick={e => this.updateOCRProperty("grayscale", !this.state.selectedOCR.view.properties.grayscale)}/>
                                         </div>
                                         <div className="debug-property">
                                             <div>Invert</div>
                                             <input type="checkbox"
                                                 checked={this.state.selectedOCR.view.properties.invert}
-                                                onChange={e => this.updateOCRProperty("invert", !this.state.selectedOCR.view.properties.invert)}/>
+                                                onClick={e => this.updateOCRProperty("invert", !this.state.selectedOCR.view.properties.invert)}/>
                                         </div>
                                     </div>
                                     <button className="debug-test" onClick={() => this.debugOCR()}>{this.state.loadOCRDebug ? <LoadingSpinner id="spinner" /> : "Test"}</button>
@@ -468,8 +468,9 @@ class Settings extends React.Component {
     }
 
     updateOCRProperty = (key, value) => {
+        console.log("updateOCRProperty: "+key+": "+value)
         this.state.selectedOCR.view.properties[key] = value
-        this.setState({config: this.state.config});
+        this.setState({selectedOCR: this.state.selectedOCR});
     }
 
     getScheduleRuns = async () => {
@@ -499,8 +500,6 @@ class Settings extends React.Component {
     }
 
     updateSettings = (key, value) => {
-        console.log(key + ": " + value)
-        console.log(this.state.settings)
         this.state.settings[key] = value;
         this.setState({settings: this.state.settings})
     }
@@ -599,12 +598,12 @@ class Settings extends React.Component {
 
     updateOCRTarget = (target) => {
         this.state.targetState.ocr[0].target = target;        
-        this.setState({config: this.state.config})
+        this.setState({targetState: this.state.targetState})
     }
 
     toggleState = (state) => {
         state.active = !state.active
-        this.setState({config: this.state.config})
+        this.setState({targetState: this.state.targetState})
     }
 
     addImageToCanvas = (id, data, bmp) => {

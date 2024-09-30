@@ -1782,6 +1782,7 @@ button {
                     font-family: sans-serif;
                     color: #c1c1c1;
                     transition: all 0.25s ease, transform 0.15s ease;
+                    white-space: nowrap;
 
                     &.active {
                         background: #2498ff;
