@@ -338,14 +338,16 @@ class Control extends React.Component {
     }
 
     calculatePointCoordinates = () => {
+        const temperature = this.getTemperature();
+        if(!temperature) return;
+
         const trackElement = document.getElementById("track")
         const pointElement = document.getElementById("point")
         if(!trackElement || !pointElement)
             return
 
         const trackDims = trackElement.getBoundingClientRect()
-        const pointDims = pointElement.getBoundingClientRect()
-        const temperature = this.getTemperature();
+        const pointDims = pointElement.getBoundingClientRect()        
         const temperaturePercent = (temperature - this.Settings.minTemperature) / (this.Settings.maxTemperature - this.Settings.minTemperature)    
         const angle = (270 * temperaturePercent - 135) * (Math.PI / 180)
         const x = (trackDims.width / 2) + Math.sin(angle) * (50 / 55 * trackDims.width / 2) - (pointDims.width / 2)
