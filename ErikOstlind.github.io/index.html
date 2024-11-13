@@ -1,0 +1,132 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="styles.css">
+		<link rel="icon" href="favicon.ico"/>
+	</head>
+	<title>Erik Ostlind</title>
+	<body onload="handleClick('fish')">
+		<script type="application/javascript">
+			waitForElementToDisplay("iframe",function(){
+				console.log("found");
+				var iframe = document.getElementsByTagName("iframe")[0];
+				iframe.onload = function(){
+					console.log('loaded');
+					var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+					innerDoc.getElementsByClassName("scratchpad-wrap-outer")[0].children[0].css("max-width", "none !IMPORTANT");
+				}
+			},100,5000);
+
+			function waitForElementToDisplay(selector, callback, checkFrequencyInMs, timeoutInMs) {
+			  var startTimeInMs = Date.now();
+			  (function loopSearch() {
+				if (document.querySelector(selector) != null) {
+				  callback();
+				  return;
+				}
+				else {
+				  setTimeout(function () {
+					if (timeoutInMs && Date.now() - startTimeInMs > timeoutInMs)
+					  return;
+					loopSearch();
+				  }, checkFrequencyInMs);
+				}
+			  })();
+			}
+			
+			
+			function handleClick(type) {
+				document.getElementById("script").remove();
+				var iframes = document.getElementsByTagName("IFRAME");
+				while(iframes.length) {
+				  iframes[0].parentNode.removeChild(iframes[0]);
+				}
+				if(type === 'bawk'){
+					document.getElementsByTagName("BODY")[0].style.background = "linear-gradient(180deg, #777676, #000)";
+					var script = document.createElement("script")
+					script.src = "https://www.khanacademy.org/computer-programming/asteroidsphysics/6183045552947200/embed.js?editor=no&buttons=no&author=no&embed=yes&width=600&height=600";
+					script.id = "script"
+					var canvas = document.getElementById("canvas");
+					canvas.append(script);
+					canvas.style["border-bottom-left-radius"] = 0;
+					canvas.style["border-bottom-right-radius"] = 0;
+					canvas.style.width = "600px";
+					canvas.style.height = "600px";
+					document.getElementById("dropdown").style.display = "block";
+					document.getElementById("fish").style.display = "block";
+					document.getElementById("bawk").style.display = "none";
+				}
+				else if(type === 'fish'){
+					document.getElementsByTagName("BODY")[0].style.background = "#c4f8ff";
+					var dim = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0) * 1.0;
+					var width = Math.min(window.innerWidth * 0.90, 1200);
+					var height = window.innerHeight * 0.99;
+					var script = document.createElement("script")
+					script.src = "https://www.khanacademy.org/computer-programming/boid-pond/5615654214647808/embed.js?editor=no&buttons=no&author=no&embed=yes&width="+width+"&height="+height;
+					script.id = "script"
+					var canvas = document.getElementById("canvas");
+					canvas.append(script);
+					canvas.style["border-bottom-left-radius"] = "10px";
+					canvas.style["border-bottom-right-radius"] = "10px";
+					canvas.style.width = width+"px";
+					canvas.style.height = height+"px";
+					document.getElementById("dropdown").style.display = "none";
+					document.getElementById("bawk").style.display = "block";
+					document.getElementById("fish").style.display = "none";
+				}
+			}
+		</script>
+		<div class="container">
+			<div class="canvas" id="canvas">
+				<script id="script" src=""></script>
+			</div>
+			<div class="dropdown" id="dropdown">
+				<div class="dropdown-bounds"></div>
+				<span class="dropdown-header">Controls</span>
+				<div class="dropdown-content">
+					<table>
+						<tr>
+							<td>Up Arrow</td>
+							<td>Forward Thrust</td>
+						</tr>
+						<tr>
+							<td>Left Arrow</td>
+							<td>Rotate Left</td>
+						</tr>
+						<tr>
+							<td>Right Arrow</td>
+							<td>Rotate Right</td>
+						</tr>
+						<tr>
+							<td>Space</td>
+							<td>Shoot</td>
+						</tr>
+						<tr>
+							<td>R</td>
+							<td>Restart</td>
+						</tr>
+						<tr>
+							<td>Q</td>
+							<td>Quit</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="info">
+			<h1> Erik Ostlind </h1>
+			<a href="https://www.linkedin.com/in/erikostlind/" target="_blank">
+				<img class="headshot" src="./37188138291_9e4d510c16_o.jpg" width=227  height=300 alt="Erik Ostlind"/>
+			</a>
+			<p> Bachelors of Computer Science </p>
+			<div class="switch">
+				<div id="bawk" class="cover">
+					<img src="./bawk.png" width="80px" onclick="handleClick('bawk')">
+					<span class="bawk-text">Bawk</span>
+				</div>
+				<div id="fish" class="cover" style="display: none;">
+					<img src="./fish.png" width="80px" onclick="handleClick('fish')">
+				</div>
+			</div>		
+		</div>
+	</body>
+</html>
