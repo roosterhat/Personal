@@ -68,6 +68,7 @@ class State:
         if status != 200:
             return None
         frame = result
+        device = "gpu" if self.settings["useGPU"] else "cpu"
 
         if "states" in config["frame"] and (sections is None or "states" in sections or "power" in sections):
             currentState["states"] = config["frame"]["states"]
@@ -76,7 +77,7 @@ class State:
             for stateGroup in config["actions"]["stateGroups"]:
                 states = list(x for x in config["frame"]["states"] if any(x["id"] == s["id"] for s in stateGroup["states"]))
                 combined = Utility.buildStateFrame(frame, states, config["frame"])
-                results = self.StateModels[stateGroup["model"]](combined["frame"], device="cpu", verbose=False, agnostic_nms=True)
+                results = self.StateModels[stateGroup["model"]](combined["frame"], device=device, verbose=False, agnostic_nms=True)
                 box = results[0].boxes.data[0].numpy() if len(results[0].boxes.data) > 0 else None
                 for state in states:
                     shapes = combined["shapes"][state["id"]]
@@ -88,7 +89,7 @@ class State:
                 view = next((x for x in config["frame"]["ocr"] if x["id"] == target["view"]["id"]), None)
                 image = Utility.reshapeImage(config, frame, view["shape"]["vertices"])
                 image = Utility.prepareOCRImage(image, target["view"]["properties"])
-                results = self.OCRModels[target["model"]](image, device="cpu", verbose=False, agnostic_nms=True)
+                results = self.OCRModels[target["model"]](image, device=device, verbose=False, agnostic_nms=True)
                 value = ""
                 for data in ([x.numpy() for x in sorted(results[0].boxes.data, key=lambda x: x[0])]):
                     value += str(int(data[5]))

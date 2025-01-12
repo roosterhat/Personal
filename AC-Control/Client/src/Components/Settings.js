@@ -101,6 +101,10 @@ class Settings extends React.Component {
                             <div className="setting-title">Max OCR Value Change</div>
                             <input type="number" min="1" value={this.state.settings["maxOCRValueChange"]} onChange={e => this.updateSettings("maxOCRValueChange", Number(e.target.value))}/>
                         </div>    
+                        <div className="setting">
+                            <div className="setting-title">Use GPU for Inference</div>
+                            <Switch State={this.state.settings.useGPU} OnSelect={x => this.updateSettings("useGPU", x)}/>
+                        </div>  
                         <div className="setting-group">
                             <div className="setting">
                                 <div className="setting-title">Use Dynamic Background Color</div>

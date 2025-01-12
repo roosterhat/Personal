@@ -1,7 +1,1 @@
-{
-	"frameRefreshDelay": 100,
-	"cameraExposure": -8,
-	"cameraIndex": 0,
-	"password": "9b63e144af4782f1f710488d3630edc847953a6daf9980f9b0aeb79e4f50f1a48be4d9b1fed51e08c0232c85883f4a2f797b2ab9204d2a1f0d5f11a92d816a7b",
-	"salt": "8ad9b467476f4f3da7a2418d4733f2d7"
-}
+{"frameRefreshDelay": 100, "cameraExposure": -8, "cameraIndex": -1, "password": "9b63e144af4782f1f710488d3630edc847953a6daf9980f9b0aeb79e4f50f1a48be4d9b1fed51e08c0232c85883f4a2f797b2ab9204d2a1f0d5f11a92d816a7b", "salt": "8ad9b467476f4f3da7a2418d4733f2d7", "triggerAttempts": 3, "setStateDelay": 500, "minTemperature": 60, "maxTemperature": 100, "maxOCRValueChange": 5, "UIView": "control", "temperatureUnit": "F", "useDynamicBackground": true, "useHeatIndex": true, "backgroundColors": ["#86c6ff", "#7bffb1", "#f77c7c"], "backgroundRange": {"high": 85, "low": 70}, "historyLength": 3, "trendlineAccuracy": 0.05, "useActiveColor": false}
