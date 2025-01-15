@@ -3,6 +3,10 @@ const transformPattern = new RegExp('(?<action>\\w+)\\((?<params>[^\\)]+)\\)', '
 const pathPattern = new RegExp('(?<type>[a-z])(?<params>[\\s\\d\\.,-]+)?', 'gi')
 const numberPattern = new RegExp('(-?\\d+(?:\\.\\d+)?)|(-?(?:\\.\\d+))', 'g')
 
+function delay(ms) {
+  return new Promise((resolve, reject) => setTimeout(resolve, ms))
+}
+
 function decodeDataURL(dataURL) {
     try {
         console.log(dataURL)
@@ -319,4 +323,4 @@ function a2c(x1, y1, x2, y2, rx, ry, phi, fa, fs) {
   });
 }
 
-export { decodeDataURL, request, endpointToCenterParameterization, a2c, dataURLPattern, transformPattern, pathPattern, numberPattern }
+export { decodeDataURL, request, delay, endpointToCenterParameterization, a2c, dataURLPattern, transformPattern, pathPattern, numberPattern }

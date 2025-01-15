@@ -4,6 +4,7 @@
     let { 
         data = $bindable(), 
         dimensions = $bindable(),
+        rootNode,
         aspectRatio = 1, 
         traceColor = '#6aff6a', 
         displayGrid = true, 
@@ -11,7 +12,7 @@
         backgroundColor = '#eee'
     } = $props()
 
-    let canvas, context, viewHeight, viewWidth, rootNode, _SVGDrawer, offset = 20;
+    let canvas, context, viewHeight, viewWidth, _SVGDrawer, offset = 20;
     const eventQueue = {
         queue: {},
         actionQueued: false
@@ -19,20 +20,10 @@
     
 
     $effect(() => {
-        console.log('effect')
         window.addEventListener('resize', resize)
         updateDimensions()
         const id = setInterval(ProcessEventQueue, (1/30) * 1000, eventQueue)
-        if(data) {
-            var svg = atob(data.imageData)
-            rootNode = new DOMParser().parseFromString(svg, 'image/svg+xml')
-            const errorNode = rootNode.querySelector("parsererror");
-            if(errorNode) {
-                console.log("Failed to parse svg")
-                data = null
-            }
-        }
-        draw()      
+        draw()   
 
         return () => {
             window.removeEventListener('resize', () => QueueEvent("resize", resize))
@@ -41,7 +32,6 @@
     })
 
     function init(elem) {
-        console.log('init')
         canvas = elem;        
         context = canvas.getContext('2d'); 
         _SVGDrawer = new SVGDrawer(context)
@@ -49,7 +39,6 @@
     }
 
     function resize() {
-        console.log('resize')        
         updateDimensions()        
         draw()
     }
@@ -64,9 +53,6 @@
     }
 
     function draw() {
-        
-        console.log("draw: ",canvas.width, canvas.height, aspectRatio, viewWidth, viewHeight)
-        console.log($state.snapshot(data))
         context.reset()
         context.clearRect(0, 0, canvas.width, canvas.height)
         context.beginPath();
@@ -115,8 +101,9 @@
     }
 
     function drawSVG() {       
-        let pos = convertFromOriginalSpace(data, data.originalSize)
-        context.translate(pos.x + Math.round((canvas.width - viewWidth) / 2), pos.y + Math.round((canvas.height - viewHeight) / 2) - offset)
+        let pos = convertFromOriginalSpace(data.translation, data.originalSize) 
+        let translation = { x : pos.x + Math.round((canvas.width - viewWidth) / 2), y: pos.y + Math.round((canvas.height - viewHeight) / 2) - offset }
+        context.translate(translation.x, translation.y)
         let scale = { x: data.scale.x * (viewWidth / data.originalSize.w), y: data.scale.y * (viewHeight / data.originalSize.h )}
         context.scale(scale.x, scale.y)
         context.rotate(data.rotation)
@@ -126,7 +113,7 @@
         context.shadowBlur = 5;
         context.shadowColor = traceColor;
 
-        _SVGDrawer.drawSVG(rootNode, data.rotation, scale, data.originalSize)  
+        _SVGDrawer.drawSVG(rootNode, data.rotation, scale, translation, data.originalSize)  
     }    
 
     function convertFromOriginalSpace(pos, originalSize) {

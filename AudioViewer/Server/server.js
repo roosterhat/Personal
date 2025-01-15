@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors')
 const bodyParser = require('body-parser')
-const {Howl, Howler} = require('howler');
 const fs = require('fs');
+const { Worker } = require('node:worker_threads');
 
 const app = express();
 
@@ -15,7 +15,10 @@ app.use((req, res, next) => {
     next()
 })
 
-var currentSound = null
+const worker = new Worker("./Server/Worker.js");
+worker.on('exit', (code) => {
+    console.log(`Worker stopped with exit code ${code}`);
+});
 
 app.get('/load/:file', (req, res) => {
     console.log('Load: '+req.params.file)
@@ -30,25 +33,17 @@ app.post('/save/:file', (req, res) => {
 app.post('/play', express.raw({type: "*/*"}), (req, res) => {
     if(req.body) {
         try{
-            fs.writeFile('./output.mp3', Buffer.from(req.body), e => e ? console.log("File write error: ",e) : console.log("file written successfully"));
-            const base64Str = Buffer.from(req.body).toString("base64");
-            console.log(base64Str.length)         
-            const url = `data:audio/mp3;base64,${base64Str}`
-
-            Howler.noAudio = false
-            currentSound = new Howl({ 
-                src: ["./output.mp3"], 
-                loop: true,
-                format: ["mp3"],
-                onload: () => console.log("onload"),
-                onloaderror: (id, e) =>  { console.log("onloaderror: ", e, Howler.noAudio); Howler.noAudio = false},
-                onplay : () => console.log("onplay"),
-                onplayerror: (id, e) => console.log("onplayerror: ", e)
-            });
-
-            currentSound.play()         
-            
-            res.sendStatus(200)
+            fs.writeFile('./Server/output.wav', Buffer.from(req.body), e => {
+                if(e) {
+                    console.log("File write error: ", e)
+                    res.sendStatus(500)
+                }
+                else { 
+                    console.log("file written successfully")
+                    worker.postMessage("play")
+                    res.sendStatus(200)
+                }
+            });            
         }
         catch(ex) {
             console.log("Error", ex)
@@ -62,19 +57,18 @@ app.post('/play', express.raw({type: "*/*"}), (req, res) => {
 })
 
 app.get('/play', (req, res) => {
-    if(currentSound) {
-        currentSound.play();
+    if(fs.existssync("output.wav")) {
+        worker.postMessage("play")
         res.sendStatus(200)
     }
     else {
-        console.log("No sound to play")
+        console.log("No audio")
         res.sendStatus(400)
     }
 })
 
 app.get('/stop', (req, res) => {
-    if(currentSound)
-        currentSound.stop()
+    worker.postMessage("stop")
     res.sendStatus(200)
 })
 
