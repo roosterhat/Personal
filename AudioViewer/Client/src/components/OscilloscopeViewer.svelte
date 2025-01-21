@@ -1,5 +1,5 @@
 <script>
-    import { SVGDrawer } from '../SVGEngine.js'
+    import { SVGDrawer } from '$lib/SVGEngine.js'
 
     let { 
         data = $bindable(), 
@@ -19,14 +19,14 @@
     };
     
 
-    $effect(() => {
+    $effect(() => {        
         window.addEventListener('resize', resize)
         updateDimensions()
         const id = setInterval(ProcessEventQueue, (1/30) * 1000, eventQueue)
         draw()   
 
         return () => {
-            window.removeEventListener('resize', () => QueueEvent("resize", resize))
+            window.removeEventListener('resize', resize)
             clearInterval(id)
         }
     })
@@ -39,16 +39,18 @@
     }
 
     function resize() {
-        updateDimensions()        
-        draw()
+        QueueEvent("resize", () => {
+            updateDimensions()        
+            draw()
+        })
     }
 
     function updateDimensions() {
         let dims = canvas.parentElement.getBoundingClientRect()
         canvas.width = dims.width
         canvas.height = dims.height
-        viewWidth = (canvas.width > canvas.height ? canvas.height * aspectRatio : canvas.width) - 2
-        viewHeight = (canvas.height > canvas.width ? canvas.width / aspectRatio : canvas.height) - offset - 2
+        viewWidth = (canvas.width > canvas.height - offset ? (canvas.height - offset) * aspectRatio : canvas.width) - 2
+        viewHeight = (canvas.height - offset > canvas.width ? canvas.width / aspectRatio : canvas.height - offset) - 2
         dimensions = { width: viewWidth, height: viewHeight }
     }
 
@@ -67,7 +69,7 @@
             drawGridLines()
         }
 
-        if(data) {            
+        if(data && rootNode) {            
             context.font = Math.min(14 * (canvas.width / 500), 14) + "px serif"
             context.strokeStyle = "#000"
             let dims = context.measureText(data.name)
@@ -102,16 +104,14 @@
 
     function drawSVG() {       
         let pos = convertFromOriginalSpace(data.translation, data.originalSize) 
-        let translation = { x : pos.x + Math.round((canvas.width - viewWidth) / 2), y: pos.y + Math.round((canvas.height - viewHeight) / 2) - offset }
-        context.translate(translation.x, translation.y)
+        let translation = { x : pos.x + Math.round((canvas.width - viewWidth) / 2), y: pos.y + Math.round((canvas.height - viewHeight - offset) / 2) }
         let scale = { x: data.scale.x * (viewWidth / data.originalSize.w), y: data.scale.y * (viewHeight / data.originalSize.h )}
-        context.scale(scale.x, scale.y)
-        context.rotate(data.rotation)
 
         context.strokeStyle = traceColor  
         context.lineJoin = 'round'
         context.shadowBlur = 5;
         context.shadowColor = traceColor;
+        context.lineWidth = 2
 
         _SVGDrawer.drawSVG(rootNode, data.rotation, scale, translation, data.originalSize)  
     }    

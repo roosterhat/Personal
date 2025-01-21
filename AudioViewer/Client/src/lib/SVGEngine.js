@@ -1,19 +1,40 @@
-import { endpointToCenterParameterization, a2c, transformPattern, pathPattern, numberPattern, delay } from './Utility.js'
+import { a2c, transformPattern, pathPattern, numberPattern, delay } from './Utility.js'
 
 class SVGEngine {
-    constructor() {
-        this.transformStack = []
-        this.currentTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0} }
+    constructor() {        
         this.size
+        this.gain = 1
+        this.resetTransform()
+    }
+
+    resetTransform() {
+        this.localTransformStack = [], this.globalTransformStack = []
+        this.localTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
+        this.globalTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
+        this.t = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0}
     }
 
     async processNode(node) {    
-        this.transformStack.push({ 
-            scale: { x: this.currentTransform.scale.x, y: this.currentTransform.scale.y}, 
-            translation: { x: this.currentTransform.translation.x, y: this.currentTransform.translation.y },
-            rotation: this.currentTransform.rotation            
-        })
-        this.saveState()
+        if(!node) return;
+        //console.log(node.nodeName)
+
+        this.globalTransformStack.push(this.globalTransform)
+        this.localTransformStack.push(this.localTransform)
+        this.globalTransform = { 
+            scale: { 
+                x: this.globalTransform.scale.x * this.localTransform.scale.x, 
+                y: this.globalTransform.scale.y * this.localTransform.scale.y 
+            }, 
+            translation: { 
+                x: this.globalTransform.translation.x + this.localTransform.translation.x * this.globalTransform.scale.x, 
+                y: this.globalTransform.translation.y + this.localTransform.translation.y * this.globalTransform.scale.y
+            },
+            rotation: this.globalTransform.rotation + this.localTransform.rotation        
+        }
+        this.localTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
+        this.updateTransform()
+        
+        this.onStart()
         try {
             if(!this.applyDefaultAttributes(node))
                 return
@@ -44,18 +65,21 @@ class SVGEngine {
                 case "rect":
                     this.processRect(node)
                     break;
-                case "text":
+                case "g":
+                    this.processGroup(node)
                     break;
-                case "textPath":
-                    break;
+
             }            
         }
         catch(ex) {
             console.log(ex)
         }        
-        this.currentTransform = this.transformStack.pop()
-        this.restoreState()
-        await delay(1) //yield
+
+        this.localTransform = this.localTransformStack.pop()
+        this.globalTransform = this.globalTransformStack.pop()
+        this.updateTransform()
+        this.onEnd()
+        await delay(1) //defer
     }
     
     // translate(x,y) {}
@@ -67,15 +91,14 @@ class SVGEngine {
     // lineTo(x, y) {}
     // moveTo(x, y) {}
     // rect(x, y, width, height) {}
-    // saveState() {}
-    // restoreState() {}
-    // viewBoxUpdated(w, h) {}
+    // onStart() {}
+    // onEnd() {}
 
     applyDefaultAttributes(node) {
         if(!node || !node.attributes) return true
 
-        for(let attribute of ['transform-origin', 'transform', 'display', 'viewBox']) {
-            let params
+        for(let attribute of ['transform-origin', 'transform', 'display', 'viewBox', 'x', 'y', 'dx', 'dy']) {
+            let params, dx, dy
             let attributeValue = node.attributes[attribute] ? node.attributes[attribute].value : null
             if(attributeValue) {                
                 switch(attribute) {
@@ -89,33 +112,24 @@ class SVGEngine {
                             switch(match.groups['action']) {
                                 case "translate":
                                     this.translate(params[0], params[1])
-                                    this.currentTransform.translation.x += params[0]
-                                    this.currentTransform.translation.y += params[1]
                                     break;
                                 case "translateX":
                                     this.translate(params[0], 0)
-                                    this.currentTransform.translation.x += params[0]
                                     break;
                                 case "translateY":
                                     this.translate(0, params[0])
-                                    this.currentTransform.translation.y += params[0]
                                     break;
-                                case "scale":
-                                    this.currentTransform.scale.x *= params[0]
-                                    this.currentTransform.scale.y *= params[1]
-                                    this.scale(this.currentTransform.scale.x, this.currentTransform.scale.y)
+                                case "scale":                                    
+                                    this.scale(params[0], params[1])
                                     break;
                                 case "scaleX":
-                                    this.currentTransform.scale.x *= params[0]
-                                    this.scale(this.currentTransform.scale.x, this.currentTransform.scale.y)
+                                    this.scale(params[0], this.localTransform.scale.y)
                                     break;
                                 case "scaleY":
-                                    this.currentTransform.scale.y *= params[0]
-                                    this.scale(this.currentTransform.scale.x, this.currentTransform.scale.y)
+                                    this.scale(this.localTransform.scale.x, params[0])
                                     break;
                                 case "rotate":
-                                    this.currentTransform.rotation += params[0]
-                                    this.rotate(this.currentTransform.rotation)
+                                    this.rotate(params[0])
                                     break;
                                 case "matrix":
                                     this.setTransform(params[0], params[1], params[2], params[3], params[4], params[5])
@@ -133,13 +147,12 @@ class SVGEngine {
 
                         const w = (params[2] - params[0])
                         const h = (params[3] - params[1])
-                        const aspect = w / h
-                        this.currentTransform.scale.x = (h > w ? this.size.h * aspect : this.size.w) / w * padding
-                        this.currentTransform.scale.y = (w > h ? this.size.w / aspect : this.size.h) / h * padding
-                        this.translate(Math.round((this.size.w - (w * this.currentTransform.scale.x))  / 2), Math.round((this.size.h - (h * this.currentTransform.scale.y)) / 2))
-                        this.scale(this.currentTransform.scale.x, this.currentTransform.scale.y)   
-                        this.viewBoxUpdated(w,h)                                    
-                        break;
+
+                        let scale = (h > w ? this.size.h / h : this.size.w / w) * padding
+                        this.scale(scale, scale)
+                        this.translate(Math.round((this.size.w - (w * scale))  / 2), Math.round((this.size.h - (h * scale)) / 2))                           
+                        //console.log(this.globalTransform, this.localTransform)
+                        break;                    
                 }
             }
         }
@@ -148,11 +161,15 @@ class SVGEngine {
     }   
 
     processCircle(node) {
-        this.ellipse(this.getAttribute(node, 'cx', 0), this.getAttribute(node, 'cy', 0), this.getAttribute(node, 'r'), this.getAttribute(node, 'r'), 0, 0, 2 * Math.PI)
+        let rx = this.getAttribute(node, 'r')// * Math.abs(this.globalTransform.scale.x * this.localTransform.scale.x)
+        let ry = this.getAttribute(node, 'r')// * Math.abs(this.globalTransform.scale.y * this.localTransform.scale.y)
+        this.ellipse(this.getAttribute(node, 'cx', 0), this.getAttribute(node, 'cy', 0), rx, ry, 0, 0, 2 * Math.PI)
     }
 
     processEllipse(node) {
-        this.ellipse(this.getAttribute(node, 'cx', 0), this.getAttribute(node, 'cy', 0), this.getAttribute(node, 'rx'), this.getAttribute(node, 'ry'), 0, 0, 2 * Math.PI)
+        let rx = this.getAttribute(node, 'rx')// * Math.abs(this.globalTransform.scale.x * this.localTransform.scale.x)
+        let ry = this.getAttribute(node, 'ry')// * Math.abs(this.globalTransform.scale.y * this.localTransform.scale.y)
+        this.ellipse(this.getAttribute(node, 'cx', 0), this.getAttribute(node, 'cy', 0), rx, ry, 0, 0, 2 * Math.PI)
     }
 
     processLine(node) {
@@ -183,9 +200,38 @@ class SVGEngine {
     processRect(node) {
         let x = this.getAttribute(node, 'x', 0)
         let y = this.getAttribute(node, 'y', 0)
-        let w = this.getAttribute(node, 'width')
-        let h = this.getAttribute(node, 'height')
+        let w = this.getAttribute(node, 'width')// * Math.abs(this.globalTransform.scale.x * this.localTransform.scale.x)
+        let h = this.getAttribute(node, 'height')// * Math.abs(this.globalTransform.scale.y * this.localTransform.scale.y)
         this.rect(x, y, w, h)
+    }
+
+    processGroup(node) {
+        for(let attribute of ['x', 'y', 'dx', 'dy']) {
+            let params, dx, dy
+            let attributeValue = node.attributes[attribute] ? node.attributes[attribute].value : null
+            if(attributeValue) {                
+                switch(attribute) {
+                    case "x":
+                        params = this.cleanParams(attributeValue, true) 
+                        dx = params[0] - this.globalTransform.translation.x
+                        this.translate(dx, 0)
+                        break;
+                    case "y":
+                        params = this.cleanParams(attributeValue, true)
+                        dy = params[0] - this.globalTransform.translation.y
+                        this.translate(0, dy)
+                        break;
+                    case "dx":
+                        params = this.cleanParams(attributeValue, true)                        
+                        this.translate(params[0], 0)
+                        break;
+                    case "dy":
+                        params = this.cleanParams(attributeValue, true)                        
+                        this.translate(0, params[0])
+                        break;
+                }
+            }
+        }
     }
 
     processPath(node) {
@@ -203,7 +249,7 @@ class SVGEngine {
                             convertToAbsoluteCoordinates(params, i, i + 2, pos)   
                             
                         if(i == 0) {
-                            this.moveTo(params[i], params[i+1])                            
+                            this.moveTo(params[i], params[i+1])
                             if (count == 0) {
                                 initialPoint = { x: params[i], y: params[i+1] }      
                             }
@@ -288,9 +334,6 @@ class SVGEngine {
                         if(!absolute)
                             convertToAbsoluteCoordinates(params, i+5, i+6, pos)
 
-                        //var arc = endpointToCenterParameterization(pos.x, pos.y, params[i+5], params[i+6], params[i], params[i+1], params[i+2], params[i+3], params[i+4])
-                        //ellipse(arc.cx, arc.cy, arc.rx, arc.ry, arc.xAxisRotation, arc.startAngle, arc.endAngle, arc.anitClockwise)
-                        //pos = { x: p[0], y: p[1] }
                         var arcs = a2c(pos.x, pos.y, params[i+5], params[i+6], params[i], params[i+1], params[i+2], params[i+3], params[i+4])
                         for(let arc of arcs) {
                             this.bezierCurveTo(arc[2], arc[3], arc[4], arc[5], arc[6], arc[7])
@@ -300,7 +343,7 @@ class SVGEngine {
                     lastControl = null
                     break;        
                 case "Z":
-                    this.lineTo(initialPoint.x, initialPoint.y)   
+                    this.lineTo(initialPoint.x, initialPoint.y)
                     pos = { x: initialPoint.x, y: initialPoint.y }
                     lastControl = null
                     count = -1
@@ -328,131 +371,20 @@ class SVGEngine {
         }
     }    
 
-    cleanParams(params, convertToNumber = false) {
-        return params.split(/,|\s/).map(x => x.trim()).filter(x => x).map(x => convertToNumber ? parseFloat(x) : x)
-    }
-
-    getAttribute(node, key, defaultValue = null, castToFloat = true) {
-        let value = node.attributes[key] ? node.attributes[key].value : defaultValue
-        return castToFloat ? parseFloat(value) : value
-    }
-}
-
-class SVGDrawer extends SVGEngine {
-    constructor(context) {
-        super()
-        this.context = context
-    }
-
-    drawSVG(root, rotation, scale, translation, size) {
-        this.currentTransform = { scale: scale, rotation: rotation, translation: translation }
-        this.size = size
-        this.processNode(root)
-    }    
-
     translate(x,y) {
-        this.context.translate(x,y)
-    }
-
-    scale(x,y) {
-        this.context.scale(x,y)
-    }
-
-    rotate(angle) {
-        this.context.rotate(angle)
-    }
-
-    setTransform(a, b, c, d, e, f) {
-        this.context.setTransform(a, b, c, d, e, f)
-    }
-
-    ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {
-        this.context.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle)
-    }
-
-    bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
-        this.context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y)
-    }
-
-    lineTo(x, y) {
-        this.context.lineTo(x, y)
-    }
-
-    moveTo(x, y) {
-        this.context.moveTo(x, y)
-    }
-
-    rect(x, y, width, height) {
-        this.context.rect(x, y, width, height)
-    }
-
-    saveState() {
-        this.context.save()
-        this.context.beginPath()
-    }
-
-    restoreState() {
-        this.context.stroke()   
-        this.context.restore()
-    }
-
-    viewBoxUpdated(w, h) {
-        this.context.lineWidth = 3 / Math.max(this.currentTransform.scale.x, this.currentTransform.scale.y)  
-    }
-}
-
-class SVGToAudio extends SVGEngine {
-    constructor() {
-        super()        
-    }  
-
-    async generateAudio(root, data, stepSizes, gain) {
-        this.t = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0}
-        this.currentTransform = { 
-            scale: { x: data.scale.x, y: data.scale.y }, 
-            translation: { x: data.translation.x, y: data.translation.y },
-            rotation: data.rotation + Math.PI / 2   
-        }
-        this.size = data.originalSize
-        this.pos = { x: 0, y: 0 }
-        this.channelData = [[], []]
-        this.stepSizes = { "line": stepSizes["line"], "bezier": stepSizes["bezier"], "ellipse": stepSizes["ellipse"] }
-        this.gain = gain      
-        
-        this.updateTransform()
-        await this.processNode(root)
-
-        let repeatedData = [[], []]
-        repeatedData[0] = repeatedData[0].concat(this.channelData[0])
-        repeatedData[1] = repeatedData[1].concat(this.channelData[1])
-        let copies = Math.max(Math.floor(44100 / this.channelData[0].length), 1)
-        console.log(copies)
-
-        for(let i = 0; i < copies; i++) {
-            if((i + 1) % 3 == 0) {
-                this.channelData = [[], []]
-                this.rotate(Math.PI * 2 / copies * i)
-                await this.processNode(root)
-            }
-            repeatedData[0] = repeatedData[0].concat(this.channelData[0])
-            repeatedData[1] = repeatedData[1].concat(this.channelData[1])
-        }
-
-        return [
-            new Float32Array(repeatedData[0]),   
-            new Float32Array(repeatedData[1])   
-        ]
-    }   
-
-    translate(x,y) {
+        this.localTransform.translation.x += x
+        this.localTransform.translation.y += y
         this.updateTransform()
     }
 
     scale(x,y) {
+        this.localTransform.scale.x = x
+        this.localTransform.scale.y = y
         this.updateTransform()
     }
 
     rotate(angle) {
+        this.localTransform.rotation += angle
         this.updateTransform()
     }
 
@@ -461,35 +393,200 @@ class SVGToAudio extends SVGEngine {
         // b d f
         // 0 0 1
 
-        let origin = {x:0, y:0}
-        this.currentTransform.translation.x = e
-        this.currentTransform.translation.y = f
-        this.currentTransform.scale.x = this.distPoint(origin, {x: a, y: b})
-        this.currentTransform.scale.y = this.distPoint(origin, {x: c, y: d})
-        this.currentTransform.rotation = Math.acos(a / this.currentTransform.scale.x)
+        this.localTransform.translation.x = e
+        this.localTransform.translation.y = f
+        this.localTransform.scale.x = this.dist(0, 0, a, b)
+        this.localTransform.scale.y = this.dist(0, 0, c, d)
+        this.localTransform.rotation = Math.acos(a / this.localTransform.scale.x)
 
-        this.t = { a: a, b: b, c: c, d: d, e: e, f: f}
+        this.updateTransform()
     }
 
     updateTransform() {
+        let scaleX = this.globalTransform.scale.x * this.localTransform.scale.x
+        let scaleY = this.globalTransform.scale.y * this.localTransform.scale.y
+        let rotation = this.globalTransform.rotation + this.localTransform.rotation
+        let translateX = this.globalTransform.translation.x + this.localTransform.translation.x * this.globalTransform.scale.x
+        let translateY = this.globalTransform.translation.y + this.localTransform.translation.y * this.globalTransform.scale.y
+
         this.t = { 
-            a: this.currentTransform.scale.x * Math.cos(this.currentTransform.rotation),
-            b: this.currentTransform.scale.y * Math.sin(this.currentTransform.rotation),
-            c: this.currentTransform.scale.x * -Math.sin(this.currentTransform.rotation),
-            d: this.currentTransform.scale.y * Math.cos(this.currentTransform.rotation),
-            e: this.currentTransform.translation.x,
-            f: this.currentTransform.translation.y
+            a: scaleX * Math.cos(rotation),
+            b: scaleY * Math.sin(rotation),
+            c: scaleX * -Math.sin(rotation),
+            d: scaleY * Math.cos(rotation),
+            e: translateX,
+            f: translateY
         }
+
+        //console.log(this.t)
+    }
+
+    transformCoordinates() {
+        for(let i = 0; i < arguments.length; i += 2) {
+            let x = (this.t.a * arguments[i] + this.t.c * arguments[i + 1] + this.t.e) * this.gain
+            let y = (this.t.b * arguments[i] + this.t.d * arguments[i + 1] + this.t.f) * this.gain
+            arguments[i] = x
+            arguments[i + 1] = y
+        }
+        return arguments
+    }
+
+    cleanParams(params, convertToNumber = false) {
+        return params.split(/,|\s/).map(x => x.trim()).filter(x => x).map(x => convertToNumber ? parseFloat(x) : x)
+    }
+
+    getAttribute(node, key, defaultValue = null, castToFloat = true) {
+        let value = node.attributes[key] ? node.attributes[key].value : defaultValue
+        return castToFloat ? parseFloat(value) : value
+    }
+
+    dist = (x1, y1, x2, y2) => Math.sqrt(Math.pow(y1 - y2, 2) + Math.pow(x1 - x2, 2))
+    distPoint = (p1, p2) => this.dist(p1.x, p1.y, p2.x, p2.y)
+
+    lerp = (a, b, p) => a + p * (b - a);
+    lerpPoint = (p1, p2, p) => ({ x: this.lerp(p1.x, p2.x, p), y: this.lerp(p1.y, p2.y, p)})
+}
+
+class SVGDrawer extends SVGEngine {
+    constructor(context) {
+        super()
+        this.context = context
+        this.pos = { x: 0, y: 0 }
+    }
+
+    drawSVG(root, rotation, scale, translation, size) {
+        this.resetTransform()
+        this.globalTransform = { scale: scale, rotation: rotation, translation: translation }
+        this.size = size
+        this.processNode(root)
+    }    
+
+    ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {
+        //this.context.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle)
+        let step = Math.PI * 2 / 40
+        this.context.moveTo(...this.transformCoordinates(x + radiusX, y))
+        for(let i = step; i < Math.PI * 2; i += step) {            
+            this.context.lineTo(...this.transformCoordinates(x + radiusX * Math.cos(i+step), y + radiusY * Math.sin(i+step)))
+        }
+        this.pos = { x: x, y: y }
+    }
+
+    bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
+        //this.context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y)
+        let step = 1/20
+        this.context.moveTo(...this.transformCoordinates(this.pos.x, this.pos.y))
+
+        for(let p = step; p <= 1; p += step) {
+            let p01 = this.lerpPoint(this.pos, {x: cp1x, y: cp1y}, p)
+            let p12 = this.lerpPoint({x: cp1x, y: cp1y}, {x: cp2x, y: cp2y}, p)
+            let p23 = this.lerpPoint({x: cp2x, y: cp2y}, {x: x, y: y}, p)
+
+            let p01_12 = this.lerpPoint(p01, p12, p)
+            let p12_23 = this.lerpPoint(p12, p23, p)
+
+            let p0123 = this.lerpPoint(p01_12, p12_23, p)
+            this.context.lineTo(...this.transformCoordinates(p0123.x, p0123.y))            
+        }        
+        this.context.lineTo(...this.transformCoordinates(x, y))
+        this.pos = { x: x, y: y }
+    }
+
+    lineTo(x, y) {
+        this.context.lineTo(...this.transformCoordinates(x, y))
+        this.pos = {x: x, y: y}
+    }
+
+    moveTo(x, y) {
+        this.context.moveTo(...this.transformCoordinates(x, y))
+        this.pos = {x: x, y: y}
+    }
+
+    rect(x, y, width, height) {
+        //this.context.rect(x, y, width, height)
+        let points = [{x: x, y: y}, {x: x + width, y: y}, {x: x + width, y: y + height}, {x: x, y: y + height}]
+        this.context.moveTo(...this.transformCoordinates(x, y))
+        for(let i = 0; i < points.length; i++) {
+            let p1 = points[i]
+            let p2 = points[(i + 1) % points.length]            
+            this.context.lineTo(...this.transformCoordinates(p2.x, p2.y))
+        }
+        this.pos = {x: x, y: y}
+    }
+
+    onStart() {
+        this.context.beginPath()
+    }
+
+    onEnd() {
+        this.context.stroke()   
+    }
+}
+
+class SVGToAudio extends SVGEngine {
+    constructor() {
+        super()        
+    }  
+
+    async generateAudio(root, data, targetFrequency, gain, sampleRate, corrections) {        
+        this.size = data.originalSize
+        this.gain = gain      
+        this.stepSizes = {"line": 5, "bezier": 4, "ellipse": 40}
+        
+        await this.getChannelData(root, data, corrections)
+
+        let initFreq = sampleRate / this.channelData[0].length
+        let stepMod = targetFrequency / initFreq
+        for(let i in this.stepSizes)
+            this.stepSizes[i] *= stepMod
+
+        console.log(initFreq, stepMod, this.stepSizes) 
+        
+        await this.getChannelData(root, data, corrections)
+
+        let repeatedData = [[], []]
+        let copies = Math.max(Math.floor(sampleRate / this.channelData[0].length), 1)
+        console.log(copies, this.stepCounts)
+
+        for(let i = 0; i < copies; i++) {
+            // if((i + 1) % 2 == 0) {
+            //     this.channelData = [[], []]
+            //     this.stepSizes = { "line": stepSizes["line"], "bezier": stepSizes["bezier"], "ellipse": stepSizes["ellipse"] }
+            //     this.currentTransform.rotation += Math.PI * 4 / copies
+            //     this.updateTransform()
+            //     console.log(this.currentTransform)
+            //     await this.processNode(root)
+            // }
+            repeatedData[0] = repeatedData[0].concat(this.channelData[0])
+            repeatedData[1] = repeatedData[1].concat(this.channelData[1])
+        }
+
+        return [
+            new Float32Array(repeatedData[0]),   
+            new Float32Array(repeatedData[1])   
+        ]
+    }       
+
+    async getChannelData(root, imageData, corrections) {
+        this.globalTransform = { 
+            scale: { x: imageData.scale.x * corrections.scale.x, y: imageData.scale.y * corrections.scale.y }, 
+            translation: { x: imageData.translation.x + corrections.translation.x, y: imageData.translation.y + corrections.translation.y },
+            rotation: imageData.rotation + corrections.rotation
+        }
+        this.pos = { x: 0, y: 0 }
+        this.channelData = [[], []]
+        this.stepCounts = {"line": 0, "bezier": 0, "ellipse": 0}
+        this.updateTransform()
+        await this.processNode(root)
     }
 
     ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {
-        this.rotate(rotation)
         //console.log(this.stepSizes["ellipse"])
-        for(let i = 0; i < Math.PI * 2; i += this.stepSizes["ellipse"]) {
+        let step = this.stepSizes["ellipse"] * (Math.PI / 40)
+        for(let i = 0; i < Math.PI * 2; i += step) {
             this.pushChannelData({x: x + radiusX * Math.cos(i), y: y + radiusY * Math.sin(i)})
+            this.stepCounts["ellipse"]++
             //console.log({x: x + radiusX * Math.cos(i), y: y + radiusY * Math.sin(i)})
         }
-        this.rotate(-rotation)
     }
 
     bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
@@ -506,6 +603,7 @@ class SVGToAudio extends SVGEngine {
 
             //console.log(this.lerpPoint(p01_12, p12_23, p))
             this.pushChannelData(this.lerpPoint(p01_12, p12_23, p))
+            this.stepCounts["bezier"]++
         }
         this.pos = {x: x, y: y}
     }
@@ -516,6 +614,7 @@ class SVGToAudio extends SVGEngine {
         //console.log(this.pos,x,y,d,step)
         for(let p = 0; p < 1; p += step) {
             this.pushChannelData(this.lerpPoint(this.pos, { x: x, y: y }, p))
+            this.stepCounts["line"]++
         }
         this.pos = { x: x, y: y }
     }
@@ -534,37 +633,27 @@ class SVGToAudio extends SVGEngine {
             //console.log(p1, p2, d, step)
             for(let p = 0; p < 1; p += step) {
                 this.pushChannelData(this.lerpPoint(p1, p2, p))
+                this.stepCounts["line"]++
             }
         }
     }
 
-    saveState() {
+    onStart() {
         //no action
     }
 
-    restoreState() {
-        this.updateTransform()
-    }
-
-    viewBoxUpdated(w, h) {
-        let scale = Math.sqrt(this.currentTransform.scale.x * this.currentTransform.scale.y)
-        this.stepSizes["line"] /= scale
-        this.stepSizes["bezier"] /= scale
-        console.log(this.stepSizes)
+    onEnd() {
+        //no action
     }
 
     pushChannelData(p) {        
         //console.log(this.t)
-        this.channelData[0].push((this.t.a * p.x + this.t.c * p.y + this.t.e) * this.gain)
-        this.channelData[1].push((this.t.b * p.x + this.t.d * p.y + this.t.f) * this.gain)
-    }
-
-    
-    dist = (x1, y1, x2, y2) => Math.sqrt(Math.pow(y1 - y2, 2) + Math.pow(x1 - x2, 2))
-    distPoint = (p1, p2) => this.dist(p1.x, p1.y, p2.x, p2.y)
-
-    lerp = (x, y, a) => x * (1 - a) + y * a;
-    lerpPoint = (p1, p2, a) => ({ x: this.lerp(p1.x, p2.x, a), y: this.lerp(p1.y, p2.y, a)})
+        //this.channelData[0].push((this.t.a * p.x + this.t.c * p.y + this.t.e) * this.gain)
+        //this.channelData[1].push((this.t.b * p.x + this.t.d * p.y + this.t.f) * this.gain)
+        let _p = this.transformCoordinates(p.x, p.y)
+        this.channelData[0].push(_p[0])
+        this.channelData[1].push(_p[1])
+    }   
 }
 
 export { SVGDrawer, SVGToAudio }
