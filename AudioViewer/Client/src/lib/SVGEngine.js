@@ -1,8 +1,9 @@
-import { a2c, transformPattern, pathPattern, numberPattern, delay } from './Utility.js'
+import { transformPattern, pathPattern, numberPattern, delay, dist, distPoint, lerp, lerpPoint, convertFromOriginalSpace, convertToOriginalSpace } from './Utility.js'
+import { a2c } from './a2c.js'
+import { hull } from '$lib/Hulls.js'
 
 class SVGEngine {
     constructor() {        
-        this.size
         this.gain = 1
         this.resetTransform()
     }
@@ -12,6 +13,7 @@ class SVGEngine {
         this.localTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
         this.globalTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
         this.t = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0}
+        this.t_bounds = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0}
     }
 
     async processNode(node) {    
@@ -38,10 +40,6 @@ class SVGEngine {
         try {
             if(!this.applyDefaultAttributes(node))
                 return
-
-            for(let child of node.children) {
-                this.processNode(child)
-            }
             
             switch(node.nodeName) {               
                 case "circle":
@@ -68,8 +66,11 @@ class SVGEngine {
                 case "g":
                     this.processGroup(node)
                     break;
-
             }            
+
+            for(let child of node.children) {
+                this.processNode(child)
+            }
         }
         catch(ex) {
             console.log(ex)
@@ -148,10 +149,9 @@ class SVGEngine {
                         const w = (params[2] - params[0])
                         const h = (params[3] - params[1])
 
-                        let scale = (h > w ? this.size.h / h : this.size.w / w) * padding
+                        let scale = (h > w ? 100 / h : 100 / w) * padding
                         this.scale(scale, scale)
-                        this.translate(Math.round((this.size.w - (w * scale))  / 2), Math.round((this.size.h - (h * scale)) / 2))                           
-                        //console.log(this.globalTransform, this.localTransform)
+                        this.translate(Math.round((100 - (w * scale))  / 2), Math.round((100 - (h * scale)) / 2))                           
                         break;                    
                 }
             }
@@ -161,14 +161,13 @@ class SVGEngine {
     }   
 
     processCircle(node) {
-        let rx = this.getAttribute(node, 'r')// * Math.abs(this.globalTransform.scale.x * this.localTransform.scale.x)
-        let ry = this.getAttribute(node, 'r')// * Math.abs(this.globalTransform.scale.y * this.localTransform.scale.y)
-        this.ellipse(this.getAttribute(node, 'cx', 0), this.getAttribute(node, 'cy', 0), rx, ry, 0, 0, 2 * Math.PI)
+        let r = this.getAttribute(node, 'r')
+        this.ellipse(this.getAttribute(node, 'cx', 0), this.getAttribute(node, 'cy', 0), r, r, 0, 0, 2 * Math.PI)
     }
 
     processEllipse(node) {
-        let rx = this.getAttribute(node, 'rx')// * Math.abs(this.globalTransform.scale.x * this.localTransform.scale.x)
-        let ry = this.getAttribute(node, 'ry')// * Math.abs(this.globalTransform.scale.y * this.localTransform.scale.y)
+        let rx = this.getAttribute(node, 'rx')
+        let ry = this.getAttribute(node, 'ry')
         this.ellipse(this.getAttribute(node, 'cx', 0), this.getAttribute(node, 'cy', 0), rx, ry, 0, 0, 2 * Math.PI)
     }
 
@@ -200,8 +199,8 @@ class SVGEngine {
     processRect(node) {
         let x = this.getAttribute(node, 'x', 0)
         let y = this.getAttribute(node, 'y', 0)
-        let w = this.getAttribute(node, 'width')// * Math.abs(this.globalTransform.scale.x * this.localTransform.scale.x)
-        let h = this.getAttribute(node, 'height')// * Math.abs(this.globalTransform.scale.y * this.localTransform.scale.y)
+        let w = this.getAttribute(node, 'width')
+        let h = this.getAttribute(node, 'height')
         this.rect(x, y, w, h)
     }
 
@@ -213,12 +212,12 @@ class SVGEngine {
                 switch(attribute) {
                     case "x":
                         params = this.cleanParams(attributeValue, true) 
-                        dx = params[0] - this.globalTransform.translation.x
+                        dx = params[0] - this.localTransform.translation.x                        
                         this.translate(dx, 0)
                         break;
                     case "y":
                         params = this.cleanParams(attributeValue, true)
-                        dy = params[0] - this.globalTransform.translation.y
+                        dy = params[0] - this.localTransform.translation.y
                         this.translate(0, dy)
                         break;
                     case "dx":
@@ -395,8 +394,8 @@ class SVGEngine {
 
         this.localTransform.translation.x = e
         this.localTransform.translation.y = f
-        this.localTransform.scale.x = this.dist(0, 0, a, b)
-        this.localTransform.scale.y = this.dist(0, 0, c, d)
+        this.localTransform.scale.x = dist(0, 0, a, b)
+        this.localTransform.scale.y = dist(0, 0, c, d)
         this.localTransform.rotation = Math.acos(a / this.localTransform.scale.x)
 
         this.updateTransform()
@@ -418,7 +417,14 @@ class SVGEngine {
             f: translateY
         }
 
-        //console.log(this.t)
+        this.t_bounds = {
+            a: scaleX,
+            b: 0,
+            c: 0,
+            d: scaleY,
+            e: translateX,
+            f: translateY
+        }
     }
 
     transformCoordinates() {
@@ -438,61 +444,148 @@ class SVGEngine {
     getAttribute(node, key, defaultValue = null, castToFloat = true) {
         let value = node.attributes[key] ? node.attributes[key].value : defaultValue
         return castToFloat ? parseFloat(value) : value
-    }
-
-    dist = (x1, y1, x2, y2) => Math.sqrt(Math.pow(y1 - y2, 2) + Math.pow(x1 - x2, 2))
-    distPoint = (p1, p2) => this.dist(p1.x, p1.y, p2.x, p2.y)
-
-    lerp = (a, b, p) => a + p * (b - a);
-    lerpPoint = (p1, p2, p) => ({ x: this.lerp(p1.x, p2.x, p), y: this.lerp(p1.y, p2.y, p)})
+    }    
 }
 
 class SVGDrawer extends SVGEngine {
     constructor(context) {
         super()
-        this.context = context
-        this.pos = { x: 0, y: 0 }
+        this.context = context                
     }
 
-    drawSVG(root, rotation, scale, translation, size) {
+    drawSVG(root, element, globalTransform, dimensions) {
+        this.pos = { x: 0, y: 0 }
+        this.maxX = -Infinity
+        this.minX = Infinity
+        this.maxY = -Infinity
+        this.minY = Infinity
+        this.points = []
         this.resetTransform()
-        this.globalTransform = { scale: scale, rotation: rotation, translation: translation }
-        this.size = size
+        this.globalTransform = { scale: globalTransform.scale, rotation: globalTransform.rotation, translation: globalTransform.translation }
+        this.localTransform = { scale: element.scale, rotation: element.rotation, translation: element.translation, dimensions }
         this.processNode(root)
-    }    
+
+        let cosR = Math.cos(element.rotation)
+        let sinR = Math.sin(element.rotation)
+        let bounds = [[this.minX, this.minY], [this.maxX, this.minY], [this.maxX, this.maxY], [this.minX, this.maxY]].map(p => {
+            let px = (cosR * p[0] - sinR * p[1])
+            let py = (sinR * p[0] + cosR * p[1])
+            return {x: px, y: py}
+        })
+
+        let tPoints = []
+        for(let point of this.points) {
+            let px = (cosR * point[0] - sinR * point[1])
+            let py = (sinR * point[0] + cosR * point[1])
+            tPoints.push([px, py])
+        }
+
+        let arrows = this.createArrows(bounds)
+        for(let arrow of arrows) {
+            for(let i in arrow.points) {
+                let point = arrow.points[i]
+                let px = (cosR * point[0] - sinR * point[1])
+                let py = (sinR * point[0] + cosR * point[1])
+                arrow.points[i] = [px, py]
+            }
+
+            for(let point of arrow.bounds) {
+                point.x = (cosR * point[0] - sinR * point[1])
+                point.y = (sinR * point[0] + cosR * point[1])
+            }
+        }
+
+        return {
+            "bounds": bounds,
+            "arrows": arrows,
+            "center": {x: bounds[0].x + (bounds[2].x - bounds[0].x) / 2, y: bounds[0].y + (bounds[2].y - bounds[0].y) / 2}, 
+            "radius": (bounds[2].y - bounds[0].y) / 2 + 25,
+            "hull": hull(tPoints, 1000).slice(0, -1).map(x => ({x: x[0], y: x[1]}))           
+        }
+    }   
+    
+    createArrows(bounds) {
+        let invertOffset = 25, invertLength = 20, invertScale = 300, arrows = []
+        let s = Math.min(1, Math.min(bounds[1].x - bounds[0].x, bounds[3].y - bounds[0].y) / invertScale)
+        let x = bounds[1].x - invertOffset * s
+        let y = bounds[0].y - invertOffset
+
+        arrows.push({
+            "points": [
+                [x, y],
+                [x - 5, y - 5],
+                [x - 1, y - 5],
+                [x - 1, y - invertLength + 5],
+                [x - 5, y - invertLength + 5],
+                [x, y - invertLength],
+                [x + 5, y - invertLength + 5],
+                [x + 1, y - invertLength + 5],
+                [x + 1, y - 5],
+                [x + 5, y - 5],
+                [x, y]
+            ],
+            "bounds": [{x: x - 5, y: y - 5}, {x: x - 5, y: y - invertLength + 5}, {x: x + 5, y: y - invertLength + 5}, {x: x + 5, y: y - 5}]            
+        })
+
+        x = bounds[1].x + invertOffset
+        y = bounds[0].y + invertOffset * s
+        
+        arrows.push({
+            "points": [
+                [x, y],
+                [x + 5, y - 5],
+                [x + 5, y - 1],
+                [x + invertLength - 5, y - 1],
+                [x + invertLength - 5, y - 5],
+                [x + invertLength, y],
+                [x + invertLength - 5, y + 5],
+                [x + invertLength - 5, y + 1],
+                [x + 5, y + 1],
+                [x + 5, y + 5],
+                [x, y]
+            ],
+            "bounds": [{x: x + 5, y:  y - 5}, {x: x + invertLength - 5, y:  y - 5}, {x: x + invertLength - 5, y:  y + 5}, {x: x + 5, y:  y + 5}]            
+        }) 
+        return arrows       
+    }
 
     ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {
-        //this.context.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle)
         let step = Math.PI * 2 / 40
         this.context.moveTo(...this.transformCoordinates(x + radiusX, y))
-        for(let i = step; i < Math.PI * 2; i += step) {            
-            this.context.lineTo(...this.transformCoordinates(x + radiusX * Math.cos(i+step), y + radiusY * Math.sin(i+step)))
+        for(let i = step; i < Math.PI * 2; i += step) {    
+            let px = x + radiusX * Math.cos(i+step), py = y + radiusY * Math.sin(i+step)
+            this.trackPoint(px, py)        
+            this.context.lineTo(...this.transformCoordinates(px, py))               
         }
         this.pos = { x: x, y: y }
     }
 
     bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
-        //this.context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y)
-        let step = 1/20
-        this.context.moveTo(...this.transformCoordinates(this.pos.x, this.pos.y))
+        let step = 1/20            
+        this.trackPoint(this.pos.x, this.pos.y) 
+        this.context.moveTo(...this.transformCoordinates(this.pos.x, this.pos.y)) 
 
         for(let p = step; p <= 1; p += step) {
-            let p01 = this.lerpPoint(this.pos, {x: cp1x, y: cp1y}, p)
-            let p12 = this.lerpPoint({x: cp1x, y: cp1y}, {x: cp2x, y: cp2y}, p)
-            let p23 = this.lerpPoint({x: cp2x, y: cp2y}, {x: x, y: y}, p)
+            let p01 = lerpPoint(this.pos, {x: cp1x, y: cp1y}, p)
+            let p12 = lerpPoint({x: cp1x, y: cp1y}, {x: cp2x, y: cp2y}, p)
+            let p23 = lerpPoint({x: cp2x, y: cp2y}, {x: x, y: y}, p)
 
-            let p01_12 = this.lerpPoint(p01, p12, p)
-            let p12_23 = this.lerpPoint(p12, p23, p)
+            let p01_12 = lerpPoint(p01, p12, p)
+            let p12_23 = lerpPoint(p12, p23, p)
 
-            let p0123 = this.lerpPoint(p01_12, p12_23, p)
-            this.context.lineTo(...this.transformCoordinates(p0123.x, p0123.y))            
-        }        
-        this.context.lineTo(...this.transformCoordinates(x, y))
+            let p0123 = lerpPoint(p01_12, p12_23, p)
+            this.trackPoint(p0123.x, p0123.y)   
+            this.context.lineTo(...this.transformCoordinates(p0123.x, p0123.y))               
+        }    
+        this.trackPoint(x, y)    
+        this.context.lineTo(...this.transformCoordinates(x, y))        
         this.pos = { x: x, y: y }
     }
 
     lineTo(x, y) {
-        this.context.lineTo(...this.transformCoordinates(x, y))
+        this.trackPoint(this.pos.x, this.pos.y)
+        this.trackPoint(x, y)
+        this.context.lineTo(...this.transformCoordinates(x, y))        
         this.pos = {x: x, y: y}
     }
 
@@ -502,13 +595,12 @@ class SVGDrawer extends SVGEngine {
     }
 
     rect(x, y, width, height) {
-        //this.context.rect(x, y, width, height)
         let points = [{x: x, y: y}, {x: x + width, y: y}, {x: x + width, y: y + height}, {x: x, y: y + height}]
         this.context.moveTo(...this.transformCoordinates(x, y))
         for(let i = 0; i < points.length; i++) {
-            let p1 = points[i]
-            let p2 = points[(i + 1) % points.length]            
-            this.context.lineTo(...this.transformCoordinates(p2.x, p2.y))
+            let p = points[(i + 1) % points.length]      
+            this.trackPoint(p.x, p.y)
+            this.context.lineTo(...this.transformCoordinates(p.x, p.y))            
         }
         this.pos = {x: x, y: y}
     }
@@ -520,6 +612,16 @@ class SVGDrawer extends SVGEngine {
     onEnd() {
         this.context.stroke()   
     }
+
+    trackPoint(x, y) {
+        let px = (this.t_bounds.a * x + this.t_bounds.c * y + this.t_bounds.e)
+        let py = (this.t_bounds.b * x + this.t_bounds.d * y + this.t_bounds.f)
+        this.points.push([px,py])
+        this.maxX = Math.max(this.maxX, px)
+        this.minX = Math.min(this.minX, px)
+        this.maxY = Math.max(this.maxY, py)
+        this.minY = Math.min(this.minY, py)
+    }
 }
 
 class SVGToAudio extends SVGEngine {
@@ -527,37 +629,50 @@ class SVGToAudio extends SVGEngine {
         super()        
     }  
 
-    async generateAudio(root, data, targetFrequency, gain, sampleRate, corrections) {        
-        this.size = data.originalSize
+    async generateAudio(frame, targetFrequency, targetDuration, gain, sampleRate, corrections) {   
         this.gain = gain      
-        this.stepSizes = {"line": 5, "bezier": 4, "ellipse": 40}
+        this.stepSizes = {"line": 2, "bezier": 1, "ellipse": 40}
         
-        await this.getChannelData(root, data, corrections)
-
-        let initFreq = sampleRate / this.channelData[0].length
-        let stepMod = targetFrequency / initFreq
-        for(let i in this.stepSizes)
-            this.stepSizes[i] *= stepMod
-
-        console.log(initFreq, stepMod, this.stepSizes) 
-        
-        await this.getChannelData(root, data, corrections)
-
+        this.channelData = [[], []]
         let repeatedData = [[], []]
-        let copies = Math.max(Math.floor(sampleRate / this.channelData[0].length), 1)
-        console.log(copies, this.stepCounts)
 
-        for(let i = 0; i < copies; i++) {
-            // if((i + 1) % 2 == 0) {
-            //     this.channelData = [[], []]
-            //     this.stepSizes = { "line": stepSizes["line"], "bezier": stepSizes["bezier"], "ellipse": stepSizes["ellipse"] }
-            //     this.currentTransform.rotation += Math.PI * 4 / copies
-            //     this.updateTransform()
-            //     console.log(this.currentTransform)
-            //     await this.processNode(root)
-            // }
-            repeatedData[0] = repeatedData[0].concat(this.channelData[0])
-            repeatedData[1] = repeatedData[1].concat(this.channelData[1])
+        for(let element of frame.elements)
+            await this.getChannelData(element)
+
+        if(this.channelData[0].length > 0) {
+            let totalSamples = targetDuration / 1000 * sampleRate
+            let initFreq = totalSamples / this.channelData[0].length
+            let stepMod = targetFrequency / initFreq
+            for(let i in this.stepSizes)
+                this.stepSizes[i] *= stepMod
+
+            console.log(this.stepSizes)
+            
+            this.channelData = [[], []]
+            for(let element of frame.elements)
+                await this.getChannelData(element)
+
+            this.globalTransform = { 
+                scale: { x: corrections.scale.x, y: corrections.scale.y }, 
+                translation: { x: corrections.translation.x, y: corrections.translation.y },
+                rotation: corrections.rotation
+            }
+            this.updateTransform()
+            for(var i = 0; i < this.channelData[0].length; i++) {
+                let p = this.transformCoordinates(this.channelData[0][i], this.channelData[1][i])
+                this.channelData[0][i] = p[0]
+                this.channelData[1][i] = p[1]
+            }
+            
+            let copies = Math.max(Math.floor(totalSamples / this.channelData[0].length), 1)
+            console.log(copies)
+
+            for(let i = 0; i < copies; i++) {
+                repeatedData[0] = repeatedData[0].concat(this.channelData[0])
+                repeatedData[1] = repeatedData[1].concat(this.channelData[1])
+            }
+
+            console.log(repeatedData)
         }
 
         return [
@@ -566,55 +681,46 @@ class SVGToAudio extends SVGEngine {
         ]
     }       
 
-    async getChannelData(root, imageData, corrections) {
+    async getChannelData(element) {
+        this.resetTransform()
         this.globalTransform = { 
-            scale: { x: imageData.scale.x * corrections.scale.x, y: imageData.scale.y * corrections.scale.y }, 
-            translation: { x: imageData.translation.x + corrections.translation.x, y: imageData.translation.y + corrections.translation.y },
-            rotation: imageData.rotation + corrections.rotation
+            scale: { x: element.scale.x, y: element.scale.y }, 
+            translation: { x: element.translation.x, y: element.translation.y },
+            rotation: element.rotation
         }
-        this.pos = { x: 0, y: 0 }
-        this.channelData = [[], []]
-        this.stepCounts = {"line": 0, "bezier": 0, "ellipse": 0}
+        this.pos = { x: 0, y: 0 }        
         this.updateTransform()
-        await this.processNode(root)
+        await this.processNode(element.rootNode)
     }
 
     ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {
-        //console.log(this.stepSizes["ellipse"])
         let step = this.stepSizes["ellipse"] * (Math.PI / 40)
         for(let i = 0; i < Math.PI * 2; i += step) {
             this.pushChannelData({x: x + radiusX * Math.cos(i), y: y + radiusY * Math.sin(i)})
-            this.stepCounts["ellipse"]++
-            //console.log({x: x + radiusX * Math.cos(i), y: y + radiusY * Math.sin(i)})
         }
     }
 
     bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
-        let d = Math.max(this.dist(this.pos.x, this.pos.y, cp1x, cp1y), this.dist(cp1x, cp1y, cp2x, cp2y), this.dist(cp2x, cp2y, x, y))
+        let d = Math.max(dist(this.pos.x, this.pos.y, cp1x, cp1y), dist(cp1x, cp1y, cp2x, cp2y), dist(cp2x, cp2y, x, y))
         let step = this.stepSizes["bezier"] / d
-        //console.log("bezierCurveTo",d,step)
         for(let p = 0; p < 1; p += step) {
-            let p01 = this.lerpPoint(this.pos, {x: cp1x, y: cp1y}, p)
-            let p12 = this.lerpPoint({x: cp1x, y: cp1y}, {x: cp2x, y: cp2y}, p)
-            let p23 = this.lerpPoint({x: cp2x, y: cp2y}, {x: x, y: y}, p)
+            let p01 = lerpPoint(this.pos, {x: cp1x, y: cp1y}, p)
+            let p12 = lerpPoint({x: cp1x, y: cp1y}, {x: cp2x, y: cp2y}, p)
+            let p23 = lerpPoint({x: cp2x, y: cp2y}, {x: x, y: y}, p)
 
-            let p01_12 = this.lerpPoint(p01, p12, p)
-            let p12_23 = this.lerpPoint(p12, p23, p)
+            let p01_12 = lerpPoint(p01, p12, p)
+            let p12_23 = lerpPoint(p12, p23, p)
 
-            //console.log(this.lerpPoint(p01_12, p12_23, p))
-            this.pushChannelData(this.lerpPoint(p01_12, p12_23, p))
-            this.stepCounts["bezier"]++
+            this.pushChannelData(lerpPoint(p01_12, p12_23, p))
         }
         this.pos = {x: x, y: y}
     }
 
     lineTo(x, y) {
-        let d = this.distPoint(this.pos, {x: x, y: y})
+        let d = distPoint(this.pos, {x: x, y: y})
         let step = this.stepSizes["line"] / d
-        //console.log(this.pos,x,y,d,step)
         for(let p = 0; p < 1; p += step) {
-            this.pushChannelData(this.lerpPoint(this.pos, { x: x, y: y }, p))
-            this.stepCounts["line"]++
+            this.pushChannelData(lerpPoint(this.pos, { x: x, y: y }, p))
         }
         this.pos = { x: x, y: y }
     }
@@ -628,12 +734,10 @@ class SVGToAudio extends SVGEngine {
         for(let i = 0; i < points.length; i++) {
             let p1 = points[i]
             let p2 = points[(i + 1) % points.length]
-            let d = this.distPoint(p1, p2)
+            let d = distPoint(p1, p2)
             let step = this.stepSizes["line"] / d
-            //console.log(p1, p2, d, step)
             for(let p = 0; p < 1; p += step) {
-                this.pushChannelData(this.lerpPoint(p1, p2, p))
-                this.stepCounts["line"]++
+                this.pushChannelData(lerpPoint(p1, p2, p))
             }
         }
     }
@@ -647,9 +751,6 @@ class SVGToAudio extends SVGEngine {
     }
 
     pushChannelData(p) {        
-        //console.log(this.t)
-        //this.channelData[0].push((this.t.a * p.x + this.t.c * p.y + this.t.e) * this.gain)
-        //this.channelData[1].push((this.t.b * p.x + this.t.d * p.y + this.t.f) * this.gain)
         let _p = this.transformCoordinates(p.x, p.y)
         this.channelData[0].push(_p[0])
         this.channelData[1].push(_p[1])

@@ -1,0 +1,15 @@
+{
+  "aspectRatio": 1,
+  "traceColor": "#6aff6a",
+  "displayGrid": true,
+  "gridColor": "#888888",
+  "backgroundColor": "#eeeeee",
+  "glowEffect": true,
+  "glowStrength": 5,
+  "sampleRate": 44100,
+  "gain": 0.1,
+  "frequency": 40,
+  "duration": 1000,
+  "kbps": 128,
+  "showHull": false
+}
