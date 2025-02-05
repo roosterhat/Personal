@@ -414,7 +414,7 @@ class Control extends React.Component {
         if(this.state.loadingState) return;
         navigator.vibrate(100)
         this.state.targetState.power.active = !this.state.targetState.power.active
-        await this.setTargetState(["states"], this.state.targetState.power.active && !this.state.targetState.states.find(x => x.active))
+        await this.setTargetState(["states"], this.state.targetState.power.active)
     }
 
     setTargetState = async (types, forceRefresh = false) => {
