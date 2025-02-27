@@ -1,6 +1,7 @@
-import { transformPattern, pathPattern, numberPattern, delay, dist, distPoint, lerp, lerpPoint, convertFromOriginalSpace, convertToOriginalSpace } from './Utility.js'
+import { transformPattern, pathPattern, numberPattern, delay, dist, distPoint, lerpPoint } from './Utility.js'
 import { a2c } from './a2c.js'
-import { hull } from '$lib/Hulls.js'
+import { hull } from './Hulls.js'
+import { multiply } from 'mathjs'
 
 class SVGEngine {
     constructor() {        
@@ -9,31 +10,23 @@ class SVGEngine {
     }
 
     resetTransform() {
-        this.localTransformStack = [], this.globalTransformStack = []
-        this.localTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
-        this.globalTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
-        this.t = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0}
-        this.t_bounds = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0}
+        this.localTransformStack = []
+        this.globalTransformStack = []
+        this.localTransform = {matrix: [[1, 0, 0],[0, 1, 0],[0, 0, 1]], scale: {x: 1, y: 1}, translation: {x: 0, y: 0}, rotation: 0}
+        this.globalTransform = {matrix: [[1, 0, 0],[0, 1, 0],[0, 0, 1]], scale: {x: 1, y: 1}, translation: {x: 0, y: 0}, rotation: 0}
+        this.t = [[1, 0, 0],[0, 1, 0],[0, 0, 1]]
     }
 
-    async processNode(node) {    
+    processNode(node) { 
         if(!node) return;
         //console.log(node.nodeName)
 
         this.globalTransformStack.push(this.globalTransform)
         this.localTransformStack.push(this.localTransform)
-        this.globalTransform = { 
-            scale: { 
-                x: this.globalTransform.scale.x * this.localTransform.scale.x, 
-                y: this.globalTransform.scale.y * this.localTransform.scale.y 
-            }, 
-            translation: { 
-                x: this.globalTransform.translation.x + this.localTransform.translation.x * this.globalTransform.scale.x, 
-                y: this.globalTransform.translation.y + this.localTransform.translation.y * this.globalTransform.scale.y
-            },
-            rotation: this.globalTransform.rotation + this.localTransform.rotation        
-        }
-        this.localTransform = { scale: { x: 1, y: 1 }, rotation: 0, translation: { x: 0, y: 0 } }
+        let m = multiply(this.globalTransform.matrix, this.localTransform.matrix)
+        this.globalTransform = {matrix: [[1, 0, 0],[0, 1, 0],[0, 0, 1]], scale: {x: 1, y: 1}, translation: {x: 0, y: 0}, rotation: 0}
+        this.setTransformTarget(this.globalTransform, m[0][0], m[1][0], m[0][1], m[1][1], m[0][2], m[1][2])
+        this.localTransform = {matrix: [[1, 0, 0],[0, 1, 0],[0, 0, 1]], scale: {x: 1, y: 1}, translation: {x: 0, y: 0}, rotation: 0}
         this.updateTransform()
         
         this.onStart()
@@ -41,29 +34,29 @@ class SVGEngine {
             if(!this.applyDefaultAttributes(node))
                 return
             
-            switch(node.nodeName) {               
-                case "circle":
+            switch(node.nodeName.toUpperCase()) {               
+                case "CIRCLE":
                     this.processCircle(node)
                     break;
-                case "ellipse":
+                case "ELLIPSE":
                     this.processEllipse(node)
                     break;
-                case "line":
+                case "LINE":
                     this.processLine(node)
                     break;
-                case "path":
+                case "PATH":
                     this.processPath(node)
                     break;
-                case "polygon":
+                case "POLYGON":
                     this.processPolygon(node)
                     break;
-                case "polyline":
+                case "POLYLINE":
                     this.processPolyline(node)
                     break;
-                case "rect":
+                case "RECT":
                     this.processRect(node)
                     break;
-                case "g":
+                case "G":
                     this.processGroup(node)
                     break;
             }            
@@ -80,7 +73,6 @@ class SVGEngine {
         this.globalTransform = this.globalTransformStack.pop()
         this.updateTransform()
         this.onEnd()
-        await delay(1) //defer
     }
     
     // translate(x,y) {}
@@ -371,70 +363,73 @@ class SVGEngine {
     }    
 
     translate(x,y) {
-        this.localTransform.translation.x += x
-        this.localTransform.translation.y += y
+        this.localTransform.translation.x = x
+        this.localTransform.translation.y = y        
         this.updateTransform()
     }
 
-    scale(x,y) {
-        this.localTransform.scale.x = x
-        this.localTransform.scale.y = y
+    scale(sx,sy) {        
+        this.localTransform.scale.x = sx
+        this.localTransform.scale.y = sy        
         this.updateTransform()
     }
 
-    rotate(angle) {
-        this.localTransform.rotation += angle
+    rotate(angle) {        
+        this.localTransform.rotation = angle
         this.updateTransform()
     }
 
     setTransform(a, b, c, d, e, f) {
+        this.setTransformTarget(this.localTransform, a, b, c, d, e, f)
+        this.updateTransform()
+    }
+
+    setTransformTarget(target, a, b, c, d, e, f) {
         // a c e
         // b d f
         // 0 0 1
 
-        this.localTransform.translation.x = e
-        this.localTransform.translation.y = f
-        this.localTransform.scale.x = dist(0, 0, a, b)
-        this.localTransform.scale.y = dist(0, 0, c, d)
-        this.localTransform.rotation = Math.acos(a / this.localTransform.scale.x)
+        let angle = Math.atan(-c/a)
+        target.scale.x = a / Math.cos(angle)
+        target.scale.y = d / Math.cos(angle)
+        target.rotation = angle
+        target.translation.x = e
+        target.translation.y = f
 
-        this.updateTransform()
+        target.matrix = [[a, c, e],[b, d, f],[0, 0, 1]]        
+    }    
+
+    setTransformComponents(transform, sx, sy, r, x, y) {
+        let scale = [[sx, 0, 0,], [0, sy, 0], [0, 0, 1]]
+        let rotation = [[Math.cos(r), -Math.sin(r), 0], [Math.sin(r), Math.cos(r), 0], [0, 0, 1]]
+        let translation = [[1, 0, x], [0, 1, y], [0, 0, 1]]
+        transform.matrix = multiply(translation, rotation, scale)
+
+        transform.scale.x = sx
+        transform.scale.y = sy
+        transform.translation.x = x
+        transform.translation.y = y
+        transform.rotation = r
     }
 
     updateTransform() {
-        let scaleX = this.globalTransform.scale.x * this.localTransform.scale.x
-        let scaleY = this.globalTransform.scale.y * this.localTransform.scale.y
-        let rotation = this.globalTransform.rotation + this.localTransform.rotation
-        let translateX = this.globalTransform.translation.x + this.localTransform.translation.x * this.globalTransform.scale.x
-        let translateY = this.globalTransform.translation.y + this.localTransform.translation.y * this.globalTransform.scale.y
+        let angle = this.localTransform.rotation
+        let sx = this.localTransform.scale.x
+        let sy = this.localTransform.scale.y
 
-        this.t = { 
-            a: scaleX * Math.cos(rotation),
-            b: scaleY * Math.sin(rotation),
-            c: scaleX * -Math.sin(rotation),
-            d: scaleY * Math.cos(rotation),
-            e: translateX,
-            f: translateY
-        }
+        let scale = [[sx, 0, 0,], [0, sy, 0], [0, 0, 1]]
+        let rotation = [[Math.cos(angle), -Math.sin(angle), 0], [Math.sin(angle), Math.cos(angle), 0], [0, 0, 1]]
+        let translation = [[1, 0, this.localTransform.translation.x], [0, 1, this.localTransform.translation.y], [0, 0, 1]]
+        this.localTransform.matrix = multiply(translation, rotation, scale)
 
-        this.t_bounds = {
-            a: scaleX,
-            b: 0,
-            c: 0,
-            d: scaleY,
-            e: translateX,
-            f: translateY
-        }
+        this.t = multiply(this.globalTransform.matrix, this.localTransform.matrix)
     }
 
-    transformCoordinates() {
-        for(let i = 0; i < arguments.length; i += 2) {
-            let x = (this.t.a * arguments[i] + this.t.c * arguments[i + 1] + this.t.e) * this.gain
-            let y = (this.t.b * arguments[i] + this.t.d * arguments[i + 1] + this.t.f) * this.gain
-            arguments[i] = x
-            arguments[i + 1] = y
-        }
-        return arguments
+    transformCoordinates(x,y) {
+        return [
+            (this.t[0][0] * x + this.t[0][1] * y + this.t[0][2]) * this.gain, 
+            (this.t[1][0] * x + this.t[1][1] * y + this.t[1][2]) * this.gain
+        ]
     }
 
     cleanParams(params, convertToNumber = false) {
@@ -453,62 +448,68 @@ class SVGDrawer extends SVGEngine {
         this.context = context                
     }
 
-    drawSVG(root, element, globalTransform, dimensions) {
-        this.pos = { x: 0, y: 0 }
-        this.maxX = -Infinity
-        this.minX = Infinity
-        this.maxY = -Infinity
-        this.minY = Infinity
+    drawSVG(root, element, globalTransform) {
+        this.pos = { x: 0, y: 0 }        
         this.points = []
         this.resetTransform()
-        this.globalTransform = { scale: globalTransform.scale, rotation: globalTransform.rotation, translation: globalTransform.translation }
-        this.localTransform = { scale: element.scale, rotation: element.rotation, translation: element.translation, dimensions }
-        this.processNode(root)
+        this.setTransformComponents(this.globalTransform, globalTransform.scale.x, globalTransform.scale.y, globalTransform.rotation, globalTransform.translation.x, globalTransform.translation.y)
+        this.setTransformComponents(this.localTransform, element.scale.x, element.scale.y, element.rotation, element.translation.x, element.translation.y)
+        this.updateTransform()
+        this.processNode(root)        
 
-        let cosR = Math.cos(element.rotation)
-        let sinR = Math.sin(element.rotation)
-        let bounds = [[this.minX, this.minY], [this.maxX, this.minY], [this.maxX, this.maxY], [this.minX, this.maxY]].map(p => {
-            let px = (cosR * p[0] - sinR * p[1])
-            let py = (sinR * p[0] + cosR * p[1])
-            return {x: px, y: py}
-        })
+        if(this.points.length) {
+            let origin = this.transformCoordinates(0,0)
 
-        let tPoints = []
-        for(let point of this.points) {
-            let px = (cosR * point[0] - sinR * point[1])
-            let py = (sinR * point[0] + cosR * point[1])
-            tPoints.push([px, py])
-        }
+            this.resetTransform()
+            this.rotate(-element.rotation)
 
-        let arrows = this.createArrows(bounds)
-        for(let arrow of arrows) {
-            for(let i in arrow.points) {
-                let point = arrow.points[i]
-                let px = (cosR * point[0] - sinR * point[1])
-                let py = (sinR * point[0] + cosR * point[1])
-                arrow.points[i] = [px, py]
+            let maxX = -Infinity, minX = Infinity, maxY = -Infinity, minY = Infinity
+            for(let point of this.points) {
+                let p = this.transformCoordinates(...point)
+                minX = Math.min(minX, p[0])
+                maxX = Math.max(maxX, p[0])
+                minY = Math.min(minY, p[1])
+                maxY = Math.max(maxY, p[1])
             }
 
-            for(let point of arrow.bounds) {
-                point.x = (cosR * point[0] - sinR * point[1])
-                point.y = (sinR * point[0] + cosR * point[1])
-            }
-        }
+            this.resetTransform()
+            this.rotate(element.rotation)
+            let bounds = [[minX, minY], [maxX, minY], [maxX, maxY], [minX, maxY]].map(point => {
+                let p = this.transformCoordinates(...point)
+                return {x: p[0], y: p[1]}
+            })
 
-        return {
-            "bounds": bounds,
-            "arrows": arrows,
-            "center": {x: bounds[0].x + (bounds[2].x - bounds[0].x) / 2, y: bounds[0].y + (bounds[2].y - bounds[0].y) / 2}, 
-            "radius": (bounds[2].y - bounds[0].y) / 2 + 25,
-            "hull": hull(tPoints, 1000).slice(0, -1).map(x => ({x: x[0], y: x[1]}))           
+            let arrows = this.createArrows(minX, minY, maxX, maxY)
+            for(let arrow of arrows) {
+                for(let i in arrow.points) {
+                    let point = arrow.points[i]
+                    let p = this.transformCoordinates(point[0], point[1])
+                    arrow.points[i] = [p[0], p[1]]
+                }
+
+                for(let point of arrow.bounds) {
+                    let p = this.transformCoordinates(point.x, point.y)
+                    point.x = p[0]
+                    point.y = p[1]
+                }
+            }
+
+            return {
+                "bounds": bounds,
+                "arrows": arrows,
+                "center": {x: bounds[0].x + (bounds[2].x - bounds[0].x) / 2, y: bounds[0].y + (bounds[2].y - bounds[0].y) / 2}, 
+                "radius": (maxY - minY) / 2 + 25,
+                "hull": hull(this.points, 1000).slice(0, -1).map(x => ({x: x[0], y: x[1]})),
+                "origin": {x: origin[0], y: origin[1]}
+            }
         }
     }   
     
-    createArrows(bounds) {
+    createArrows(minX, minY, maxX, maxY) {
         let invertOffset = 25, invertLength = 20, invertScale = 300, arrows = []
-        let s = Math.min(1, Math.min(bounds[1].x - bounds[0].x, bounds[3].y - bounds[0].y) / invertScale)
-        let x = bounds[1].x - invertOffset * s
-        let y = bounds[0].y - invertOffset
+        let s = Math.min(1, Math.min(maxX - minX, maxY - minY) / invertScale)
+        let x = maxX - invertOffset * s
+        let y = minY - invertOffset
 
         arrows.push({
             "points": [
@@ -524,11 +525,11 @@ class SVGDrawer extends SVGEngine {
                 [x + 5, y - 5],
                 [x, y]
             ],
-            "bounds": [{x: x - 5, y: y - 5}, {x: x - 5, y: y - invertLength + 5}, {x: x + 5, y: y - invertLength + 5}, {x: x + 5, y: y - 5}]            
+            "bounds": [{x: x - 5, y: y}, {x: x - 5, y: y - invertLength - 5}, {x: x + 5, y: y - invertLength - 5}, {x: x + 5, y: y}]            
         })
 
-        x = bounds[1].x + invertOffset
-        y = bounds[0].y + invertOffset * s
+        x = maxX + invertOffset
+        y = minY + invertOffset * s
         
         arrows.push({
             "points": [
@@ -544,12 +545,12 @@ class SVGDrawer extends SVGEngine {
                 [x + 5, y + 5],
                 [x, y]
             ],
-            "bounds": [{x: x + 5, y:  y - 5}, {x: x + invertLength - 5, y:  y - 5}, {x: x + invertLength - 5, y:  y + 5}, {x: x + 5, y:  y + 5}]            
+            "bounds": [{x: x, y:  y - 5}, {x: x + invertLength + 5, y:  y - 5}, {x: x + invertLength + 5, y:  y + 5}, {x: x, y:  y + 5}]            
         }) 
         return arrows       
-    }
+    }    
 
-    ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {
+    ellipse(x, y, radiusX, radiusY) {
         let step = Math.PI * 2 / 40
         this.context.moveTo(...this.transformCoordinates(x + radiusX, y))
         for(let i = step; i < Math.PI * 2; i += step) {    
@@ -613,14 +614,9 @@ class SVGDrawer extends SVGEngine {
         this.context.stroke()   
     }
 
-    trackPoint(x, y) {
-        let px = (this.t_bounds.a * x + this.t_bounds.c * y + this.t_bounds.e)
-        let py = (this.t_bounds.b * x + this.t_bounds.d * y + this.t_bounds.f)
-        this.points.push([px,py])
-        this.maxX = Math.max(this.maxX, px)
-        this.minX = Math.min(this.minX, px)
-        this.maxY = Math.max(this.maxY, py)
-        this.minY = Math.min(this.minY, py)
+    trackPoint(x, y) {       
+        let p = this.transformCoordinates(x, y)        
+        this.points.push([p[0], p[1]])
     }
 }
 
@@ -629,15 +625,15 @@ class SVGToAudio extends SVGEngine {
         super()        
     }  
 
-    async generateAudio(frame, targetFrequency, targetDuration, gain, sampleRate, corrections) {   
+    generateAudio(frame, targetFrequency, targetDuration, gain, sampleRate, corrections) {   
         this.gain = gain      
-        this.stepSizes = {"line": 2, "bezier": 1, "ellipse": 40}
+        this.stepSizes = {"line": 1, "bezier": 1, "ellipse": 40}
         
         this.channelData = [[], []]
         let repeatedData = [[], []]
 
         for(let element of frame.elements)
-            await this.getChannelData(element)
+            this.getChannelData(element, corrections)
 
         if(this.channelData[0].length > 0) {
             let totalSamples = targetDuration / 1000 * sampleRate
@@ -645,24 +641,10 @@ class SVGToAudio extends SVGEngine {
             let stepMod = targetFrequency / initFreq
             for(let i in this.stepSizes)
                 this.stepSizes[i] *= stepMod
-
-            console.log(this.stepSizes)
             
             this.channelData = [[], []]
             for(let element of frame.elements)
-                await this.getChannelData(element)
-
-            this.globalTransform = { 
-                scale: { x: corrections.scale.x, y: corrections.scale.y }, 
-                translation: { x: corrections.translation.x, y: corrections.translation.y },
-                rotation: corrections.rotation
-            }
-            this.updateTransform()
-            for(var i = 0; i < this.channelData[0].length; i++) {
-                let p = this.transformCoordinates(this.channelData[0][i], this.channelData[1][i])
-                this.channelData[0][i] = p[0]
-                this.channelData[1][i] = p[1]
-            }
+                this.getChannelData(element, corrections)
             
             let copies = Math.max(Math.floor(totalSamples / this.channelData[0].length), 1)
             console.log(copies)
@@ -681,16 +663,13 @@ class SVGToAudio extends SVGEngine {
         ]
     }       
 
-    async getChannelData(element) {
+    getChannelData(element, corrections) {
         this.resetTransform()
-        this.globalTransform = { 
-            scale: { x: element.scale.x, y: element.scale.y }, 
-            translation: { x: element.translation.x, y: element.translation.y },
-            rotation: element.rotation
-        }
+        this.setTransformComponents(this.globalTransform, corrections.scale.x, corrections.scale.y, corrections.rotation, corrections.translation.x, corrections.translation.y)
+        this.setTransformComponents(this.localTransform, element.scale.x, element.scale.y, element.rotation, element.translation.x, element.translation.y)
         this.pos = { x: 0, y: 0 }        
         this.updateTransform()
-        await this.processNode(element.rootNode)
+        this.processNode(element.rootNode)
     }
 
     ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {

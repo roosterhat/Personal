@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors')
+var compress = require('compression');
 const bodyParser = require('body-parser')
 const fs = require('fs');
 const { Worker } = require('node:worker_threads');
@@ -7,6 +8,8 @@ const path = require('path');
 
 const app = express();
 
+app.use(compress());
+app.use(express.static('public'))
 app.use(bodyParser.raw({limit: '50mb'}))
 app.use(bodyParser.json())
 app.use(cors())
@@ -15,7 +18,7 @@ app.use((req, res, next) => {
     next()
 })
 
-const worker = new Worker("./Server/Worker.js");
+const worker = new Worker("./Worker.js");
 worker.on('exit', (code) => {
     console.log(`Worker stopped with exit code ${code}`);
 });
@@ -48,7 +51,7 @@ app.get('/loadconfig', (req, res) => {
 
 app.post('/saveconfig', (req, res) => {
     try {
-        fs.writeFile("./Server/data/config", JSON.stringify(req.body, null, 2), e => {
+        fs.writeFile("./data/config", JSON.stringify(req.body, null, 2), e => {
             if(e) {
                 console.log("File write error: ", e)
                 res.sendStatus(500)
@@ -80,7 +83,7 @@ app.get('/loadsettings', (req, res) => {
 
 app.post('/savesettings', (req, res) => {
     try {
-        fs.writeFile("./Server/data/settings", JSON.stringify(req.body, null, 2), e => {
+        fs.writeFile("./data/settings", JSON.stringify(req.body, null, 2), e => {
             if(e) {
                 console.log("File write error: ", e)
                 res.sendStatus(500)
@@ -108,7 +111,7 @@ app.post('/save/:file', (req, res) => {
 app.post('/play', express.raw({type: "*/*"}), (req, res) => {
     if(req.body) {
         try{
-            fs.writeFile('./Server/output.wav', Buffer.from(req.body), e => {
+            fs.writeFile('./output.wav', Buffer.from(req.body), e => {
                 if(e) {
                     console.log("File write error: ", e)
                     res.sendStatus(500)
@@ -148,7 +151,7 @@ app.get('/stop', (req, res) => {
 })
 
 app.get('/shapes', (req, res) => {    
-    res.json(fs.readdirSync("./Client/static/shapes"))
+    res.json(fs.readdirSync("../Client/public/shapes"))
 })
 
 const port = 3000 

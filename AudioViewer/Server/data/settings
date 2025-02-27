@@ -7,7 +7,7 @@
   "glowEffect": true,
   "glowStrength": 5,
   "sampleRate": 44100,
-  "gain": 0.1,
+  "gain": 0.01,
   "frequency": 40,
   "duration": 1000,
   "kbps": 128,

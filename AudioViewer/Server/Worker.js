@@ -36,8 +36,8 @@ function delay(ms) {
     try {
         while(running) {
             if(play) {
-                player = exec("aplay -c 2 -t wav -r 44100 -D default:CARD=adapter -q ./Server/output.wav")
-                //player = exec("aplay -c 2 -t wav -r 44100 -D default:CARD=Audio -q ./Server/output.wav")
+                player = exec("aplay -c 2 -t wav -r 44100 -D default:CARD=adapter -q ./output.wav")
+                //player = exec("aplay -c 2 -t wav -r 44100 -D default:CARD=Audio -q ./output.wav")
                 await new Promise((resolve, reject) => player.on("close", resolve))
             }
             else
