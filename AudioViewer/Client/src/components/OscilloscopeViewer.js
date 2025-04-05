@@ -1,7 +1,8 @@
 import React from 'react'
 import FloatingMenu from './FloatingMenu.js';
+import Layers from './Layers.js';
 import { SVGDrawer } from '../lib/SVGEngine.js'
-import { distPoint, EventQueue, convertFromOriginalSpace, request, hashCode, uuidv4 } from '../lib/Utility.js'
+import { distPoint, EventQueue, convertFromOriginalSpace, request, hashCode, uuidv4, clearThumbnail, EventManager } from '../lib/Utility.js'
 import { multiply, inv } from 'mathjs'
 
 class OscilloscopeViewer extends React.Component {
@@ -24,26 +25,28 @@ class OscilloscopeViewer extends React.Component {
         this.elementData = {}
         this.dimensions = {}
         this.rotateRadius = 7
-        this.shapes = []
-        this.FMMouseMove = null
-        this.FMMouseDown = null
-        this.FMMouseUp = null        
+        this.shapes = []      
         this.cursorSource = null
         this.cursorAngle = null
         this.history = []
         this.historyIndex = 0
         this.globalTransform = null
         this.localTransform = null
+        this.rerenderLayers = () => {}
+        this.updateLayers = () => {}
 
         this.eventQueue = new EventQueue()
         this.drawQueue = new EventQueue()
+        this.updateHistoryQueue = new EventQueue()
+        this.thumbnailRenderQueue = new EventQueue()
         
         this.state = {
             selectedElement: null
         }
         
         setInterval(this.drawQueue.processEventQueue, (1 / 30) * 1000, this.drawQueue)
-        setInterval(this.eventQueue.processEventQueue, (1 / 30) * 1000, this.eventQueue)
+        setInterval(this.eventQueue.processEventQueue, (1 / 60) * 1000, this.eventQueue)
+        setInterval(this.updateHistoryQueue.processEventQueue, (1 / 1) * 1000, this.updateHistoryQueue)
         props.setSetSelected(e => {
             this.setSelected(e)
             this.updateHistory()
@@ -51,17 +54,7 @@ class OscilloscopeViewer extends React.Component {
         this.updateHistory()
     }
 
-    componentDidMount() {        
-        this.init()
-    }
-
-    componentDidUpdate() {
-        if(!this.props.frame.elements && this.state.selectedElement)
-            this.state.selectedElement = null
-        this.draw()
-    }
-
-    init = async () => {
+    async componentDidMount() {        
         console.log("init")
         this.canvas = document.getElementById("osViewer");
         this.canvasContext = this.canvas.getContext('2d');
@@ -69,12 +62,14 @@ class OscilloscopeViewer extends React.Component {
         this.bufferContext = this.buffer.getContext('2d', { willReadFrequently: true});
         this.cursorElement = document.getElementById("cursor-icon")
 
-        window.addEventListener('resize', this.resize)
-        window.addEventListener('mousemove', this.mouseMove)
-        window.addEventListener('mousedown', this.mouseDown)
-        window.addEventListener('mouseup', this.mouseUp)
-        window.addEventListener('keydown', this.keyDown)
-        window.addEventListener('keyup', this.keyUp)
+        window.addEventListener('resize', this.resize)        
+
+        EventManager.registerEvent('mousemove', this.canvas, this.mouseMove)
+        EventManager.registerEvent('mousedown', this.canvas, this.mouseDown)
+        EventManager.registerEvent('mouseup', this.canvas, this.mouseUp)
+        EventManager.registerEvent('keydown', this.canvas, this.keyDown)
+        EventManager.registerEvent('keyup', this.canvas, this.keyUp)
+        EventManager.registerEvent('wheel', this.canvas, this.wheel)
 
         this.updateDimensions()
         this.draw()
@@ -85,17 +80,17 @@ class OscilloscopeViewer extends React.Component {
         }
     }
 
+    componentDidUpdate() {
+        if(!this.props.frame.elements && this.state.selectedElement)
+            this.state.selectedElement = null
+        this.draw()
+    }
+
     resize = () => {
         this.eventQueue.queueEvent("resize", () => {
             this.updateDimensions()
             this.draw()
         })
-    }
-
-    setFMMouseFunctions = (move, down, up) => {
-        this.FMMouseMove = move
-        this.FMMouseDown = down
-        this.FMMouseUp = up
     }
 
     onFrameUpdate = (frame) => {
@@ -120,14 +115,11 @@ class OscilloscopeViewer extends React.Component {
                         this.cursor = "grabbing"
                     this.dragAction(newMousePos.x - this.mousePos.x, newMousePos.y - this.mousePos.y, data)
                 }
-                else if (this.insideFloatingMenu()) {
-                    [this.cursor, this.dragAction, this.dragging] = (this.FMMouseMove(e))
-                }
                 else if(e.ctrlKey && this.state.selectedElement.type == "draw") {
                     this.setDrawIcon(newMousePos)
                 }
                 else {
-                    if (this.inside(data.bounds, newMousePos)) {
+                    if (data && data.bounds && this.inside(data.bounds, newMousePos)) {
                         this.cursor = this.dragging ? "grabbing" : "grab"
                         if (this.dragging) {
                             this.dragAction = (dx, dy, data) => {
@@ -136,7 +128,7 @@ class OscilloscopeViewer extends React.Component {
                             }
                         }
                     }
-                    if (data.center) {
+                    if (data && data.center) {
                         let boundDists = []
                         for (let i = 0; i < data.bounds.length; i++) {
                             let int = this.intersection(newMousePos, data.center, data.bounds[i], data.bounds[(i + 1) % data.bounds.length])
@@ -262,82 +254,72 @@ class OscilloscopeViewer extends React.Component {
     }
 
     mouseDown = (e) => {
-        if (this.insideFloatingMenu()) {
-            [this.cursor, this.dragAction, this.dragging] = (this.FMMouseDown(e))
-        }
-        else {
-            if (e.button == 0) {
-                this.dragging = true
-                if(e.ctrlKey && this.state.selectedElement && this.state.selectedElement.type == "draw") {
-                    this.setTransforms()
-                    let matrix = multiply(this.globalTransform, this.localTransform)
-                    let invMatrix = inv(matrix)
+        if (e.button == 0) {
+            this.dragging = true
+            if(e.ctrlKey && this.state.selectedElement && this.state.selectedElement.type == "draw") {
+                this.setTransforms()
+                let matrix = multiply(this.globalTransform, this.localTransform)
+                let invMatrix = inv(matrix)
 
-                    let clientRect = this.canvas.getBoundingClientRect()
-                    let mouse = { x: e.pageX - clientRect.left, y: e.pageY - clientRect.top }
+                let clientRect = this.canvas.getBoundingClientRect()
+                let mouse = { x: e.pageX - clientRect.left, y: e.pageY - clientRect.top }
 
-                    let x = invMatrix[0][0] * mouse.x + invMatrix[0][1] * mouse.y + invMatrix[0][2]
-                    let y = invMatrix[1][0] * mouse.x + invMatrix[1][1] * mouse.y + invMatrix[1][2]
+                let x = invMatrix[0][0] * mouse.x + invMatrix[0][1] * mouse.y + invMatrix[0][2]
+                let y = invMatrix[1][0] * mouse.x + invMatrix[1][1] * mouse.y + invMatrix[1][2]
 
-                    let path = document.createElementNS("http://www.w3.org/1999/xhtml", "path")
-                    path.setAttribute("d", `m ${x} ${y}`)
-                    this.state.selectedElement.rootNode.appendChild(path)
-                    this.state.selectedElement.imageData = btoa("<svg>"+this.state.selectedElement.rootNode.innerHTML+"</svg>")
-                    this.dragAction = this.drawAction                    
-                }
-                else {
-                    this.mouseMove(e)
-                }
+                let path = document.createElementNS("http://www.w3.org/1999/xhtml", "path")
+                path.setAttribute("d", `m ${x} ${y}`)
+                this.state.selectedElement.rootNode.appendChild(path)
+                this.state.selectedElement.imageData = btoa("<svg>"+this.state.selectedElement.rootNode.innerHTML+"</svg>")
+                this.dragAction = this.drawAction
+                this.onFrameUpdate()
+            }
+            else {
+                this.mouseMove(e)
             }
         }
         document.body.style.cursor = this.cursor;
     }
 
     mouseUp = (e) => {
-        if (this.insideFloatingMenu()) {
-            [this.cursor, this.dragAction, this.dragging] = (this.FMMouseUp(e))
+        if (e.button == 0) {
+            let data = this.state.selectedElement ? this.elementData[this.state.selectedElement.id] : null
 
-        }
-        else {
-            if (e.button == 0) {
-                let data = this.state.selectedElement ? this.elementData[this.state.selectedElement.id] : null
-
-                if (this.dragAction) {
-                    if (this.state.selectedElement && this.inside(data.bounds, this.mousePos, 40))
-                        this.cursor = "grab"
-                    else
-                        this.cursor = "default"
-
-                    if(this.state.selectedElement) 
-                    {
-                        this.updateHistory()
-                    }
-                }
-                else if (this.state.selectedElement && data.arrows && this.inside(data.arrows[0].bounds, this.mousePos)) {
-                    this.updateAndRecenterElement(() => this.scaleElement(1, -1))                    
-                    this.onFrameUpdate()
-                    this.updateHistory()
-                }
-                else if (this.state.selectedElement && data.arrows && this.inside(data.arrows[1].bounds, this.mousePos)) {
-                    this.updateAndRecenterElement(() => this.scaleElement(-1, 1))  
-                    this.onFrameUpdate()
-                    this.updateHistory()
-                }
-                else if (!this.insideFloatingMenu()) {
-                    if(this.state.selectedElement)
-                        this.setSelected(null)
+            if (this.dragAction) {
+                if (this.state.selectedElement && this.inside(data.bounds, this.mousePos, 40))
+                    this.cursor = "grab"
+                else
                     this.cursor = "default"
-                    for (let element of this.props.frame.elements.toSorted((a, b) => a.order - b.order)) {
-                        if (this.elementData[element.id] && this.inside(this.elementData[element.id].hull, this.mousePos)) {
-                            this.setSelected(element)
-                            this.cursor = "grab"
-                            break
-                        }
+
+                if(this.state.selectedElement) 
+                {
+                    this.updateHistory()
+                }
+            }
+            else if (this.state.selectedElement && data && data.arrows && this.inside(data.arrows[0].bounds, this.mousePos)) {
+                this.updateAndRecenterElement(() => this.scaleElement(1, -1))                    
+                this.onFrameUpdate()
+                this.updateHistory()
+            }
+            else if (this.state.selectedElement && data && data.arrows && this.inside(data.arrows[1].bounds, this.mousePos)) {
+                this.updateAndRecenterElement(() => this.scaleElement(-1, 1))  
+                this.onFrameUpdate()
+                this.updateHistory()
+            }
+            else {
+                if(this.state.selectedElement)
+                    this.setSelected(null)
+                this.cursor = "default"
+                for (let element of this.props.frame.elements.toSorted((a, b) => a.order - b.order)) {
+                    if (this.elementData[element.id] && this.inside(this.elementData[element.id].hull, this.mousePos)) {
+                        this.setSelected(element)
+                        this.cursor = "grab"
+                        break
                     }
                 }
-                this.dragging = false
-                this.dragAction = null
             }
+            this.dragging = false
+            this.dragAction = null
         }
         document.body.style.cursor = this.cursor;
     }
@@ -418,6 +400,16 @@ class OscilloscopeViewer extends React.Component {
         })
     }
 
+    wheel = (e) => {
+        if(this.state.selectedElement) {
+            this.eventQueue.queueEvent("wheel", () => {
+                this.updateAndRecenterElement(() => this.scaleElementUniform(1 - Math.sign(e.deltaY) * 0.1))
+                this.onFrameUpdate()
+            })
+            this.updateHistoryQueue.queueEvent("history", () => this.updateHistory())
+        }
+    }
+
     setDrawIcon = (pos) => {
         this.cursor = "icon"
         this.cursorElement.style.display = "block"
@@ -435,6 +427,7 @@ class OscilloscopeViewer extends React.Component {
 
         let path = this.state.selectedElement.rootNode.lastChild
         path.setAttribute("d", path.getAttribute("d") + ` ${x} ${y}`)
+        clearThumbnail(this.state.selectedElement)
         this.onFrameUpdate()
     }
 
@@ -461,12 +454,15 @@ class OscilloscopeViewer extends React.Component {
             let newFrame = JSON.parse(snapshot.frame)
 
             let parser = new DOMParser()
-            for(let i in newFrame.elements)
-                newFrame.elements[i].rootNode = parser.parseFromString(snapshot.rootNodes[i], 'image/svg+xml').firstChild
+            for(let i in newFrame.elements) {
+                newFrame.elements[i].rootNode = parser.parseFromString(snapshot.rootNodes[i], 'image/svg+xml').firstElementChild                
+                clearThumbnail(newFrame.elements[i])
+            }
 
             if(this.state.selectedElement)
                 this.state.selectedElement = newFrame.elements.find(x => x.id == this.state.selectedElement.id)
-            this.onFrameUpdate(newFrame)            
+            this.onFrameUpdate(newFrame)
+            this.updateLayers()
         }
     }
 
@@ -481,21 +477,6 @@ class OscilloscopeViewer extends React.Component {
         this.cursorElement.style.left = this.mousePos.x - 14 + "px"
         this.cursorElement.style.top = this.mousePos.y + 40 + "px"
         this.cursor = "icon"
-    }
-
-    insideFloatingMenu = () => {
-        let elem = document.getElementById("floatingMenu")
-        if (elem) {
-            let clientRect = this.canvas.getBoundingClientRect()
-            let dims = elem.getBoundingClientRect()
-            return this.mousePos.x + clientRect.left >= dims.left &&
-                this.mousePos.x + clientRect.left <= dims.right &&
-                this.mousePos.y + clientRect.top >= dims.top &&
-                this.mousePos.y + clientRect.top <= dims.bottom
-        }
-        else {
-            return false
-        }
     }
 
     calculateDistanceScale = (dx, dy, b1, b2, t) => {
@@ -604,6 +585,7 @@ class OscilloscopeViewer extends React.Component {
         this.bufferContext.strokeStyle = '#000'
         this.bufferContext.fillStyle = this.props.settings["backgroundColor"]
         this.bufferContext.lineWidth = 2
+        this.bufferContext.globalCompositeOperation = "source-over"
         this.bufferContext.rect(Math.round((this.canvas.width - this.dimensions.viewWidth) / 2), Math.round((this.canvas.height - this.dimensions.viewHeight - this.offset) / 2), this.dimensions.viewWidth, this.dimensions.viewHeight)
         this.bufferContext.stroke()
         this.bufferContext.fill()
@@ -616,9 +598,15 @@ class OscilloscopeViewer extends React.Component {
             this.bufferContext.font = Math.min(14 * (this.canvas.width / 500), 14) + "px serif"
             this.bufferContext.strokeStyle = "#000"
             let dims = this.bufferContext.measureText(this.props.project.name)
-            this.bufferContext.strokeText(this.props.project.name, Math.round((this.canvas.width - dims.width) / 2), Math.round((this.canvas.height + this.dimensions.viewHeight + this.offset / 2) / 2))
+            this.bufferContext.strokeText(this.props.project.name, Math.round((this.canvas.width - dims.width) / 2), Math.round((this.canvas.height + this.dimensions.viewHeight + this.offset / 2) / 2))    
+                    
             for (let element of this.props.frame.elements)
-                this.drawSVG(element)
+                await this.drawSVG(element)
+
+            for (let element of this.props.frame.elements)
+                this.drawControlPoints(element)
+
+            this.thumbnailRenderQueue.processEventQueue(this.thumbnailRenderQueue)
         }
 
         this.drawQueue.queueEvent("draw", () => {
@@ -667,19 +655,11 @@ class OscilloscopeViewer extends React.Component {
             translation: { x: Math.round((this.canvas.width - this.dimensions.viewWidth) / 2), y: Math.round((this.canvas.height - this.dimensions.viewHeight - this.offset) / 2) },
             scale: { x: scale, y: scale },
             rotation: 0
-        }
-
-        this.bufferContext.strokeStyle = this.props.settings["traceColor"]
-        this.bufferContext.lineJoin = 'round'
-        this.bufferContext.lineWidth = 2
-        if (this.props.settings["glowEffect"]) {
-            this.bufferContext.shadowBlur = this.props.settings["glowStrength"];
-            this.bufferContext.shadowColor = this.props.settings["traceColor"];
-        }
+        }        
 
         let data
         if (element.rootNode) {
-            data = new SVGDrawer(this.bufferContext).drawSVG(element.rootNode, element, globalTransform)
+            data = await new SVGDrawer(this.bufferContext, this.props.settings, element.thumbnail == null).drawSVG(element.rootNode, element, globalTransform)
         }
         if(!data) {
             let size = 60
@@ -692,8 +672,18 @@ class OscilloscopeViewer extends React.Component {
                 ]
             }
         }
-        this.elementData[element.id] = data
+        else {
+            if(element.thumbnail == null) {
+                element.thumbnail = data.thumbnail
+                this.thumbnailRenderQueue.queueEvent("render", this.rerenderLayers)
+            }
+        }
+        this.elementData[element.id] = data                
+    }
 
+    drawControlPoints = (element) => {
+        let data = this.elementData[element.id]
+        this.bufferContext.globalCompositeOperation = "source-over"
         if (this.state.selectedElement && this.state.selectedElement.id == element.id) {
             this.bufferContext.beginPath()
             this.bufferContext.strokeStyle = "#000"
@@ -707,16 +697,35 @@ class OscilloscopeViewer extends React.Component {
             this.bufferContext.stroke()
             this.bufferContext.setLineDash([]);
 
-            if (data.center) {
-                this.bufferContext.beginPath()
-                this.bufferContext.strokeStyle = "#888"
-                this.bufferContext.fillStyle = "#888"
+            this.bufferContext.strokeStyle = "#888"
+            this.bufferContext.fillStyle = "#888"
+            if(data.center) {
+                this.bufferContext.beginPath()                    
                 this.bufferContext.ellipse(data.center.x + Math.sin(element.rotation) * data.radius, data.center.y - Math.cos(element.rotation) * data.radius, this.rotateRadius, this.rotateRadius, 0, 0, Math.PI * 2)
-                this.bufferContext.ellipse(data.center.x, data.center.y, 2, 2, 0, 0, Math.PI * 2)
                 this.bufferContext.fill()
-                this.bufferContext.beginPath()
-                this.bufferContext.ellipse(data.origin.x, data.origin.y, 2, 2, 0, 0, Math.PI * 2)
-                this.bufferContext.stroke()
+            }
+
+            if (this.props.settings.drawExtraPoints) {                
+                if(data.center) {
+                    this.bufferContext.beginPath()                    
+                    this.bufferContext.ellipse(data.center.x, data.center.y, 2, 2, 0, 0, Math.PI * 2)
+                    this.bufferContext.fill()
+                }
+
+                if(data.origin) {
+                    this.bufferContext.beginPath()
+                    this.bufferContext.ellipse(data.origin.x, data.origin.y, 2, 2, 0, 0, Math.PI * 2)
+                    this.bufferContext.stroke()
+                }
+
+                if(data.points) {
+                    for(let p of data.points)
+                    {
+                        this.bufferContext.beginPath()
+                        this.bufferContext.ellipse(p[0], p[1], 2, 2, 0, 0, Math.PI * 2)
+                        this.bufferContext.stroke()
+                    }
+                }
             }
 
             if (data.arrows) {
@@ -743,19 +752,26 @@ class OscilloscopeViewer extends React.Component {
                 this.bufferContext.lineTo(p.x, p.y)
             }
             this.bufferContext.stroke()
-        }        
+        }
     }
 
     inside = (points, mouse) => {
         if (!points) return false
         var count = 0;
         var b_p1 = mouse;
-        var b_p2 = { x: 0, y: mouse.y + Math.random() };
+        var b_p2 = { x: -100000, y: mouse.y + Math.random() };
         for (var a = 0; a < points.length; a++) {
             var a_p1 = points[a];
             var a_p2 = points[(a + 1) % points.length];
-            if (this.intersection(a_p1, a_p2, b_p1, b_p2)) {
-                count++;
+            while(true) {
+                let i = this.intersection(a_p1, a_p2, b_p1, b_p2)
+                if (i == null) {
+                    b_p2.y += Math.random()
+                }
+                else {
+                    count += i ? 1 : 0;
+                    break
+                }
             }
         }
         return count % 2 == 1;
@@ -768,7 +784,7 @@ class OscilloscopeViewer extends React.Component {
 
         var denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
         if (denom == 0) {
-            return false;
+            return null;
         }
         var ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom;
         var ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom;
@@ -801,6 +817,7 @@ class OscilloscopeViewer extends React.Component {
             this.props.frame.elements = this.props.frame.elements.map(x => x.id == element.id ? element : x)
         }
         this.state.selectedElement = element
+        this.updateLayers()
         this.onFrameUpdate(this.props.frame)
         this.updateHistory()
     }
@@ -811,19 +828,28 @@ class OscilloscopeViewer extends React.Component {
 
     render = () => {
         return (
-            <div className="canvas-container large">
-                <div id="cursor-icon" ></div>
-                <canvas id="osViewer"></canvas>
-                {this.state.selectedElement != null ?
-                    <FloatingMenu
-                        frame={this.props.frame}
-                        elements={[this.state.selectedElement]}
-                        shapes={this.shapes}
-                        onElementUpdate={this.onElementUpdate}
-                        onClose={() => this.setSelected(null)}
-                        setMouseFunctions={this.setFMMouseFunctions} />
-                    : null }
-            </div>                
+            <div className="viewer-container">
+                <div className="canvas-container">
+                    <div id="cursor-icon" ></div>
+                    <canvas id="osViewer"></canvas>
+                    {this.state.selectedElement != null ?
+                        <FloatingMenu
+                            frame={this.props.frame}
+                            elements={[this.state.selectedElement]}
+                            shapes={this.shapes}
+                            onElementUpdate={this.onElementUpdate}
+                            onClose={() => this.setSelected(null)} />
+                        : null }                    
+                </div>    
+                <Layers 
+                    frame={this.props.frame} 
+                    selectedElement={this.state.selectedElement} 
+                    settings={this.props.settings} 
+                    onSetSelected={this.setSelected} 
+                    onFrameUpdate={this.onFrameUpdate}
+                    setRerenderTrigger={x => this.rerenderLayers = x}
+                    setUpdateTrigger={x => this.updateLayers = x}/>
+            </div>            
         )
     }
 }

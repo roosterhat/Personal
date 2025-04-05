@@ -183,6 +183,7 @@ class App extends React.Component {
         this.setState({project: this.state.project})
         if (this.state.isLive)
             request("stop")
+        this.setSelected(null)
     }
 
     calibrate = () => {

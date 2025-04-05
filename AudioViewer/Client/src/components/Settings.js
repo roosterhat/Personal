@@ -33,7 +33,7 @@ class Settings extends React.Component {
     }
 
     getValue = (key) => {
-        return this.state.currentSettings ? this.state.currentSettings[key] : null
+        return this.state.currentSettings ? this.state.currentSettings[key] : ""
     }
 
     setValue = (key, value) => {
@@ -134,6 +134,10 @@ class Settings extends React.Component {
                         <div className="setting">
                             <div className="name">Show Hull</div>
                             <div className={"switch" + (this.getValue("showHull") ? " selected" : "")} onClick={e => this.setValue("showHull", !this.state.currentSettings["showHull"])}></div>
+                        </div>
+                        <div className="setting">
+                            <div className="name">Draw Extra Points</div>
+                            <div className={"switch" + (this.getValue("drawExtraPoints") ? " selected" : "")} onClick={e => this.setValue("drawExtraPoints", !this.state.currentSettings["drawExtraPoints"])}></div>
                         </div>
                     </div>
                     <div className="actions">

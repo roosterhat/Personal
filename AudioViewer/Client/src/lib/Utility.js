@@ -212,67 +212,6 @@ async function updateText(element) {
   element.rootNode = svg
 }
 
-function matrixMult(a, b) {
-  let result = []
-  for (let y = 0; y < a.length; y++) {
-    result.push([])
-    for (let x = 0; x < b[0].length; x++) {
-      let sum = 0
-      for (let i = 0; i < a[0].length; i++)
-        sum += a[y][i] * b[i][x]
-
-      result[y].push(sum)
-    }
-  }
-
-  return result
-}
-
-function matrixInverse(m) {
-  let result = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-  let det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
-
-  result[0][0] = (m[1][1] * m[2][2] - m[1][2] * m[2][1]) / det;
-  result[0][1] = (m[0][2] * m[2][1] - m[0][1] * m[2][2]) / det;
-  result[0][2] = (m[0][1] * m[1][2] - m[0][2] * m[1][1]) / det;
-  result[1][0] = (m[1][2] * m[2][0] - m[1][0] * m[2][2]) / det;
-  result[1][1] = (m[0][0] * m[2][2] - m[0][2] * m[2][0]) / det;
-  result[1][2] = (m[0][2] * m[1][0] - m[0][0] * m[1][2]) / det;
-  result[2][0] = (m[1][0] * m[2][1] - m[1][1] * m[2][0]) / det;
-  result[2][1] = (m[0][1] * m[2][0] - m[0][0] * m[2][1]) / det;
-  result[2][2] = (m[0][0] * m[1][1] - m[0][1] * m[1][0]) / det;
-
-  return result
-}
-
-class EventQueue {
-  constructor() {
-    this.eventQueue = {
-      queue: {},
-      actionQueued: false
-    }
-  }
-
-  queueEvent(event, action) {
-    this.eventQueue.queue[event.type] = {
-      time: Date.now(),
-      action: action
-    }
-    this.eventQueue.actionQueued = true
-  }
-
-  processEventQueue(self) {
-    if (!self.eventQueue.actionQueued) return;
-    self.eventQueue.actionQueued = false;
-    var actions = Object.values(self.eventQueue.queue);
-    for (var k in self.eventQueue.queue)
-      delete self.eventQueue.queue[k]
-    actions.sort((x, y) => x.time - y.time);
-    for (var a of actions)
-      a.action()
-  }
-}
-
 function uuidv4() {
   return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
@@ -305,4 +244,82 @@ function hashCode(str) {
   return hash;
 }
 
-export { decodeDataURL, request, delay, generateAudio, encodeAudio, parseSVG, convertFromOriginalSpace, convertToOriginalSpace, updateText, matrixMult, matrixInverse, uuidv4, dist, distPoint, lerp, lerpPoint, hashCode, Fonts, dataURLPattern, transformPattern, pathPattern, numberPattern, EventQueue }
+function clearThumbnail(element) {
+  URL.revokeObjectURL(element.thumbnail)
+  element.thumbnail = null
+}
+
+class EventQueue {
+  constructor() {
+    this.eventQueue = {
+      queue: {},
+      actionQueued: false
+    }
+  }
+
+  queueEvent(event, action) {
+    this.eventQueue.queue[event.type] = {
+      time: Date.now(),
+      action: action
+    }
+    this.eventQueue.actionQueued = true
+  }
+
+  processEventQueue(self) {
+    if (!self.eventQueue.actionQueued) return;
+    self.eventQueue.actionQueued = false;
+    var actions = Object.values(self.eventQueue.queue);
+    for (var k in self.eventQueue.queue)
+      delete self.eventQueue.queue[k]
+    actions.sort((x, y) => x.time - y.time);
+    for (var a of actions)
+      a.action()
+  }
+}
+
+class EventManager {
+  static mousePos = { x: 0, y: 0 }
+  static events = {}
+  static previous = null
+
+  static registerEvent(event, element, action) {
+    if(!EventManager.events[event]) {
+      EventManager.events[event] = []
+      window.addEventListener(event, e => this.handleEvent(event, e))
+    }
+    EventManager.events[event].push({
+      "element": element,
+      "action": action
+    })
+  }
+
+  static handleEvent(event, args) {
+    if(EventManager.events[event]) {
+      if(args.pageX && args.pageY) {
+        EventManager.mousePos.x = args.pageX
+        EventManager.mousePos.y = args.pageY
+      }
+
+      if(EventManager.previous && args.buttons > 0) {
+        var entry = EventManager.events[event].find(x => x.element == EventManager.previous.element)
+        if(entry) {
+          entry.action(args)
+          return
+        }
+      }
+
+      var target = document.elementFromPoint(EventManager.mousePos.x, EventManager.mousePos.y)
+      for(let entry of EventManager.events[event]) {
+        if(entry.element == target || entry.element.contains(target)) {
+          EventManager.previous = args.buttons > 0 ? entry : null
+          entry.action(args)
+          return
+        }
+      }
+
+      EventManager.previous = null
+    }
+  }
+}
+
+export { decodeDataURL, request, delay, generateAudio, encodeAudio, parseSVG, convertFromOriginalSpace, convertToOriginalSpace, updateText, uuidv4, dist, distPoint, lerp, lerpPoint, hashCode, clearThumbnail, Fonts, dataURLPattern, transformPattern, pathPattern, numberPattern, EventQueue, EventManager }

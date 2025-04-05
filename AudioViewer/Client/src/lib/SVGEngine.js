@@ -1,7 +1,7 @@
 import { transformPattern, pathPattern, numberPattern, delay, dist, distPoint, lerpPoint } from './Utility.js'
 import { a2c } from './a2c.js'
 import { hull } from './Hulls.js'
-import { multiply } from 'mathjs'
+import { multiply, inv } from 'mathjs'
 
 class SVGEngine {
     constructor() {        
@@ -92,7 +92,7 @@ class SVGEngine {
 
         for(let attribute of ['transform-origin', 'transform', 'display', 'viewBox', 'x', 'y', 'dx', 'dy']) {
             let params, dx, dy
-            let attributeValue = node.attributes[attribute] ? node.attributes[attribute].value : null
+            let attributeValue = this.getAttribute(node, attribute, null, false)
             if(attributeValue) {                
                 switch(attribute) {
                     case "transform-origin":
@@ -199,7 +199,7 @@ class SVGEngine {
     processGroup(node) {
         for(let attribute of ['x', 'y', 'dx', 'dy']) {
             let params, dx, dy
-            let attributeValue = node.attributes[attribute] ? node.attributes[attribute].value : null
+            let attributeValue = this.getAttribute(node, attribute, null, false)
             if(attributeValue) {                
                 switch(attribute) {
                     case "x":
@@ -437,18 +437,36 @@ class SVGEngine {
     }
 
     getAttribute(node, key, defaultValue = null, castToFloat = true) {
-        let value = node.attributes[key] ? node.attributes[key].value : defaultValue
+        let attribute = Array.from(node.attributes).find(x => x.nodeName.toLowerCase() == key.toLowerCase())
+        let value = attribute ? attribute.value : defaultValue
         return castToFloat ? parseFloat(value) : value
     }    
 }
 
 class SVGDrawer extends SVGEngine {
-    constructor(context) {
+    constructor(context, settings, generateThumbnail) {
         super()
-        this.context = context                
+        this.generateThumbnail = generateThumbnail
+        this.settings = settings
+        this.mainContext = context        
+        this.buffer = null
+        this.bufferContext = null
+        if(generateThumbnail) {
+            this.buffer = new OffscreenCanvas(context.canvas.width, context.canvas.height)
+            this.bufferContext = this.buffer.getContext('2d', { willReadFrequently: true })
+        }
+        this.context = generateThumbnail ? this.bufferContext : this.mainContext        
+
+        this.context.strokeStyle = settings["traceColor"]
+        this.context.lineJoin = 'round'
+        this.context.lineWidth = 2
+        if (settings["glowEffect"]) {
+            this.context.shadowBlur = settings["glowStrength"]
+            this.context.shadowColor = settings["traceColor"]
+        }        
     }
 
-    drawSVG(root, element, globalTransform) {
+    async drawSVG(root, element, globalTransform) {
         this.pos = { x: 0, y: 0 }        
         this.points = []
         this.resetTransform()
@@ -470,7 +488,7 @@ class SVGDrawer extends SVGEngine {
                 maxX = Math.max(maxX, p[0])
                 minY = Math.min(minY, p[1])
                 maxY = Math.max(maxY, p[1])
-            }
+            }            
 
             this.resetTransform()
             this.rotate(element.rotation)
@@ -492,7 +510,13 @@ class SVGDrawer extends SVGEngine {
                     point.x = p[0]
                     point.y = p[1]
                 }
+            }           
+
+            let imageUrl = null
+            if(this.generateThumbnail) {
+                imageUrl = await this.createThumbnail(element, bounds)
             }
+            
 
             return {
                 "bounds": bounds,
@@ -500,10 +524,54 @@ class SVGDrawer extends SVGEngine {
                 "center": {x: bounds[0].x + (bounds[2].x - bounds[0].x) / 2, y: bounds[0].y + (bounds[2].y - bounds[0].y) / 2}, 
                 "radius": (maxY - minY) / 2 + 25,
                 "hull": hull(this.points, 1000).slice(0, -1).map(x => ({x: x[0], y: x[1]})),
-                "origin": {x: origin[0], y: origin[1]}
+                "origin": {x: origin[0], y: origin[1]},
+                "points": this.points,
+                "thumbnail": imageUrl
             }
         }
     }   
+
+    async createThumbnail(element, bounds) {
+        let padding = this.settings.glowStrength * 2
+        let b1x = Math.min(bounds[0].x, bounds[1].x, bounds[2].x, bounds[3].x) - padding
+        let b1y = Math.min(bounds[0].y, bounds[1].y, bounds[2].y, bounds[3].y) - padding
+        let b2x = Math.max(bounds[0].x, bounds[1].x, bounds[2].x, bounds[3].x) + padding
+        let b2y = Math.max(bounds[0].y, bounds[1].y, bounds[2].y, bounds[3].y) + padding
+        let imageData = this.context.getImageData(b1x, b1y, b2x - b1x, b2y - b1y)
+        let bmp = await createImageBitmap(imageData)
+        this.mainContext.drawImage(bmp, b1x, b1y)            
+        
+        let tempCanvas = new OffscreenCanvas(b2x - b1x, b2y - b1y)
+        let tempContext = tempCanvas.getContext("2d")
+        tempContext.putImageData(imageData, 0, 0)                
+
+        let sx = element.scale.x
+        let sy = element.scale.y
+        let r = element.rotation
+        let scale = [[sx, 0, 0], [0, sy, 0], [0, 0, 1]]
+        let rotation = [[Math.cos(r), -Math.sin(r), 0], [Math.sin(r), Math.cos(r), 0], [0, 0, 1]]
+        let translation = [[1, 0, b1x], [0, 1, b1y], [0, 0, 1]]
+        let matrix = inv(multiply(translation, rotation, scale))
+        
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+
+        for(let b of bounds) {
+            let x = matrix[0][0] * b.x + matrix[0][1] * b.y + matrix[0][2]
+            let y = matrix[1][0] * b.x + matrix[1][1] * b.y + matrix[1][2]
+            
+            minX = Math.min(x, minX)
+            minY = Math.min(y, minY)
+            maxX = Math.max(x, maxX)
+            maxY = Math.max(y, maxY)
+        }
+
+        let image = new OffscreenCanvas(maxX - minX + padding * 2, maxY - minY + padding * 2)
+        let imageContext = image.getContext("2d")
+        imageContext.setTransform(matrix[0][0], matrix[1][0], matrix[0][1], matrix[1][1], padding - minX, padding - minY)
+        imageContext.drawImage(tempCanvas, 0, 0)
+
+        return URL.createObjectURL(await image.convertToBlob())
+    }
     
     createArrows(minX, minY, maxX, maxY) {
         let invertOffset = 25, invertLength = 20, invertScale = 300, arrows = []

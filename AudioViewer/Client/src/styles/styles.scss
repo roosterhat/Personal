@@ -13,6 +13,15 @@ button {
     height: 100%;
 }
 
+.noselect {
+    -webkit-touch-callout: none; 
+    -webkit-user-select: none; 
+    -khtml-user-select: none;
+    -moz-user-select: none; 
+    -ms-user-select: none; 
+    user-select: none; 
+}
+
 #cursor-icon {
     display: none;
     position: fixed;
@@ -42,9 +51,8 @@ button {
     .menu {      
         display: flex;
         justify-content: center;  
-        padding: 8px;
         border-bottom: solid 1px;
-        margin-bottom: 8px;
+        padding: 8px;
 
         .menu-container {
             display: flex;
@@ -104,16 +112,104 @@ button {
         }
     }
 
+    .viewer-container {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+
+        .layers {
+            height: 100%;
+            max-width: 175px;
+            min-width: 175px;
+            background: #f7f7f7;
+            padding: 0 14px 0 8px;
+            overflow: auto;
+            position: relative;
+            
+            .layer-container {
+                position: absolute;
+                transition: top 0.2s ease;
+
+                .layer {            
+                    height: 100px;
+                    width: 170px;
+                    background: #d3d3d3;
+                    border: solid 1px #000;
+                    border-radius: 18px;
+                    display: flex;
+                    overflow: hidden;
+                    padding: 0;
+                    transition: outline 0.1s ease;
+                    outline: solid 0px #fff;       
+                    z-index: 1;
+                    position: relative;
+
+                    &.hidden {
+                        opacity: 0.2;
+                        outline: none !important;
+                        z-index: 0;
+
+                        button, .handle {
+                            opacity: 0;
+                        }
+                    }
+
+                    &.floating {
+                        position: fixed;                        
+                        z-index: 10;
+                        transition: none;
+                    }
+
+                    button {
+                        border: none;
+                        width: 100%;
+                    }
+
+                    &.selected {
+                        outline: solid 2px #000;
+                    }
+
+                    img {
+                        max-width: 122px;
+                        max-height: 90%;
+                        border: none;
+                        margin: auto;
+                    }
+
+                    .handle {
+                        margin: -6px 0;
+                        width: 30px;
+                        min-width: 30px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: #c9c9c9;
+                        border-top-right-radius: 10px;
+                        border-bottom-right-radius: 10px;
+                        position: relative;
+                        z-index: 1;
+
+                        .grab-point {
+                            z-index: 1;
+                            
+                            i {
+                                font-size: 17px;                    
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     .canvas-container {
         width: 100%;
         height: 100%;
         overflow: hidden;
-        flex-shrink: 2;
         position: relative;
-
-        &.large {
-            flex-shrink: 1;
-        }
+        padding-top: 8px;
     }
 
     .popover {
@@ -200,7 +296,7 @@ button {
         right: 0;
         background: #fff;        
         height: 100%;
-        width: 250px;
+        width: 300px;
         box-shadow: 0 0 5px 4px #00000014;
         transition: all 0.5s ease;
         transform: translateX(100%);
@@ -226,6 +322,8 @@ button {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    height: 30px;
+                    padding: 0 8px;
 
                     input {
                         width: 60px;
@@ -233,6 +331,9 @@ button {
 
                     .switch {
                         transform: scale(0.7) translateX(12px);
+                    }
+                    &:nth-child(2n-1) {
+                        background: #efefef;
                     }
                 }
             }
