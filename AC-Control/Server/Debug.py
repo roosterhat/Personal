@@ -189,7 +189,7 @@ class Debug:
                     return f"No state value found for {element['name']}", 400
                 equation += f"{value} "
             elif element["type"] == "sensor":
-                value = self.Sensor[element["name"]] if element["name"].lower() in self.Sensor else None
+                value = self.Sensor[element["name"].lower()] if element["name"].lower() in self.Sensor else None
                 if value is None:
                     return f"No sensor value found for {element['name']}", 400
                 equation += f"{value} "

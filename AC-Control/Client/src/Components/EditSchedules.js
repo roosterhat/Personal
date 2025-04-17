@@ -181,7 +181,6 @@ class Schedules extends React.Component {
 
     addOperation = (schedule, operation) => {
         schedule.conditionEquation.splice(this.state.scheduleStates[schedule.id].index++, 0, operation);
-        console.log(schedule.conditionEquation)
         this.setState({config: this.state.config, scheduleStates: this.state.scheduleStates})
     }
 
@@ -235,7 +234,6 @@ class Schedules extends React.Component {
         finally {
             scheduleState.loadingTest = false
             scheduleState.testResult = testResult
-            console.log(testResult)
             this.setState({scheduleStates: this.state.scheduleStates})
         }
     }
@@ -274,7 +272,6 @@ class Schedules extends React.Component {
 
     setScheduleValue = (schedule, key, value) => {
         schedule[key] = value;
-        console.log(key, value)
         this.setState({config: this.state.config})
     }
 

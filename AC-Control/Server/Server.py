@@ -504,7 +504,7 @@ def checkCondition(schedule, config, errors):
                         raise Exception(f"No state value found for {element['name']}")
                     equation += f"{value} "
                 elif element["type"] == "sensor":
-                    value = sensor[element["name"]] if element["name"].lower() in sensor else None
+                    value = sensor[element["name"].lower()] if element["name"].lower() in sensor else None
                     if value is None:
                         raise Exception(f"No sensor value found for {element['name']}")
                     equation += f"{value} "
