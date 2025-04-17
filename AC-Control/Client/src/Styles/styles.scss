@@ -67,25 +67,30 @@ button {
 .state-container {
     display: flex;
     flex-direction: column;
-    flex-wrap: wrap;
     border: solid 1px #000;
     border-radius: 5px;
     margin-left: 5px;
     min-width: 150px;
     position: relative;
 
-    .state {
+    .states {
         display: flex;
-        align-items: center;
-        padding: 5px;
+        flex-direction: column;
+        height: 100%;
 
-        .active-color {
-            background: rgb(9, 170, 11);
-            width: 15px;
-            border-radius: 50%;
-            aspect-ratio: 1;
-            margin-right: 5px;
-            border: solid 1px #000;
+        .state {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+
+            .active-color {
+                background: rgb(9, 170, 11);
+                width: 15px;
+                height: 15px;
+                border-radius: 50%;
+                margin-right: 5px;
+                border: solid 1px #000;
+            }
         }
     }
 
@@ -97,9 +102,6 @@ button {
         display: flex;
         justify-content: space-between;
         padding: 5px;
-        position: absolute;
-        bottom: 0;
-        width: calc(100% - 10px);
     }
 }
 
@@ -1649,11 +1651,6 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.name {
-    font-size: 18px;
-    margin-bottom: 7px;
 }
 
 .operations, .equation {

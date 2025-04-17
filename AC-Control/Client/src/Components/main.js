@@ -87,18 +87,21 @@ class Main extends React.Component {
                                         { this.state.loadingState ?
                                             <LoadingSpinner id="spinner"/>
                                             :
-                                            <div>
-                                                {this.state.currentState.states.map(x => 
-                                                    <div className="state" key={x.name}>
-                                                        <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
-                                                        <div className="name">{x.name}</div>
-                                                    </div>
-                                                )}
+                                            <>
+                                                <div className="states">
+                                                    {this.state.currentState.states.map(x => 
+                                                        <div className="state" key={x.name}>
+                                                            <div className="active-color" style={{background: x.active ? x.properties.activeColor : "#505050"}}></div>
+                                                            <div className="name">{x.name}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div className="state-container-footer">
                                                     <div>{this.getTemperature()}</div>
                                                     <div>{this.getHumidity()}</div>
                                                 </div>
-                                            </div>
+                                            </>
+                                            
                                         }
                                     </div>
                                     : null
