@@ -526,6 +526,7 @@ def checkCondition(schedule, state, errors):
             result = eval(equation)
             return bool(result)
         except Exception as ex:
+            print(traceback.format_exc(), flush=True)
             errors.append(str(ex))
             return False        
 

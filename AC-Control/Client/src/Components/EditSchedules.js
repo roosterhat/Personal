@@ -186,7 +186,7 @@ class Schedules extends React.Component {
 
     removeOperation = (schedule, index) => {
         schedule.conditionEquation.splice(index, 1);
-        this.state.scheduleStates[schedule.id].index += this.state.scheduleStates[schedule.id].index > index ? -1 : 0
+        this.state.scheduleStates[schedule.id].index = index
         this.setState({config: this.state.config, scheduleStates: this.state.scheduleStates})
     }
 
