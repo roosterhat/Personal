@@ -5,11 +5,12 @@ from PIL import ImageColor, ImageDraw, Image
 import Utility
 
 class Debug:
-    def __init__(self, camera, OCRModels, StateModels, State):
+    def __init__(self, camera, OCRModels, StateModels, State, Sensor):
         self.camera = camera
         self.OCRModels = OCRModels
         self.StateModels = StateModels
         self.State = State
+        self.Sensor = Sensor
         self.colors = ["#B0C5A4", "#D37676", "#EBC49F", "#EADFB4", "#9BB0C1", "#51829B", "#F6995C", "#FFE6E6", "#E1AFD1", "#AD88C6", "#7469B6", "#638889", "#FF90BC"]
 
     def debugSampleFrameEllipse(self, frame, state, config):
@@ -109,7 +110,7 @@ class Debug:
                 if element["name"] not in ["(",")","not","and","or"]:
                     return "Invalid operator", 400
                 equation += f"{element['name']} "
-            else:
+            elif element["type"] == "state":
                 value = next((s["active"] for s in state["states"] if s["id"] == element["id"]), None)
                 if value is None:
                     return f"No state value found for {element['name']}", 400
@@ -164,4 +165,57 @@ class Debug:
             value += str(int(data[5]))
 
         return {"image": np.asarray(image).tolist(), "value": value}, 200, {"Content-Type": "application/json"}
+    
+    def debugSchedule(self, config, request):
+        if request.method != 'POST':
+            return 'No schedule data', 400
+        body = request.get_json(force = True, silent = True)
+        if body is None:
+            return 'No schedule data', 400
+        
+        state = self.State.getState(config, ["states"])
+        if not state:
+            return "Failed to get state", 500        
+
+        equation = ""
+        for element in body["conditionEquation"]:
+            if element["type"] == "operator":
+                if element["name"] not in ["<", ">", "=","(",")","not","and","or"]:
+                    return "Invalid operator", 400
+                equation += f"{element['name']} "
+            elif element["type"] == "state":
+                value = next((s["active"] for s in state["states"] if s["id"] == element["id"]), None)
+                if value is None:
+                    return f"No state value found for {element['name']}", 400
+                equation += f"{value} "
+            elif element["type"] == "sensor":
+                value = self.Sensor[element["name"]] if element["name"].lower() in self.Sensor else None
+                if value is None:
+                    return f"No sensor value found for {element['name']}", 400
+                equation += f"{value} "
+            elif element["type"] == "system":
+                if element["name"] == "On":
+                    value = state["power"]
+                elif element["name"] == "On":
+                    value = not state["power"]
+                else:
+                    return f"Invalid system value {element['name']}", 400
+                equation += f"{value} "
+            elif element["type"] == "value":
+                try:
+                    value = int(element["value"])
+                    equation += f"{value} "
+                except Exception as ex:
+                    return f"Invalid value {element['value']}", 400
+        
+        testResult = {}
+        try:
+            result = eval(equation)
+            if isinstance(result, bool):
+                testResult = {"success": True}
+            else:
+                testResult = {"success": False, "error": "Invalid return type: " + str(type(result))}
+        except Exception as ex:
+            testResult = {"success": False, "error": str(ex)}
+        return json.dumps(testResult), 200, {"Content-Type": "application/json"}     
 

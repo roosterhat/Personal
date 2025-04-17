@@ -22,7 +22,8 @@ class EditActions extends React.Component {
             loadingModels: true,
             models: [],
             saving: false,
-            actionTriggers: {}
+            actionTriggers: {},
+            equationIndex: props.Config.actions.power.stateEquation.length
         }
 
         this.listModels();
@@ -121,9 +122,13 @@ class EditActions extends React.Component {
                                             )}
                                         </div>
                                         <div className="equation">
-                                            {this.state.config.actions.power.stateEquation.map((x,index) =>
-                                                <button className="operation" onClick={() => this.removeOperation(index)} style={{background: x.color}}>{x.name}</button>
+                                            {this.state.config.actions.power.stateEquation.map((x, index) =>
+                                                <>
+                                                    <div class={"cursor" + (this.state.equationIndex == index ? " selected" : "")} onClick={() => this.setIndex(index)}></div>
+                                                    <button className="operation" onClick={() => this.removeOperation(index)} style={{background: x.color}}>{x.name}</button>
+                                                </>                                                
                                             )}
+                                            <div class={"cursor" + (this.state.equationIndex == this.state.config.actions.power.stateEquation.length ? " selected" : "")} onClick={() => this.setIndex(this.state.config.actions.power.stateEquation.length)}></div>
                                         </div>
                                         <div className="test-equation">
                                             <button className="trigger test" onClick={this.testEquation}>{this.state.loadingTest ? <LoadingSpinner id="spinner" /> : "Test"}</button>
@@ -309,16 +314,26 @@ class EditActions extends React.Component {
 
     testEquation = async () => {
         try {
-            this.setState({loadingTest: true})
+            this.setState({loadingTest: true, testResult: null})
             var body = JSON.stringify(this.state.config.actions.power)
             var response = await fetchWithToken(`api/debug/power/${this.state.config.id}`, "POST", body, {"Content-Type": "application/json"})
             if(response.status == 200){
                 this.setState({testResult: await response.json()})
             }
+            else {
+                this.setState({testResult: {success: false, error: response.text()}})
+            }
+        }
+        catch(ex) {
+            this.setState({testResult: {success: false, error: ex.message}})
         }
         finally {
             this.setState({loadingTest: false})
         }
+    }
+
+    setIndex = (index) => {
+        this.setState({equationIndex: index})
     }
 
     triggerAction = async (action) => {
@@ -332,13 +347,13 @@ class EditActions extends React.Component {
     }
 
     addOperation = (operation) => {
-        this.state.config.actions.power.stateEquation.push(operation)
-        this.setState({config: this.state.config})
+        this.state.config.actions.power.stateEquation.splice(this.state.equationIndex, 0, operation)
+        this.setState({config: this.state.config, equationIndex: this.state.equationIndex + 1})
     }
 
     removeOperation = (index) => {
         this.state.config.actions.power.stateEquation.splice(index, 1);
-        this.setState({config: this.state.config})
+        this.setState({config: this.state.config, equationIndex: this.state.equationIndex + (this.state.equationIndex > index ? -1 : 0)})
     }
 
     addGroup = () => {

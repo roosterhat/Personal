@@ -56,7 +56,6 @@ class State:
                 if value is None:
                     return f"No state value found for {element['name']}", 400
                 equation += f"{value} "
-        
         try:
             return eval(equation)
         except:
@@ -68,7 +67,7 @@ class State:
         if status != 200:
             return None
         frame = result
-        device = "gpu" if self.settings["useGPU"] else "cpu"
+        device = "cpu"#"gpu" if self.settings["useGPU"] else "cpu"
 
         if "states" in config["frame"] and (sections is None or "states" in sections or "power" in sections):
             currentState["states"] = config["frame"]["states"]

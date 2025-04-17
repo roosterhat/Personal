@@ -289,6 +289,8 @@ def getStateDebug(type, id, targetId = None):
             return _Debug.debugSetState(config, request)
         elif type == "ocr":
             return _Debug.debugOCR(config, request)
+        elif type == "schedule":
+            return _Debug.debugSchedule(config, request)
         else:
             return 'Bad _Debug type', 400 
     except Exception as ex:
@@ -446,36 +448,86 @@ def roundToMinutes(datetime):
     return datetime - timedelta(seconds=datetime.second, microseconds=datetime.microsecond)
 
 def shouldRun(schedule, runs, checkDateTime):
-    Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    lastRun = None
-    if schedule["id"] in runs and "lastRun" in runs[schedule["id"]]:
-        lastRun = roundToMinutes(datetime.fromisoformat(runs[schedule["id"]]["lastRun"]))
-    currentRun = roundToMinutes(checkDateTime)
-    scheduleTime = time.fromisoformat(schedule["time"])
-
+    Days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]    
+    currentRun = roundToMinutes(checkDateTime)   
     currentDOW = currentRun.weekday()
-    nextClosestDate = None
-    nextClosestDateIndex = None
-    for index, day in enumerate(schedule["days"]):
-        DOW = Days.index(day)
-        dt = roundToMinutes(datetime.combine((currentRun + timedelta(days = DOW - currentDOW)).date(), scheduleTime))
-        if DOW < currentDOW:
-            dt = dt + timedelta(days=7)
-        if dt >= currentRun and (nextClosestDate is None or dt < nextClosestDate):
-            nextClosestDate = dt
-            nextClosestDateIndex = index
-    
-    if not nextClosestDate:
-        return False
 
-    lastScheduledDOW = Days.index(schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])])
-    lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), scheduleTime))
-    if lastScheduledDOW >= currentDOW:
-        lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
+    if schedule["anytime"]:
+        return Days[currentDOW] in schedule["days"]
+    else:
+        lastRun = None        
+        scheduleTime = time.fromisoformat(schedule["time"])
 
-    return (nextClosestDate < checkDateTime + timedelta(seconds=60) or 
-            (abs(currentRun - lastScheduledDateTime) < timedelta(minutes=5) and (not lastRun or abs(lastRun - lastScheduledDateTime) > timedelta(minutes=5))))
+        if schedule["id"] in runs and "lastRun" in runs[schedule["id"]]:
+            lastRun = roundToMinutes(datetime.fromisoformat(runs[schedule["id"]]["lastRun"]))        
 
+        nextClosestDate = None
+        nextClosestDateIndex = None
+        for index, day in enumerate(schedule["days"]):
+            DOW = Days.index(day)
+            dt = roundToMinutes(datetime.combine((currentRun + timedelta(days = DOW - currentDOW)).date(), scheduleTime))
+            if DOW < currentDOW:
+                dt = dt + timedelta(days=7)
+            if dt >= currentRun and (nextClosestDate is None or dt < nextClosestDate):
+                nextClosestDate = dt
+                nextClosestDateIndex = index
+        
+        if not nextClosestDate:
+            return False
+
+        lastScheduledDOW = Days.index(schedule["days"][(nextClosestDateIndex - 1) % len(schedule["days"])])
+        lastScheduledDateTime = roundToMinutes(datetime.combine((currentRun + timedelta(days = lastScheduledDOW - currentDOW)).date(), scheduleTime))
+        if lastScheduledDOW >= currentDOW:
+            lastScheduledDateTime = lastScheduledDateTime - timedelta(days=7)    
+
+        return (nextClosestDate < checkDateTime + timedelta(seconds=60) or 
+                (abs(currentRun - lastScheduledDateTime) < timedelta(minutes=5) and (not lastRun or abs(lastRun - lastScheduledDateTime) > timedelta(minutes=5))))
+
+def checkCondition(schedule, config, errors):
+        try:
+            if len(schedule["conditionEquation"]) == 0:
+                return True
+
+            state = _State.getState(config, ["states"])
+            if not state:
+                raise Exception("Failed to get state")
+
+            equation = ""
+            for element in schedule["conditionEquation"]:
+                if element["type"] == "operator":
+                    if element["name"] not in ["<", ">", "=","(",")","not","and","or"]:
+                        raise Exception("Invalid operator")
+                    equation += f"{element['name']} "
+                elif element["type"] == "state":
+                    value = next((s["active"] for s in state["states"] if s["id"] == element["id"]), None)
+                    if value is None:
+                        raise Exception(f"No state value found for {element['name']}")
+                    equation += f"{value} "
+                elif element["type"] == "sensor":
+                    value = sensor[element["name"]] if element["name"].lower() in sensor else None
+                    if value is None:
+                        raise Exception(f"No sensor value found for {element['name']}")
+                    equation += f"{value} "
+                elif element["type"] == "system":
+                    if element["name"] == "On":
+                        value = state["power"]
+                    elif element["name"] == "On":
+                        value = not state["power"]
+                    else:
+                        raise Exception(f"Invalid system value {element['name']}")
+                    equation += f"{value} "
+                elif element["type"] == "value":
+                    try:
+                        value = int(element["value"])
+                        equation += f"{value} "
+                    except:
+                        raise Exception(f"Invalid value {element['value']}")
+        
+            result = eval(equation)
+            return bool(result)
+        except Exception as ex:
+            errors.append(str(ex))
+            return True        
 
 def manageSessions():
     while True:
@@ -508,8 +560,9 @@ def manageSchedules():
 
             updated = False
             checkDateTime = datetime.now()
-            for schedule in config["schedules"]:                
-                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime):                    
+            for schedule in config["schedules"]:
+                errors = []
+                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime) and checkCondition(schedule, config, errors):                    
                     updated = True
                     if schedule["id"] not in runs:
                         runs[schedule["id"]] = {}
@@ -518,7 +571,7 @@ def manageSchedules():
                     result = _State.setState(config, schedule["state"])
                     if result is None:
                         runs[schedule["id"]]["lastRun"] = checkDateTime                        
-                    runs[schedule["id"]]["error"] = result
+                    runs[schedule["id"]]["error"] = result + "Condition error: " + ", ".join(errors) if len(errors) > 0 else ""
                     runs[schedule["id"]]["duration"] = datetime.now() - start
 
             activeRuns = {}
@@ -633,7 +686,7 @@ def appStart():
         StateModels[file] = YOLO(Path.join(dir, file))
 
     _State = State(_Camera, OCRModels, StateModels, settings, sensor)
-    _Debug = Debug(_Camera, OCRModels, StateModels, _State)
+    _Debug = Debug(_Camera, OCRModels, StateModels, _State, sensor)
     print("Loading Complete", flush=True)
     if DEBUG:
         try:
