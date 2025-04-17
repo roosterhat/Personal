@@ -5,11 +5,13 @@ from PIL import ImageColor, ImageDraw, Image
 import Utility
 
 class Debug:
-    def __init__(self, camera, OCRModels, StateModels, State):
+    def __init__(self, camera, OCRModels, StateModels, State, settings, sensor):
         self.camera = camera
         self.OCRModels = OCRModels
         self.StateModels = StateModels
         self.State = State
+        self.Settings = settings
+        self.Sensor = sensor
         self.colors = ["#B0C5A4", "#D37676", "#EBC49F", "#EADFB4", "#9BB0C1", "#51829B", "#F6995C", "#FFE6E6", "#E1AFD1", "#AD88C6", "#7469B6", "#638889", "#FF90BC"]
 
     def debugSampleFrameEllipse(self, frame, state, config):
@@ -172,7 +174,7 @@ class Debug:
         if body is None:
             return 'No schedule data', 400
         
-        state = self.State.getState(config, ["states"])
+        state = self.State.getState(config, ["states"] if any(x["type"] == "state" for x in body["conditionEquation"]) else ["basic"])
         if not state:
             return "Failed to get state", 500        
 
@@ -191,6 +193,8 @@ class Debug:
                 value = state[element["name"].lower()] if element["name"].lower() in state else None
                 if value is None:
                     return f"No sensor value found for {element['name']}", 400
+                if element["name"].lower() == "temperature" and self.Settings["temperatureUnit"] == "F":
+                    value = value * (9 / 5) + 32
                 equation += f"{value} "
             elif element["type"] == "system":
                 if element["name"] == "On":
@@ -209,6 +213,7 @@ class Debug:
         
         testResult = {}
         try:
+            print(equation)
             result = eval(equation)
             if isinstance(result, bool):
                 testResult = {"success": True}

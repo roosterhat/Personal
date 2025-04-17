@@ -483,14 +483,10 @@ def shouldRun(schedule, runs, checkDateTime):
         return (nextClosestDate < checkDateTime + timedelta(seconds=60) or 
                 (abs(currentRun - lastScheduledDateTime) < timedelta(minutes=5) and (not lastRun or abs(lastRun - lastScheduledDateTime) > timedelta(minutes=5))))
 
-def checkCondition(schedule, config, errors):
+def checkCondition(schedule, config, state, errors):
         try:
             if len(schedule["conditionEquation"]) == 0:
-                return True
-
-            state = _State.getState(config, ["states"])
-            if not state:
-                raise Exception("Failed to get state")
+                return True            
 
             equation = ""
             for element in schedule["conditionEquation"]:
@@ -507,6 +503,8 @@ def checkCondition(schedule, config, errors):
                     value = state[element["name"].lower()] if state["name"].lower() in sensor else None
                     if value is None:
                         raise Exception(f"No sensor value found for {element['name']}")
+                    if element["type"].lower() == "temperature" and settings["temperatureUnit"] == "F":
+                        value = value * (9 / 5) + 32
                     equation += f"{value} "
                 elif element["type"] == "system":
                     if element["name"] == "On":
@@ -522,7 +520,7 @@ def checkCondition(schedule, config, errors):
                         equation += f"{value} "
                     except:
                         raise Exception(f"Invalid value {element['value']}")
-        
+
             result = eval(equation)
             return bool(result)
         except Exception as ex:
@@ -557,12 +555,16 @@ def manageSchedules():
             f = open("./Data/scheduleRuns", 'rb')
             runs = json.loads(f.read())
             f.close()
-
+            
+            state = _State.getState(config, ["states"] if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
+            if not state:
+                raise Exception("Failed to get state")
+            
             updated = False
             checkDateTime = datetime.now()
             for schedule in config["schedules"]:
                 errors = []
-                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime) and checkCondition(schedule, config, errors):                    
+                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime) and checkCondition(schedule, config, state, errors):                    
                     updated = True
                     if schedule["id"] not in runs:
                         runs[schedule["id"]] = {}
@@ -690,7 +692,7 @@ def appStart():
         StateModels[file] = YOLO(Path.join(dir, file))
 
     _State = State(_Camera, OCRModels, StateModels, settings, sensor)
-    _Debug = Debug(_Camera, OCRModels, StateModels, _State)
+    _Debug = Debug(_Camera, OCRModels, StateModels, _State, settings, sensor)
     print("Loading Complete", flush=True)
     if DEBUG:
         try:
