@@ -353,7 +353,7 @@ class EditActions extends React.Component {
 
     removeOperation = (index) => {
         this.state.config.actions.power.stateEquation.splice(index, 1);
-        this.setState({config: this.state.config, equationIndex: this.state.equationIndex + (this.state.equationIndex > index ? -1 : 0)})
+        this.setState({config: this.state.config, equationIndex: index})
     }
 
     addGroup = () => {

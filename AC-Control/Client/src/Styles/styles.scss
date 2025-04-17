@@ -1698,7 +1698,7 @@ button {
 
         &.selected {
             background: #8181812e;
-            animation: blink 1s linear infinite;
+            animation: blink 1s steps(1) infinite;
         }
     }
 
@@ -2084,21 +2084,7 @@ button {
         opacity: 1;
     }
 
-    24% {
-        opacity: 1;
-    }
-    25% {
+    50% {
         opacity: 0;
-    }
-
-    74% {
-        opacity: 0;
-    }
-    75% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 1;
     }
 }
