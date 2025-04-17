@@ -563,18 +563,23 @@ def manageSchedules():
             updated = False
             checkDateTime = datetime.now()
             for schedule in config["schedules"]:
-                errors = []
-                if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime) and checkCondition(schedule, config, state, errors):                    
-                    updated = True
-                    if schedule["id"] not in runs:
-                        runs[schedule["id"]] = {}
+                try:
+                    errors = []
+                    if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime) and checkCondition(schedule, config, state, errors):                    
+                        updated = True
+                        if schedule["id"] not in runs:
+                            runs[schedule["id"]] = {}
+                        runs[schedule["id"]]["lastAttempt"] = checkDateTime
+                        start = datetime.now()
+                        result = _State.setState(config, schedule["state"])
+                        if result is None:
+                            runs[schedule["id"]]["lastRun"] = checkDateTime                        
+                        runs[schedule["id"]]["error"] = result + (", ".join(errors) if len(errors) > 0 else "")
+                        runs[schedule["id"]]["duration"] = datetime.now() - start
+                except Exception as ex:
+                    print(traceback.format_exc())
                     runs[schedule["id"]]["lastAttempt"] = checkDateTime
-                    start = datetime.now()
-                    result = _State.setState(config, schedule["state"])
-                    if result is None:
-                        runs[schedule["id"]]["lastRun"] = checkDateTime                        
-                    runs[schedule["id"]]["error"] = result + (", ".join(errors) if len(errors) > 0 else "")
-                    runs[schedule["id"]]["duration"] = datetime.now() - start
+                    runs[schedule["id"]]["error"] = str(ex)
 
             activeRuns = {}
             for id in runs:
