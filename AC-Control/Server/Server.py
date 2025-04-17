@@ -486,6 +486,7 @@ def shouldRun(schedule, runs, checkDateTime):
 
 def checkCondition(schedule, state, errors):
         try:
+            print(schedule, flush=True)
             print(schedule["namne"], flush=True)
             if len(schedule["conditionEquation"]) == 0:
                 return True            
