@@ -483,8 +483,9 @@ def shouldRun(schedule, runs, checkDateTime):
         return (nextClosestDate < checkDateTime + timedelta(seconds=60) or 
                 (abs(currentRun - lastScheduledDateTime) < timedelta(minutes=5) and (not lastRun or abs(lastRun - lastScheduledDateTime) > timedelta(minutes=5))))
 
-def checkCondition(schedule, config, state, errors):
+def checkCondition(schedule, state, errors):
         try:
+            print(schedule["namne"])
             if len(schedule["conditionEquation"]) == 0:
                 return True            
 
@@ -556,6 +557,7 @@ def manageSchedules():
             runs = json.loads(f.read())
             f.close()
             
+            print("states" if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else "basic")
             state = _State.getState(config, ["states"] if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
             if not state:
                 raise Exception("Failed to get state")
@@ -565,7 +567,7 @@ def manageSchedules():
             for schedule in config["schedules"]:
                 try:
                     errors = []
-                    if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime) and checkCondition(schedule, config, state, errors):                    
+                    if schedule["enabled"] and shouldRun(schedule, runs, checkDateTime) and checkCondition(schedule, state, errors):                    
                         updated = True
                         if schedule["id"] not in runs:
                             runs[schedule["id"]] = {}
