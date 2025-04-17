@@ -486,7 +486,6 @@ def shouldRun(schedule, runs, checkDateTime):
 
 def checkCondition(schedule, state, errors):
         try:
-            print(schedule["name"], flush=True)
             if len(schedule["conditionEquation"]) == 0:
                 return True            
 
@@ -502,7 +501,7 @@ def checkCondition(schedule, state, errors):
                         raise Exception(f"No state value found for {element['name']}")
                     equation += f"{value} "
                 elif element["type"] == "sensor":
-                    value = state[element["name"].lower()] if state["name"].lower() in sensor else None
+                    value = state[element["name"].lower()] if element["name"].lower() in state else None
                     if value is None:
                         raise Exception(f"No sensor value found for {element['name']}")
                     if element["name"].lower() == "temperature" and settings["temperatureUnit"] == "F":
@@ -559,7 +558,6 @@ def manageSchedules():
             runs = json.loads(f.read())
             f.close()
             
-            print("states" if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else "basic", flush=True)
             state = _State.getState(config, ["states"] if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
             if not state:
                 raise Exception("Failed to get state")
