@@ -294,7 +294,7 @@ class Schedules extends React.Component {
     }
 
     newSchedule = () => {
-        this.state.config.schedules.push({
+        let schedule = {
             "name": `Schedule ${this.state.config.schedules.length + 1}`,
             "id": uuidv4(),
             "days": [],
@@ -307,8 +307,10 @@ class Schedules extends React.Component {
             "conditionEquation": [],
             "anytime": false,
             "enabled": true
-        })
-        this.setState({config: this.state.config})
+        }
+        this.state.config.schedules.push(schedule)
+        this.state.scheduleStates[schedule.id] = { expanded: false, index: 0, loadingTest: false, testResult: null }
+        this.setState({config: this.state.config, scheduleStates: this.state.scheduleStates})
     }
 
     removeSchedule = (index) => {
