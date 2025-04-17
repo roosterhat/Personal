@@ -576,7 +576,7 @@ def manageSchedules():
                         result = _State.setState(config, schedule["state"])
                         if result is None:
                             runs[schedule["id"]]["lastRun"] = checkDateTime                        
-                        runs[schedule["id"]]["error"] = result + (", ".join(errors) if len(errors) > 0 else "")
+                        runs[schedule["id"]]["error"] = str(result) + (", ".join(errors) if len(errors) > 0 else "")
                         runs[schedule["id"]]["duration"] = datetime.now() - start
                 except Exception as ex:
                     print(traceback.format_exc(), flush=True)
