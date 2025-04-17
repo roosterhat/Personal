@@ -525,7 +525,7 @@ def checkCondition(schedule, config, state, errors):
             return bool(result)
         except Exception as ex:
             errors.append(str(ex))
-            return True        
+            return False        
 
 def manageSessions():
     while True:
@@ -573,7 +573,7 @@ def manageSchedules():
                     result = _State.setState(config, schedule["state"])
                     if result is None:
                         runs[schedule["id"]]["lastRun"] = checkDateTime                        
-                    runs[schedule["id"]]["error"] = result + "Condition error: " + ", ".join(errors) if len(errors) > 0 else ""
+                    runs[schedule["id"]]["error"] = result + (", ".join(errors) if len(errors) > 0 else "")
                     runs[schedule["id"]]["duration"] = datetime.now() - start
 
             activeRuns = {}
