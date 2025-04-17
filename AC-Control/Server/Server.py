@@ -84,7 +84,7 @@ def login():
         else:
             return 'Bad login', 400
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
 
 @app.route('/api/list')
@@ -99,13 +99,13 @@ def listConfigs():
                 data = json.loads(f.read())
                 names.append({'name': data['name'], 'id': data['id']})
             except Exception as ex:
-                print(traceback.format_exc())
+                print(traceback.format_exc(), flush=True)
                 return "Failed", 500
             finally:
                 f.close()
         return names, 200
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     
 @app.route('/api/models')
@@ -120,7 +120,7 @@ def listModels():
                 models[type["model"]].append(file)
         return models, 200
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
 
 @app.route('/api/save', methods=["POST"])
@@ -141,7 +141,7 @@ def saveConfig():
         f.write(body["id"])
         return "Success", 200
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -167,7 +167,7 @@ def retrieveConfig(id):
         data = f.read()
         return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -189,7 +189,7 @@ def saveSettings():
         f.write(json.dumps(settings))
         return "Success", 200
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -205,7 +205,7 @@ def retrieveSettings():
             del data[item]
         return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -223,7 +223,7 @@ def upload():
         f.write(file)
         return filename, 200
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -239,7 +239,7 @@ def background(filename):
         data = f.read()
         return data, 200, {'Content-Type':'image'} 
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -266,7 +266,7 @@ def getState(id, section = None):
         else:
             return "Failed to get state", 500
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
 
 @app.route('/api/debug/<type>/<id>', methods=['POST', 'GET'])
@@ -292,9 +292,9 @@ def getStateDebug(type, id, targetId = None):
         elif type == "schedule":
             return _Debug.debugSchedule(config, request)
         else:
-            return 'Bad _Debug type', 400 
+            return 'Bad debug type', 400 
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
 
 @app.route('/api/frame')
@@ -330,7 +330,7 @@ def frame(id = None):
             return bytes(buffer), 200, {'Content-Type':'image/png'}
         
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
 
 @app.route('/api/trigger/<config>/<id>')
@@ -349,7 +349,7 @@ def trigger(config, id):
         Utility.AppendEvent("trigger", buttons[0]["name"])
         return "Success", 200
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -372,7 +372,7 @@ def setState(config):
         else:
             return "Success", 200
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -386,7 +386,7 @@ def getScheduleRuns():
         data = f.read()
         return data, 200, {'Content-Type':'application/json'}
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -407,7 +407,7 @@ def events():
         data = f.read()
         return data, 200, {'Content-Type':'application/json'}
     except Exception as ex:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), flush=True)
         return "Failed", 500
     finally:
         f.close()
@@ -638,7 +638,7 @@ def historyWorker():
             try:
                 data = json.loads(f.read())
             except Exception:
-                print(traceback.format_exc())
+                print(traceback.format_exc(), flush=True)
                 data = []
 
         with open("./Data/settings", 'rb') as f:
