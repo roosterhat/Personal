@@ -503,7 +503,7 @@ def checkCondition(schedule, config, state, errors):
                     value = state[element["name"].lower()] if state["name"].lower() in sensor else None
                     if value is None:
                         raise Exception(f"No sensor value found for {element['name']}")
-                    if element["type"].lower() == "temperature" and settings["temperatureUnit"] == "F":
+                    if element["name"].lower() == "temperature" and settings["temperatureUnit"] == "F":
                         value = value * (9 / 5) + 32
                     equation += f"{value} "
                 elif element["type"] == "system":

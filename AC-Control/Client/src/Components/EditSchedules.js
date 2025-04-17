@@ -66,7 +66,7 @@ class Schedules extends React.Component {
                                             </div>
                                             <div>
                                                 <input className={schedule.anytime ? "disabled" : ""} type="time" value={schedule.time} onChange={e => this.setScheduleValue(schedule, "time", e.target.value)}></input>
-                                                <div className="anytime"><input type="checkbox" value={schedule.anytime} onChange={e => this.setScheduleValue(schedule, "anytime", !schedule.anytime)}/> Any time</div>
+                                                <div className="anytime"><input type="checkbox" checked={schedule.anytime} onChange={e => this.setScheduleValue(schedule, "anytime", !schedule.anytime)}/> Any time</div>
                                             </div>
                                         </div>
                                         <div className="schedule-state">

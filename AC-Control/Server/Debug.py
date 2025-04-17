@@ -213,7 +213,7 @@ class Debug:
         
         testResult = {}
         try:
-            print(equation)
+            print(equation, flush=True)
             result = eval(equation)
             if isinstance(result, bool):
                 testResult = {"success": True}
