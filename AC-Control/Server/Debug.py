@@ -198,9 +198,9 @@ class Debug:
                 equation += f"{value} "
             elif element["type"] == "system":
                 if element["name"] == "On":
-                    value = state["power"]
+                    value = state["power"]["active"]
                 elif element["name"] == "Off":
-                    value = not state["power"]
+                    value = not state["power"]["active"]
                 else:
                     return f"Invalid system value {element['name']}", 400
                 equation += f"{value} "

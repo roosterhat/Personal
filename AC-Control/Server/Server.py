@@ -509,9 +509,9 @@ def checkCondition(schedule, state, errors):
                     equation += f"{value} "
                 elif element["type"] == "system":
                     if element["name"] == "On":
-                        value = state["power"]
+                        value = state["power"]["active"]
                     elif element["name"] == "Off":
-                        value = not state["power"]
+                        value = not state["power"]["active"]
                     else:
                         raise Exception(f"Invalid system value {element['name']}")
                     equation += f"{value} "
