@@ -304,6 +304,8 @@ class Schedules extends React.Component {
                 "states": [],
                 "ocr": []
             },
+            "conditionEquation": [],
+            "anytime": false,
             "enabled": true
         })
         this.setState({config: this.state.config})
