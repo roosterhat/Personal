@@ -1697,7 +1697,8 @@ button {
         flex-shrink: 0;
 
         &.selected {
-            background: #8181817d;
+            background: #8181812e;
+            animation: blink 1s linear infinite;
         }
     }
 
@@ -2075,5 +2076,29 @@ button {
 
     100% {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    24% {
+        opacity: 1;
+    }
+    25% {
+        opacity: 0;
+    }
+
+    74% {
+        opacity: 0;
+    }
+    75% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
     }
 }
