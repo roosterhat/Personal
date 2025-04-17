@@ -453,7 +453,7 @@ def shouldRun(schedule, runs, checkDateTime):
     currentDOW = currentRun.weekday()
 
     if schedule["anytime"]:
-        print(Days[currentDOW] + " " + str(schedule["days"]))
+        print(Days[currentDOW] + " " + str(schedule["days"]) + " " + str(Days[currentDOW] in schedule["days"]), flush=True)
         return Days[currentDOW] in schedule["days"]
     else:
         lastRun = None        
@@ -486,7 +486,7 @@ def shouldRun(schedule, runs, checkDateTime):
 
 def checkCondition(schedule, state, errors):
         try:
-            print(schedule["namne"])
+            print(schedule["namne"], flush=True)
             if len(schedule["conditionEquation"]) == 0:
                 return True            
 
@@ -558,7 +558,7 @@ def manageSchedules():
             runs = json.loads(f.read())
             f.close()
             
-            print("states" if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else "basic")
+            print("states" if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else "basic", flush=True)
             state = _State.getState(config, ["states"] if any(any(o["type"] == "state" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
             if not state:
                 raise Exception("Failed to get state")
@@ -580,7 +580,7 @@ def manageSchedules():
                         runs[schedule["id"]]["error"] = result + (", ".join(errors) if len(errors) > 0 else "")
                         runs[schedule["id"]]["duration"] = datetime.now() - start
                 except Exception as ex:
-                    print(traceback.format_exc())
+                    print(traceback.format_exc(), flush=True)
                     runs[schedule["id"]]["lastAttempt"] = checkDateTime
                     runs[schedule["id"]]["error"] = str(ex)
 
@@ -596,7 +596,7 @@ def manageSchedules():
                 with open("./Data/scheduleRuns", 'w') as f:
                     f.write(json.dumps(runs, default=str))
         except Exception as ex:
-            print(traceback.format_exc())
+            print(traceback.format_exc(), flush=True)
 
 def temperatureWorker():
     while True:
