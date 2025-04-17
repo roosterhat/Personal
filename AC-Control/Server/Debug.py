@@ -199,7 +199,7 @@ class Debug:
             elif element["type"] == "system":
                 if element["name"] == "On":
                     value = state["power"]
-                elif element["name"] == "On":
+                elif element["name"] == "Off":
                     value = not state["power"]
                 else:
                     return f"Invalid system value {element['name']}", 400

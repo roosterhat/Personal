@@ -510,7 +510,7 @@ def checkCondition(schedule, state, errors):
                 elif element["type"] == "system":
                     if element["name"] == "On":
                         value = state["power"]
-                    elif element["name"] == "On":
+                    elif element["name"] == "Off":
                         value = not state["power"]
                     else:
                         raise Exception(f"Invalid system value {element['name']}")
@@ -558,7 +558,7 @@ def manageSchedules():
             runs = json.loads(f.read())
             f.close()
             
-            state = _State.getState(config, ["states"] if any(any(o["type"] == "state" or x["type"] == "system" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
+            state = _State.getState(config, ["states"] if any(any(o["type"] == "state" or o["type"] == "system" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
             if not state:
                 raise Exception("Failed to get state")
             
