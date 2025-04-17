@@ -5,12 +5,11 @@ from PIL import ImageColor, ImageDraw, Image
 import Utility
 
 class Debug:
-    def __init__(self, camera, OCRModels, StateModels, State, Sensor):
+    def __init__(self, camera, OCRModels, StateModels, State):
         self.camera = camera
         self.OCRModels = OCRModels
         self.StateModels = StateModels
         self.State = State
-        self.Sensor = Sensor
         self.colors = ["#B0C5A4", "#D37676", "#EBC49F", "#EADFB4", "#9BB0C1", "#51829B", "#F6995C", "#FFE6E6", "#E1AFD1", "#AD88C6", "#7469B6", "#638889", "#FF90BC"]
 
     def debugSampleFrameEllipse(self, frame, state, config):
@@ -189,7 +188,7 @@ class Debug:
                     return f"No state value found for {element['name']}", 400
                 equation += f"{value} "
             elif element["type"] == "sensor":
-                value = self.Sensor[element["name"].lower()] if element["name"].lower() in self.Sensor else None
+                value = state[element["name"].lower()] if element["name"].lower() in state else None
                 if value is None:
                     return f"No sensor value found for {element['name']}", 400
                 equation += f"{value} "

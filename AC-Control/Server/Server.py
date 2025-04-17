@@ -504,7 +504,7 @@ def checkCondition(schedule, config, errors):
                         raise Exception(f"No state value found for {element['name']}")
                     equation += f"{value} "
                 elif element["type"] == "sensor":
-                    value = sensor[element["name"].lower()] if element["name"].lower() in sensor else None
+                    value = state[element["name"].lower()] if state["name"].lower() in sensor else None
                     if value is None:
                         raise Exception(f"No sensor value found for {element['name']}")
                     equation += f"{value} "
@@ -590,32 +590,37 @@ def manageSchedules():
 
 def temperatureWorker():
     while True:
-        global DHT11Sensor
-        DHT11Sensor = adafruit_dht.DHT11(board.D4)
-        try:
-            while True:
-                retries = 0            
+        if DEBUG:
+            sensor["temperature"] = random.randint(10, 30)
+            sensor["humidity"] = random.randint(40,80)
+            Time.sleep(5)
+        else:
+            global DHT11Sensor
+            DHT11Sensor = adafruit_dht.DHT11(board.D4)
+            try:
                 while True:
-                    try:
-                        DHT11Sensor.measure()
-                        if not DHT11Sensor._temperature or not DHT11Sensor._humidity:
-                            raise RuntimeError("Empty sensor values")
-                        sensor["temperature"] = DHT11Sensor._temperature
-                        sensor["humidity"] = DHT11Sensor._humidity
-                        break
-                    except RuntimeError as error:
-                        retries += 1
-                        if retries > 5:
-                            raise Exception("Maximum retries reached")
-                        Time.sleep(1)
-                        continue
-                    except Exception as error:
-                        print("temperatureWorker, Error: " + str(error), flush=True)
-                        raise error                    
-                Time.sleep(5)
-        finally:
-            if DHT11Sensor:
-                DHT11Sensor.exit()
+                    retries = 0            
+                    while True:
+                        try:
+                            DHT11Sensor.measure()
+                            if not DHT11Sensor._temperature or not DHT11Sensor._humidity:
+                                raise RuntimeError("Empty sensor values")
+                            sensor["temperature"] = DHT11Sensor._temperature
+                            sensor["humidity"] = DHT11Sensor._humidity
+                            break
+                        except RuntimeError as error:
+                            retries += 1
+                            if retries > 5:
+                                raise Exception("Maximum retries reached")
+                            Time.sleep(1)
+                            continue
+                        except Exception as error:
+                            print("temperatureWorker, Error: " + str(error), flush=True)
+                            raise error                    
+                    Time.sleep(5)
+            finally:
+                if DHT11Sensor:
+                    DHT11Sensor.exit()
 
 def historyWorker():
     while True:        
@@ -666,9 +671,8 @@ def appStart():
     Thread(target=manageSessions).start()
     print("Starting Schedule Manager", flush=True)
     Thread(target=manageSchedules).start()
-    if not(DEBUG):
-        print("Starting Temperature Manager", flush=True)
-        Thread(target=temperatureWorker).start()
+    print("Starting Temperature Manager", flush=True)
+    Thread(target=temperatureWorker).start()
     print("Starting History Manager", flush=True)
     Thread(target=historyWorker).start()
     print("Loading Camera", flush=True)
@@ -686,7 +690,7 @@ def appStart():
         StateModels[file] = YOLO(Path.join(dir, file))
 
     _State = State(_Camera, OCRModels, StateModels, settings, sensor)
-    _Debug = Debug(_Camera, OCRModels, StateModels, _State, sensor)
+    _Debug = Debug(_Camera, OCRModels, StateModels, _State)
     print("Loading Complete", flush=True)
     if DEBUG:
         try:
