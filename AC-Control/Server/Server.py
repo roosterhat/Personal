@@ -558,7 +558,7 @@ def manageSchedules():
             runs = json.loads(f.read())
             f.close()
             
-            state = _State.getState(config, ["states"] if any(any(o["type"] == "state" or o["type"] == "system" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
+            state = _State.getState(config, ["states", "power"] if any(any(o["type"] == "state" or o["type"] == "system" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
             if not state:
                 raise Exception("Failed to get state")
             

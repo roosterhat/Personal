@@ -174,7 +174,7 @@ class Debug:
         if body is None:
             return 'No schedule data', 400
         
-        state = self.State.getState(config, ["states"] if any(x["type"] == "state" or x["type"] == "system" for x in body["conditionEquation"]) else ["basic"])
+        state = self.State.getState(config, ["states", "power"] if any(x["type"] == "state" or x["type"] == "system" for x in body["conditionEquation"]) else ["basic"])
         if not state:
             return "Failed to get state", 500        
 
