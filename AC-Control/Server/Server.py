@@ -495,7 +495,7 @@ def checkCondition(schedule, state, errors):
                 if element["type"] == "operator":
                     if element["name"] not in ["<", ">", "=","(",")","not","and","or"]:
                         raise Exception("Invalid operator")
-                    equation += f"{element['name']}{(" " if element["name"] in ["not","and","or"] else "")}"
+                    equation += f"{element['name']}{' ' if element['name'] in ['not','and','or'] else ''}"
                 elif element["type"] == "state":
                     value = next((s["active"] for s in state["states"] if s["id"] == element["id"]), None)
                     if value is None:

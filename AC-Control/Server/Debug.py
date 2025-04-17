@@ -183,7 +183,7 @@ class Debug:
             if element["type"] == "operator":
                 if element["name"] not in ["<",">","=","(",")","not","and","or"]:
                     return "Invalid operator", 400
-                equation += f"{element['name']}{(" " if element["name"] in ["not","and","or"] else "")}"
+                equation += f"{element['name']}{' ' if element['name'] in ['not','and','or'] else ''}"
             elif element["type"] == "state":
                 value = next((s["active"] for s in state["states"] if s["id"] == element["id"]), None)
                 if value is None:
