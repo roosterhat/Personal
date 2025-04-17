@@ -222,7 +222,7 @@ class Schedules extends React.Component {
             var body = JSON.stringify(schedule)
             var response = await fetchWithToken(`api/debug/schedule/${this.state.config.id}`, "POST", body, {"Content-Type": "application/json"})
             if(response.status == 200){
-                testResult = { success: true }
+                testResult = await response.json()
             }
             else {
                 testResult = { success: false, error: await response.text() }

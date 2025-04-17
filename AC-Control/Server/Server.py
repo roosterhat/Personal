@@ -453,6 +453,7 @@ def shouldRun(schedule, runs, checkDateTime):
     currentDOW = currentRun.weekday()
 
     if schedule["anytime"]:
+        print(Days[currentDOW] + " " + str(schedule["days"]))
         return Days[currentDOW] in schedule["days"]
     else:
         lastRun = None        
