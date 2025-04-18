@@ -16,7 +16,7 @@ class Schedules extends React.Component {
         {"name": "or", "type": "operator", "color": "#cdffcd"}
     ]
     System = [
-        {"name": "On", "type": "system", "color": "#00ff00"},
+        {"name": "On", "type": "system", "color": "#008000"},
         {"name": "Off", "type": "system", "color": "#ff0000"}
     ]
     Sensors = [
@@ -144,7 +144,7 @@ class Schedules extends React.Component {
                                                                         <input type="number" value={x.value} onChange={e => this.updateValue(x, Number(e.target.value), e)}/> 
                                                                         <div onClick={() => this.removeOperation(schedule, index)}>{x.name}</div>
                                                                     </div>
-                                                                    : <button className="operation" onClick={() => this.removeOperation(schedule, index)} style={{background: x.color}}>{x.name}</button>
+                                                                    : <button className="operation" onClick={() => this.removeOperation(schedule, index)} style={{background: x.color, color: (x.type == "system" ? "#fff" : "#000")}}>{x.name}</button>
                                                                 }
                                                             </>                                                            
                                                         )}
