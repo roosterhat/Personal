@@ -216,7 +216,7 @@ class Debug:
             print(equation, flush=True)
             result = eval(equation)
             if isinstance(result, bool):
-                testResult = {"success": True}
+                testResult = {"success": True, "result": result}
             else:
                 testResult = {"success": False, "error": "Invalid return type: " + str(type(result))}
         except Exception as ex:

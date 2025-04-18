@@ -205,7 +205,7 @@ class Schedules extends React.Component {
     renderTestResult = (schedule) => {
         let scheduleState = this.state.scheduleStates[schedule.id]
         if(scheduleState.testResult.success){
-            return <div className="valid">Valid</div>
+            return <div><span className="valid">Valid</span>{`: ${scheduleState.testResult.result}`}</div>
         }
         else {
             return <div className="error">{scheduleState.testResult.error}</div>
