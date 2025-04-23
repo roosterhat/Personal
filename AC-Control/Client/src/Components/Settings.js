@@ -414,6 +414,7 @@ class Settings extends React.Component {
                                             <div className="debugstate-statecanvas-container">
                                                 <div><canvas id="debug-canvas-state"></canvas></div>                                                
                                                 <div className="state-container">
+                                                    <div className="states">
                                                     { 
                                                         this.state.debugState.states.map(x => 
                                                             <div className="state" key={x.name}>
@@ -422,6 +423,7 @@ class Settings extends React.Component {
                                                             </div>
                                                         )
                                                     }
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>                                 
