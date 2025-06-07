@@ -458,7 +458,8 @@ class Control extends React.Component {
         if(this.state.triggeringMacro) return;
 
         try{
-            this.setState({triggeringMacro: true})
+            navigator.vibrate(100)
+            this.setState({triggeringMacro: true, loadingSetState: true})
             var body = JSON.stringify(macro.state)
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
             if(response.status != 200){
@@ -468,7 +469,7 @@ class Control extends React.Component {
             this.refreshState();
         }
         finally {
-            this.setState({triggeringMacro: false})
+            this.setState({triggeringMacro: false, loadingSetState: false})
         }
     }
 

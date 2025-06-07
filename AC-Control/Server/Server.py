@@ -130,7 +130,7 @@ def saveConfig():
     body = request.get_json(force = True, silent = True)
     if body is None:
         return 'No config data', 400
-    if "id" not in body or not fileNamePattern.search(body["id"]):
+    if "id" not in body or fileNamePattern.search(body["id"]):
         return 'Invalid config data', 400        
     
     try:        
@@ -492,7 +492,7 @@ def checkCondition(schedule, state, errors):
             equation = ""
             for element in schedule["conditionEquation"]:
                 if element["type"] == "operator":
-                    if element["name"] not in ["<", ">", "=","(",")","not","and","or"]:
+                    if element["name"] not in ["<", ">", "=", "(", ")", "not", "and", "or"]:
                         raise Exception("Invalid operator")
                     equation += f"{element['name']}{' ' if element['name'] in ['not','and','or'] else ''}"
                 elif element["type"] == "state":
@@ -558,7 +558,7 @@ def manageSchedules():
             runs = json.loads(f.read())
             f.close()
             
-            state = _State.getState(config, ["states", "power"] if any(any(o["type"] == "state" or o["type"] == "system" for o in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
+            state = _State.getState(config, ["states", "power"] if any(any(e["type"] == "state" or e["type"] == "system" for e in s["conditionEquation"]) for s in config["schedules"]) else ["basic"])
             if not state:
                 raise Exception("Failed to get state")
             
@@ -651,18 +651,18 @@ def historyWorker():
                 pastCutoff = True
                 newData.append(event)
 
-        if not(DEBUG):
+        if DEBUG:
             newData.append({
                 "time": datetime.now(),
                 "type": "sensor",
-                "value": sensor
-            })
+                "value": { "temperature": random.randint(20,30), "humidity": random.randint(40, 80) }
+            })            
         else:
             newData.append({
                 "time": datetime.now(),
                 "type": "sensor",
-                "value": { "temperature": random.randint(75,80), "humidity": random.randint(50, 65) }
-            })
+                "value": sensor
+            })            
 
         with open("./Data/events", 'w') as f:
             f.write(json.dumps(newData, default=str))
