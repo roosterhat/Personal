@@ -130,7 +130,7 @@ def saveConfig():
     body = request.get_json(force = True, silent = True)
     if body is None:
         return 'No config data', 400
-    if "id" not in body or fileNamePattern.search(body["id"]):
+    if "id" not in body or not fileNamePattern.search(body["id"]):
         return 'Invalid config data', 400        
     
     try:        
