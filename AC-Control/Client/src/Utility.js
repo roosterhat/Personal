@@ -23,7 +23,7 @@ function fetchWithToken(endpoint, method = "GET", body = null, headers = {}, all
     headers["token"] = token;
     return new Promise(async (resolve, reject) => {
         try{
-            var response = await fetch(`https://${window.location.origin}/${endpoint}`, {
+            var response = await fetch(`${window.location.origin}/${endpoint}`, {
                 method: method,
                 headers: headers,
                 body: body
