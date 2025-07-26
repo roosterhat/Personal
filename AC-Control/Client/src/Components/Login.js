@@ -30,7 +30,7 @@ class Login extends React.Component {
             this.setState({loggingIn: true, errorMessage: null})
             var elem = document.getElementById("password")
             if(elem) {
-                const response = await fetch(`https://${window.location.hostname}:3001/api/login`,{
+                const response = await fetch(`${window.location.origin}/api/login`,{
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({"password": elem.value})
