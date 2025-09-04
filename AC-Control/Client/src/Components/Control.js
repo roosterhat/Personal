@@ -462,11 +462,14 @@ class Control extends React.Component {
             this.setState({triggeringMacro: true, loadingSetState: true})
             var body = JSON.stringify(macro.state)
             var response = await fetchWithToken(`api/setstate/${this.Config.id}`, "POST", body, {"Content-Type": "application/json"})
-            if(response.status != 200){
-                this.displayError(await response.text())
-                this.setState({showMacros: false})
+            if(response.status == 200) {
+                this.setState({currentState: JSON.parse(JSON.stringify(macro.state)), targetState: macro.state})
             }
-            this.refreshState();
+            else {
+                this.displayError(await response.text())                
+            }
+            this.setState({showMacros: false})
+            this.refreshState()
         }
         finally {
             this.setState({triggeringMacro: false, loadingSetState: false})
