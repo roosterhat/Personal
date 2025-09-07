@@ -1,1 +1,1 @@
-{"baud": 9600, "port": "/dev/ttyACM0", "offset": 0}
+{"baud": 9600, "port": "/dev/ttyACM0", "offset": 349.995, "idleTimeout": 30, "stowPosition": 0}

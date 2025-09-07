@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Home, RefreshCcw, Trash } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Home, RefreshCcw, Trash, Settings, X } from "lucide-react";
 
 export default function SatelliteTracker() {
     const [messages, setMessages] = useState([]);
@@ -10,11 +10,12 @@ export default function SatelliteTracker() {
     const [baudRate, setBaudRate] = useState(9600);
     const [baudRates, setBaudRates] = useState([]);
     const [ports, setPorts] = useState([]);
-    const [settings, setSettings] = useState({})
+    const [displaySettings, setDisplaySettings] = useState(false);
 
     const first = useRef(true)
     const commandIndex = useRef(-1)
     const commands = useRef([])
+    const settings = useRef({})
 
     const origin = "http://192.168.1.181:3001" //window.location.origin     
     
@@ -40,20 +41,24 @@ export default function SatelliteTracker() {
 
         socket.on('message', (json) => {
             const data = JSON.parse(json)
-            console.log('socket message: ' + json);
             switch(data["type"]) {
                 case "read":
                 case "write":
-                    console.log(data['data'])
                     setMessages((prev) => [...prev, data]);
-                    console.log(messages)
                     break;
+                case "position":
+                    console.log("position", data)
+                    setAzimuth(data["data"]["x"])
+                    setElevation(data["data"]["y"])
+                    break
             }       
         });
 
         return () => {
-            if(socket)
+            if(socket) {
+                console.log('Socket close');
                 socket.close()
+            }
         }
     }, [])
 
@@ -119,7 +124,7 @@ export default function SatelliteTracker() {
         try {
             var response = await fetch(`${origin}/api/get/settings`);
             if(response.status == 200)
-                setSettings(await response.json())
+                settings.current = await response.json()
         }
         catch(e) {
             console.log(e)
@@ -133,8 +138,6 @@ export default function SatelliteTracker() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ "coordinates": coords, "absolute": absolute })
             });
-            if(response.status == 200)
-                await getPosition()
         }
         catch(e) {
             console.log(e)
@@ -158,8 +161,6 @@ export default function SatelliteTracker() {
     const initHoming = async () => {
         try {
             var response = await fetch(`${origin}/api/home`);
-            if(response.status == 200)
-                await getPosition()
         }
         catch(e) {
             console.log(e)
@@ -176,35 +177,25 @@ export default function SatelliteTracker() {
     }
 
     const stow = async () => {
-        await setPosition({x: 0, y: 0}, true)
-        await toggleMotorHold()
+        try {
+            var response = await fetch(`${origin}/api/stow`);
+        }
+        catch(e) {
+            console.log(e)
+        }
     }
 
     const updatePortAndBaud = async () => {
         try {
-            var response = await fetch(`${origin}/api/set/port`, {
+            var response = await fetch(`${origin}/api/set/baudport`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "port": port }),
-
+                body: JSON.stringify({ "baud": baudRate, "port": port })
             });
         }
         catch(e) {
             console.log(e)
-        }
-
-        try {
-            var response = await fetch(`${origin}/api/set/baud`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "baud": baudRate })
-            });                
-        }
-        catch(e) {
-            console.log(e)
-        }
-
-        await getPosition()
+        }        
     }
 
     const getPortsAndBaud = async () => {
@@ -236,27 +227,61 @@ export default function SatelliteTracker() {
     }
 
     const setNorth = async () => {
+        settings.current["offset"] = azimuth
+        await saveSettings()  
+    }
 
+    const saveSettings = async () => {
+        try {
+            var response = await fetch(`${origin}/api/set/settings`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(settings.current)
+            });
+            setDisplaySettings(false)
+        }
+        catch(e) {
+            console.log(e)
+        }
+    }
+
+    const resetController = async () => {
+        try{
+            var response = await fetch(`${origin}/api/reset`);
+        }
+        catch(e) {
+            console.log(e)
+        }
+    }
+
+    const directionWithOffset = (dir) => {
+        return (dir + settings.current["offset"]) % 360
+    }
+
+    const setManualPosition = () => {
+        let x = Number(document.getElementById("azimuth").value) % 360
+        let y = Number(document.getElementById("elevation").value) % 180
+        setPosition({'x': isNaN(x) ? azimuth : x, 'y': isNaN(y) ? elevation : y}, true)
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-row items-start justify-center p-6 space-x-12 flex-wrap gap-48">
-            <div className="flex flex-col items-center space-y-6 m-0">
-                <div className="flex space-x-12 w-full justify-between">
-                    <div className="grid grid-cols-3 gap-4 m-0">
+        <div className="min-h-screen bg-gray-100 flex flex-row items-start justify-center p-6 flex-wrap gap-48">
+            <div className="flex flex-col items-center gap-4">
+                <div className="flex w-full justify-between">
+                    <div className="grid grid-cols-3 gap-4">
                         <div></div>
                         <button onClick={() => setPosition({x: 0, y: 10}, false)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">
                             <ArrowUp />
                         </button>
                         <div></div>
 
-                        <button onClick={() => setPosition({x: 10, y: 0}, false)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">
+                        <button onClick={() => setPosition({x: -10, y: 0}, false)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">
                             <ArrowLeft />
                         </button>
                         <button onClick={() => initHoming()} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">
                             <Home />
                         </button>
-                        <button onClick={() => setPosition({x: -10, y: 0}, false)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">
+                        <button onClick={() => setPosition({x: 10, y: 0}, false)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">
                             <ArrowRight />
                         </button>
 
@@ -269,49 +294,44 @@ export default function SatelliteTracker() {
 
                     <div className="grid grid-cols-3 gap-4">
                         <div></div>
-                        <button onClick={() => setPosition({x: 0, y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">N</button>
+                        <button onClick={() => setPosition({x: directionWithOffset(0), y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">N</button>
                         <div></div>
 
-                        <button onClick={() => setPosition({x: 270, y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">W</button>
+                        <button onClick={() => setPosition({x: directionWithOffset(270), y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">W</button>
                         <div></div>
-                        <button onClick={() => setPosition({x: 90, y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">E</button>
+                        <button onClick={() => setPosition({x: directionWithOffset(90), y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">E</button>
 
                         <div></div>
-                        <button onClick={() => setPosition({x: 180, y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">S</button>
+                        <button onClick={() => setPosition({x: directionWithOffset(180), y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">S</button>
                         <div></div>
                     </div>
                 </div>
 
-                <div className="flex space-x-2 w-full">
-                    <input
-                        id="azimuth"
-                        className="flex-1 border rounded p-2 font-mono text-sm w-full"
-                        value={azimuth}
-                        onChange={(e) => setAzimuth(Number(e.target.value) % 360)}
-                        placeholder="Azimuth"
-                    />
-                    <input
-                        id="elevation"
-                        className="flex-1 border rounded p-2 font-mono text-sm w-full"
-                        value={elevation}
-                        onChange={(e) => setElevation(Number(e.target.value) % 180)}
-                        placeholder="Elevation"
-                    />
-                    <button className="cursor-pointer text-white bg-black rounded-sm p-2" onClick={() => setPosition({x: azimuth, y: elevation}, true)}>Set</button>
+                <div className="flex w-full justify-center gap-1">
+                    <span className="w-full text-right">{azimuth}</span>
+                    <span>,</span>
+                    <span className="w-full">{elevation}</span>
+                </div>
+
+                <div className="flex w-full gap-2">
+                    <input id="azimuth" className="flex-1 border rounded p-2 font-mono text-sm w-full" placeholder="Azimuth" />
+                    <input id="elevation" className="flex-1 border rounded p-2 font-mono text-sm w-full" placeholder="Elevation" />
+                    <button className="cursor-pointer text-white bg-black rounded-sm p-2" onClick={setManualPosition}>Set</button>
                     <button onClick={getPosition} className="cursor-pointer text-white bg-black rounded-sm p-2">
                         <RefreshCcw className="w-4 h-4" />
                     </button>
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                     <button onClick={toggleMotorHold} className="cursor-pointer text-white bg-black rounded-sm p-2">Toggle Motor Hold</button>
                     <button onClick={stow} className="cursor-pointer text-white bg-black rounded-sm p-2">Stow</button>
                     <button onClick={setNorth} className="cursor-pointer text-white bg-black rounded-sm p-2">Set North</button>
+                    <button onClick={resetController} className="cursor-pointer text-white bg-black rounded-sm p-2">Reset Controller</button>
                 </div>
             </div>
 
-            <div className="flex flex-col space-y-6 w-full max-w-lg">
-                <div className="flex space-x-2">
+            <div className="flex flex-col w-full max-w-lg gap-4">
+                <div className="flex gap-2">
                     <select id="ports" className="flex-1 border rounded p-2 font-mono text-sm" value={port} onChange={(e) => setPort(e.target.value)}>
                         {ports.map((x, i) => <option key={i} value={x}>{x}</option>)}
                     </select>                    
@@ -320,17 +340,17 @@ export default function SatelliteTracker() {
                         {baudRates.map((x, i) => <option key={i} value={x}>{x}</option>)}
                     </select>
 
-                    <button onClick={getPortsAndBaud} className="cursor-pointer text-white bg-black rounded-sm p-2"><RefreshCcw className="w-4 h-4" /></button>
+                    <button onClick={getPortsAndBaud} className="cursor-pointer text-white bg-black rounded-sm p-2"><RefreshCcw /></button>
                     <button onClick={updatePortAndBaud} className="cursor-pointer text-white bg-black rounded-sm p-2">Set</button>
                     <button onClick={handleScan} className="cursor-pointer text-white bg-black rounded-sm p-2">Scan</button>
                 </div>
 
-                <div className="w-full">
+                <div className="flex flex-col w-full gap-2">
                     <div id="messages" className="h-48 bg-black text-green-400 font-mono text-sm overflow-y-auto p-2 rounded mb-2">
                         {messages.map((msg, i) => <div className="w-full" key={i}>{(msg['type'] == "write" ? "> " : "") + msg['data']}</div>)}
                     </div>
 
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2">
                         <input
                             id="command"
                             className="flex-1 border rounded p-2 font-mono text-sm"
@@ -343,6 +363,28 @@ export default function SatelliteTracker() {
                         <button onClick={() => setMessages([])} className="cursor-pointer text-white bg-black rounded-sm p-2"><Trash /></button>
                     </div>
                 </div>
+            </div>
+            <button onClick={() => setDisplaySettings(!displaySettings)} className="absolute top-4 right-4 cursor-pointer text-white bg-black rounded-sm p-2"><Settings /></button>
+            <div className="fixed top-0 h-full w-60 right-0 flex flex-col p-4 gap-4 bg-white" style={{transform: `translateX(${displaySettings ? "0" : "100%"})`, transition: "all 0.5s ease"}}>
+                <div className="flex justify-between items-center">
+                    <h2>Settings</h2>
+                    <button onClick={() => setDisplaySettings(!displaySettings)} className="cursor-pointer text-white bg-black rounded-sm p-1 bg-red-500"><X /></button>
+                </div>
+                <div className="flex flex-col gap-4 h-full">
+                    <div className="flex justify-between items-center gap-2">
+                        <span>North Offset</span>
+                        <input className="flex-1 border rounded p-2 font-mono text-sm w-full h-6" placeholder={settings.current["offset"]} onChange={e => settings.current["offset"] = Number(e.target.value)} />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                        <span>Idle Timeout (s)</span>
+                        <input className="flex-1 border rounded p-2 font-mono text-sm w-full h-6" placeholder={settings.current["idleTimeout"]} onChange={e => settings.current["idleTimeout"] = Number(e.target.value)} />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                        <span>Stow Position</span>
+                        <input className="flex-1 border rounded p-2 font-mono text-sm w-full h-6" placeholder={settings.current["stowPosition"]} onChange={e => settings.current["stowPosition"] = Number(e.target.value)} />
+                    </div>
+                </div>
+                <button onClick={saveSettings} className="cursor-pointer bg-green-500 text-white rounded-md p-1">Save</button>
             </div>
         </div>
     );
