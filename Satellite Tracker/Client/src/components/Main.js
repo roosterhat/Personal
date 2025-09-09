@@ -20,7 +20,7 @@ export default function SatelliteTracker() {
     const newMessageCount = useRef(0)
 
     const maxMessages = 1000
-    const origin = "http://192.168.1.181:3001" //window.location.origin     
+    const origin = window.location.origin     
     
     useEffect(() => {
         console.log("componentDidMount")
