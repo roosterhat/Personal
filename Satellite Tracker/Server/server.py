@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, send
 import sys
@@ -12,6 +12,8 @@ import re
 import uuid
 import socket
 from datetime import datetime
+import math
+from os import path as Path
 
 class FlaskWrapper(Flask):
     def __init__(self):
@@ -35,15 +37,16 @@ DEBUG = len(sys.argv) >= 2 and sys.argv[1] == 'debug'
 settings = {}
 position = { 'x': 0, 'y': 0 }
 grblSettings = [0] * 23
-manager = None
 lastAction = Time.time()
+manager = None
 idleStowed = False
 socketRef = None
+readPositionLock = Lock()
 
 statePattern = r'<(?P<state>\w+).*WPos:(?P<x>-?\d+\.\d{3}),(?P<y>-?\d+\.\d{3})'
 settingsPattern = r'\$(?P<index>\d+)=(?P<value>[\d\.]+)'
-movePattern = r'G0(\sX[\d\.]+)?(\sY[\d\.]+)?'
 rotctlCommandPattern = r'(?P<command>\w+)\s*(?P<params>[^\\n]+)?'
+movePattern = r'G[01]'
 typePattern = r'[rw]'
 
 baudRates = [4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
@@ -95,7 +98,8 @@ class SerialManager:
             raise Exception("Invalid type")
 
         id = str(uuid.uuid4())
-        self.subscribers[id] = Subscriber(id, type, callback)
+        with self.subscriberLock:
+            self.subscribers[id] = Subscriber(id, type, callback)
 
         return id
 
@@ -152,6 +156,14 @@ class SerialBuffer:
     def __del__(self):
         self.dispose()
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and Path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
 @app.route('/api/get/settings', methods=["GET"])
 def getSettings():
     try:
@@ -173,6 +185,7 @@ def setSettings():
                 settings[x] = body[x]
 
         saveSettings()
+        sendRead("SETTINGS SAVED")
         return "", 200
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
@@ -252,31 +265,11 @@ def setPosition():
         print(traceback.format_exc(), flush=True)
         return "Failed", 500
     
-def setRotorPosition(xpos, ypos, absolute):
-    global position, lastAction
-
-    lastAction = Time.time()
-    readPosition()    
-
-    if absolute:
-        diff = xpos - (position["x"] % 360)
-        sign = 1 if diff == 0 else abs(diff) / diff
-        nsign = -1 * sign
-        x = round((diff if abs(diff) <= 180 else (360 - abs(diff)) * nsign) + position["x"], 3)
-        y = max(min(ypos, 180), 0)
-    else:
-        x = xpos + position["x"]             
-        y = max(min(ypos + position["y"], 180), 0)
-
-    manager.write(f"$7=255")
-    manager.write(f"G0 X{x} Y{y}")
-    
 @app.route('/api/get/position', methods=["GET"])
 def getPosition():
     global position, lastAction
     try:
-        lastAction = Time.time()
-        readPosition()
+        readPositionUntilIdle()
         return {'x': round(position['x'] % 360, 3), 'y': round(position['y'], 3)}, 200
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
@@ -287,7 +280,6 @@ def getPosition():
 def resetSerial():
     global lastAction
     try:
-        lastAction = Time.time()
         manager.write('crtl-x')
         return "", 200
     except Exception as ex:
@@ -298,7 +290,6 @@ def resetSerial():
 def sendCommand():
     global manager, lastAction
     try:
-        lastAction = Time.time()
         body = request.get_json(force = True, silent = True)        
         manager.write(body["command"])
         return "", 200
@@ -310,19 +301,20 @@ def sendCommand():
 def home():
     global lastAction
     try:
-        lastAction = Time.time()
         setRotorPosition(0, 10, False)
-        readPosition()
+        readPositionUntilIdle()
         manager.write('$H')
+        Time.sleep(0.5)
         start = Time.perf_counter()
         with SerialBuffer(manager) as buffer:
-            while (Time.perf_counter() - start) < 15:
+            while (Time.perf_counter() - start) < 30:
                 manager.write('?')
                 line = buffer.readline(1)
                 buffer.clear()
                 if len(line) > 0:
-                    break
-        manager.write('G0 X0 Y0')
+                    Time.sleep(0.5)
+                    manager.write("G0 X0 Y0")
+                    break        
         return "", 200
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
@@ -332,7 +324,6 @@ def home():
 def toggleMotors():
     global manager, position, grblSettings, lastAction
     try:
-        lastAction = Time.time()
         getState()
         manager.write(f"$7={25 if grblSettings[7] == 255 else 255}")
         manager.write(f"G0 X{position['x']} Y{position['y']}")
@@ -345,7 +336,6 @@ def toggleMotors():
 def resetController():
     global lastAction
     try:
-        lastAction = Time.time()
         reconnect()
         return "", 200
     except Exception as ex:
@@ -356,19 +346,39 @@ def resetController():
 def stow():
     global lastAction
     try:
-        lastAction = Time.time()
         stowRotor()
         return "", 200
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
         return "Failed", 500
+    
+def setRotorPosition(xpos, ypos, absolute, feedRate = None):
+    global position, lastAction
+
+    readPositionUntilIdle()    
+
+    if absolute:
+        diff = xpos - (position["x"] % 360)
+        sign = 1 if diff == 0 else abs(diff) / diff
+        nsign = -1 * sign
+        x = round((diff if abs(diff) <= 180 else (360 - abs(diff)) * nsign) + position["x"], 3)
+        y = max(min(ypos, 180), 0)
+    else:
+        x = xpos + position["x"]             
+        y = max(min(ypos + position["y"], 180), 0)
+
+    manager.write(f"$7=255")
+    if feedRate is None:
+        manager.write(f"G0 X{x} Y{y}")
+    else:
+        manager.write(f"G1 X{x} Y{y} F{feedRate}")
 
 def stowRotor(): 
     global idleStowed
     if not idleStowed:
         setRotorPosition(0, 10, False)
         setRotorPosition(settings["stowPosition"], 10, True)
-        readPosition() 
+        readPositionUntilIdle()         
         manager.write(f"$7=25")
         manager.write(f"G0 Y0")
         idleStowed = True
@@ -388,29 +398,13 @@ def sendPosition(line):
 def sendWrite(line): 
     socketio.emit("message", json.dumps({"type": "write", "data": line.rstrip()}))
 
-def watchMove(line): 
-    global idleStowed
+def watchMove(line):
+    global idleStowed, lastAction
     match = re.search(movePattern, line)
     if match is not None:
         idleStowed = False
-        readPosition()
-
-def initSerialManager():
-    global manager
-    try:
-        if manager is not None:
-            manager.close()
-
-        manager = SerialManager()
-        manager.subscribe("r", sendRead)
-        manager.subscribe("r", sendPosition)
-        manager.subscribe("w", sendWrite)
-        manager.subscribe("w", watchMove)
-        #manager.subscribe("r", lambda x: print(x.rstrip()))
-        #manager.subscribe("w", lambda x: print("> " + x.rstrip()))
-        manager.connect(settings['port'], settings['baud'])
-    except Exception as ex:
-        print(traceback.format_exc(), flush=True)
+        lastAction = Time.time()
+        readPositionUntilIdle()
 
 def reconnect():
     global manager
@@ -420,31 +414,44 @@ def reconnect():
         manager.connect(settings['port'], settings['baud'])
         sendRead(f"CONNECT: {settings['port']} @ {settings['baud']}")
     except Exception as ex:
-        sendRead(str(ex))
+        print(traceback.format_exc(), flush=True)
+        sendRead("ERROR CONNECTING")
 
 def getPositionWithOffset():
     global position, settings
     return {"x": (position["x"] - settings["offset"]) % 360, "y": position["y"]}
 
-def readPosition(wait = True):
+def readPositionUntilIdle(wait = True):
     global manager, position
-    with SerialBuffer(manager) as buffer:
-        start = Time.perf_counter()
-        while True:
-            Time.sleep(0.5)
-            manager.write('?')
-            line = buffer.readline(0.5)
-            buffer.clear()
-            match = re.search(statePattern, line)
-            if match is not None:
+    if readPositionLock.acquire(timeout=0.1): # ensure only one thread is attempting to read position, others can get same outcome by waiting for lock
+        try:
+            with SerialBuffer(manager) as buffer:
                 start = Time.perf_counter()
-                position['x'] = float(match.group('x'))
-                position['y'] = float(match.group('y'))
-                if match.group('state') == 'Idle' or not wait:                    
-                    break
-            if Time.perf_counter() - start > 2:
-                sendRead("NO RESPONSE")
-                break
+                while True:
+                    Time.sleep(0.5)
+                    manager.write('?')
+                    line = buffer.readline(0.5)
+                    buffer.clear()
+                    match = re.search(statePattern, line)
+                    if match is not None:
+                        start = Time.perf_counter()
+                        position['x'] = float(match.group('x'))
+                        position['y'] = float(match.group('y'))
+                        if match.group('state') == 'Idle':
+                            Time.sleep(0.5) # allow serial response to propagate                    
+                            return
+                    if Time.perf_counter() - start > 2:
+                        sendRead("NO RESPONSE")
+                        return
+        except Exception as ex:
+            print(traceback.format_exc(), flush=True)
+
+        finally:
+            readPositionLock.release()
+    elif wait:
+        with readPositionLock:
+            pass
+        
 
 def readState(): 
     global manager, grblSettings
@@ -460,8 +467,8 @@ def readState():
             if match is not None:
                 grblSettings[int(match.group('index'))] = float(match.group('value'))
 
-def getState(wait = False):
-    readPosition(wait)
+def getState():
+    readPositionUntilIdle()
     readState()
     
 def idleMonitor():
@@ -485,7 +492,7 @@ def initSocket():
         port = 3002
         socketRef.bind(('', port)) 
         socketRef.listen(5) 
-        print("Socket Connected: " + str(port), flush=True)
+        print("Socket open: " + str(port), flush=True)
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
         return
@@ -507,19 +514,38 @@ def initSocket():
                 command = match.group('command')
                 params = match.group('params')
                 if command == 'p': # get position
-                    #readPosition(False)
                     pos = getPositionWithOffset()
                     socketSend(client, f'{pos["x"]}\n{pos["y"]}')
                 elif command == 'P': # set position
-                    pos = params.split(" ")
-                    setRotorPosition((float(pos[0]) + settings["offset"]) % 360, float(pos[1]), True)
-                    socketSend(client, f"RPRT 0")
+                    paramPos = [float(x) for x in params.split(" ")]
+                    pos = getPositionWithOffset()
+                    dist = math.dist(paramPos, [pos["x"], pos["y"]])
+                    setRotorPosition((paramPos[0] + settings["offset"]) % 360, paramPos[1], True, round(max(1500 * min(dist / 20, 1), 100), 3))
+                    socketSend(client, "RPRT 0")
+        except ConnectionResetError:
+            pass
         except Exception as ex:
             print(traceback.format_exc(), flush=True)
         finally:
             client.close()
             print("Client closed", flush=True)
-        
+
+def initSerialManager():
+    global manager
+    try:
+        if manager is not None:
+            manager.close()
+
+        manager = SerialManager()
+        manager.subscribe("r", sendRead)
+        manager.subscribe("r", sendPosition)
+        manager.subscribe("w", sendWrite)
+        manager.subscribe("w", watchMove)
+        #manager.subscribe("r", lambda x: print(x.rstrip()))
+        #manager.subscribe("w", lambda x: print("> " + x.rstrip()))
+        manager.connect(settings['port'], settings['baud'])
+    except Exception as ex:
+        print(traceback.format_exc(), flush=True)
             
 def appStart():
     global settings, manager
@@ -540,12 +566,11 @@ def appStart():
     Thread(target=initSocket).start()
 
     if manager.running:
-        readPosition()
+        readPositionUntilIdle()
 
     print("Loading Complete", flush=True)
     if DEBUG:
         try:
-            #socketio.run(app, host='0.0.0.0', port=3001, ssl_context='adhoc')    
             socketio.run(app, host='0.0.0.0', port=3001)    
         finally:
             app.cleanup()

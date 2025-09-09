@@ -11,12 +11,15 @@ export default function SatelliteTracker() {
     const [baudRates, setBaudRates] = useState([]);
     const [ports, setPorts] = useState([]);
     const [displaySettings, setDisplaySettings] = useState(false);
+    const [displayScroll, setDisplayScroll] = useState(false);
 
     const first = useRef(true)
     const commandIndex = useRef(-1)
     const commands = useRef([])
     const settings = useRef({})
+    const newMessageCount = useRef(0)
 
+    const maxMessages = 1000
     const origin = "http://192.168.1.181:3001" //window.location.origin     
     
     useEffect(() => {
@@ -30,13 +33,13 @@ export default function SatelliteTracker() {
     }, [])
 
     useEffect(() => {
-        var socket = window.io(origin);
+        let socket = window.io(origin);
         socket.on('connect', () => {
-            console.log('Connected to server');
+            console.log('Connected to server')
         });
 
         socket.on('disconnect', () => {
-            console.log('Disconnected from server');
+            console.log('Disconnected from server')
         });
 
         socket.on('message', (json) => {
@@ -44,14 +47,14 @@ export default function SatelliteTracker() {
             switch(data["type"]) {
                 case "read":
                 case "write":
-                    setMessages((prev) => [...prev, data]);
+                    setMessages((prev) => [...prev.slice(0, Math.min(prev.length, maxMessages)), data])
+                    newMessageCount.current++
                     break;
                 case "position":
-                    console.log("position", data)
                     setAzimuth(data["data"]["x"])
                     setElevation(data["data"]["y"])
                     break
-            }       
+            }
         });
 
         return () => {
@@ -64,12 +67,26 @@ export default function SatelliteTracker() {
 
     useEffect(() => {
         const x = document.getElementById("messages")
-        x.scrollTo(0, x.scrollHeight)
+        if(messages.length < maxMessages && x.scrollHeight - (x.scrollTop + x.clientHeight) <= newMessageCount.current * 20 + 10) {
+            newMessageCount.current = 0
+            x.scrollTo(0, x.scrollHeight)
+            setDisplayScroll(false)
+        }
+        else {
+            setDisplayScroll(true)
+        }
+
+        return () => {}
     }, [messages])
 
     const initEventListeners = () => {
-        var command = document.getElementById('command')
+        let command = document.getElementById('command')
         command.addEventListener('keydown', handleKeyboardEvent)
+
+        let messages = document.getElementById("messages")
+        messages.addEventListener("scroll", e => {
+            setDisplayScroll(e.target.scrollHeight - (e.target.clientHeight + e.target.scrollTop) > 100)
+        })
     }
 
     const handleKeyboardEvent = e => {
@@ -94,9 +111,9 @@ export default function SatelliteTracker() {
     }
 
     const sendCommand = async (cmd) => {
-        commands.current = [cmd, ...commands.current]
+        commands.current = [cmd, ...commands.current.slice(0, Math.min(commands.current.length, 100))]
         commandIndex.current = -1
-        var response = await fetch(`${origin}/api/send/command`, {
+        let response = await fetch(`${origin}/api/send/command`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ "command": cmd })
@@ -111,7 +128,7 @@ export default function SatelliteTracker() {
 
     const handleScan = async () => {
         try {
-            var response = await fetch(`${origin}/api/scan/baud`);
+            let response = await fetch(`${origin}/api/scan/baud`);
             if(response.status == 200)
                 await getSettings()
         }
@@ -122,7 +139,7 @@ export default function SatelliteTracker() {
 
     const getSettings = async () => {
         try {
-            var response = await fetch(`${origin}/api/get/settings`);
+            let response = await fetch(`${origin}/api/get/settings`);
             if(response.status == 200)
                 settings.current = await response.json()
         }
@@ -133,7 +150,7 @@ export default function SatelliteTracker() {
 
     const setPosition = async (coords, absolute) => {
         try {
-            var response = await fetch(`${origin}/api/set/position`, {
+            let response = await fetch(`${origin}/api/set/position`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ "coordinates": coords, "absolute": absolute })
@@ -146,7 +163,7 @@ export default function SatelliteTracker() {
 
     const getPosition = async () => {
         try {
-            var response = await fetch(`${origin}/api/get/position`);
+            let response = await fetch(`${origin}/api/get/position`);
             if(response.status == 200) {
                 const body = await response.json()
                 setAzimuth(body["x"])
@@ -160,7 +177,7 @@ export default function SatelliteTracker() {
 
     const initHoming = async () => {
         try {
-            var response = await fetch(`${origin}/api/home`);
+            let response = await fetch(`${origin}/api/home`);
         }
         catch(e) {
             console.log(e)
@@ -169,7 +186,7 @@ export default function SatelliteTracker() {
 
     const toggleMotorHold = async () => {
         try {
-            var response = await fetch(`${origin}/api/toggle/motors`);
+            let response = await fetch(`${origin}/api/toggle/motors`);
         }
         catch(e) {
             console.log(e)
@@ -178,7 +195,7 @@ export default function SatelliteTracker() {
 
     const stow = async () => {
         try {
-            var response = await fetch(`${origin}/api/stow`);
+            let response = await fetch(`${origin}/api/stow`);
         }
         catch(e) {
             console.log(e)
@@ -187,7 +204,7 @@ export default function SatelliteTracker() {
 
     const updatePortAndBaud = async () => {
         try {
-            var response = await fetch(`${origin}/api/set/baudport`, {
+            let response = await fetch(`${origin}/api/set/baudport`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ "baud": baudRate, "port": port })
@@ -200,9 +217,9 @@ export default function SatelliteTracker() {
 
     const getPortsAndBaud = async () => {
         try {
-            var response = await fetch(`${origin}/api/get/ports`);
+            let response = await fetch(`${origin}/api/get/ports`);
             if(response.status == 200) {
-                var body = await response.json()
+                let body = await response.json()
                 setPorts(body)
                 if (body.length > 0 && body.indexOf(port) == -1)
                     setPort(body[0])
@@ -213,9 +230,9 @@ export default function SatelliteTracker() {
         }
 
         try{
-            var response = await fetch(`${origin}/api/get/baud`);
+            let response = await fetch(`${origin}/api/get/baud`);
             if(response.status == 200) {
-                var body = await response.json()
+                let body = await response.json()
                 setBaudRates(body)
                 if (body.length > 0 && body.indexOf(baudRate) == -1)
                     setBaudRate(body[0])
@@ -233,7 +250,7 @@ export default function SatelliteTracker() {
 
     const saveSettings = async () => {
         try {
-            var response = await fetch(`${origin}/api/set/settings`, {
+            let response = await fetch(`${origin}/api/set/settings`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(settings.current)
@@ -247,7 +264,7 @@ export default function SatelliteTracker() {
 
     const resetController = async () => {
         try{
-            var response = await fetch(`${origin}/api/reset`);
+            let response = await fetch(`${origin}/api/reset`);
         }
         catch(e) {
             console.log(e)
@@ -259,9 +276,14 @@ export default function SatelliteTracker() {
     }
 
     const setManualPosition = () => {
-        let x = Number(document.getElementById("azimuth").value) % 360
-        let y = Number(document.getElementById("elevation").value) % 180
+        let x = Number.parseFloat(document.getElementById("azimuth").value) % 360
+        let y = Number.parseFloat(document.getElementById("elevation").value) % 180
         setPosition({'x': isNaN(x) ? azimuth : x, 'y': isNaN(y) ? elevation : y}, true)
+    }
+
+    const scrollToBottom = () => {
+        let x = document.getElementById("messages")
+        x.scrollTo(0, x.scrollHeight)
     }
 
     return (
@@ -340,14 +362,17 @@ export default function SatelliteTracker() {
                         {baudRates.map((x, i) => <option key={i} value={x}>{x}</option>)}
                     </select>
 
-                    <button onClick={getPortsAndBaud} className="cursor-pointer text-white bg-black rounded-sm p-2"><RefreshCcw /></button>
+                    <button onClick={getPortsAndBaud} className="cursor-pointer text-white bg-black rounded-sm p-2"><RefreshCcw className="w-4 h-4" /></button>
                     <button onClick={updatePortAndBaud} className="cursor-pointer text-white bg-black rounded-sm p-2">Set</button>
                     <button onClick={handleScan} className="cursor-pointer text-white bg-black rounded-sm p-2">Scan</button>
                 </div>
 
                 <div className="flex flex-col w-full gap-2">
-                    <div id="messages" className="h-48 bg-black text-green-400 font-mono text-sm overflow-y-auto p-2 rounded mb-2">
-                        {messages.map((msg, i) => <div className="w-full" key={i}>{(msg['type'] == "write" ? "> " : "") + msg['data']}</div>)}
+                    <div className="relative">
+                        <div id="messages" className="h-48 bg-black text-green-400 font-mono text-sm overflow-y-auto p-2 rounded mb-2">
+                            {messages.map((msg, i) => <div className="w-full" key={i}>{(msg['type'] == "write" ? "> " : "") + msg['data']}</div>)}                        
+                        </div>
+                        <button onClick={scrollToBottom} className="absolute bottom-4 right-4 sm:right-6 text-black cursor-pointer rounded-md p-1 text-xs" style={{transition: "all 0.25s ease", opacity: displayScroll ? 1 : 0, background: "#c1c1c1"}}>Scroll down</button>
                     </div>
 
                     <div className="flex gap-2">
