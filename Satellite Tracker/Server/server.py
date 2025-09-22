@@ -38,6 +38,7 @@ settings = {}
 position = { 'x': 0, 'y': 0 }
 grblSettings = [0] * 23
 lastAction = Time.time()
+lastHome = Time.time()
 manager = None
 idleStowed = False
 socketRef = None
@@ -46,7 +47,7 @@ readPositionLock = Lock()
 statePattern = r'<(?P<state>\w+).*WPos:(?P<x>-?\d+\.\d{3}),(?P<y>-?\d+\.\d{3})'
 settingsPattern = r'\$(?P<index>\d+)=(?P<value>[\d\.]+)'
 rotctlCommandPattern = r'(?P<command>\w+)\s*(?P<params>[^\\n]+)?'
-movePattern = r'G[01]'
+movePattern = r'G[01] (?:(?:(?:X(?P<x>[\-\d\.]+))|(?:Y(?P<y>[\-\d\.]+))|(?:[A-Z][\-\d\.]+))\s*)+'
 typePattern = r'[rw]'
 
 baudRates = [4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
@@ -378,10 +379,12 @@ def stowRotor():
     if not idleStowed:
         setRotorPosition(0, 10, False)
         setRotorPosition(settings["stowPosition"], 10, True)
-        readPositionUntilIdle()         
+        readPositionUntilIdle()
         manager.write(f"$7=25")
         manager.write(f"G0 Y0")
         idleStowed = True
+        readPositionUntilIdle()
+        socketio.emit("message", json.dumps({"type": "target", "data": position}))
 
 def saveSettings():
     with open(f"./Data/settings", 'w') as f:
@@ -404,6 +407,7 @@ def watchMove(line):
     if match is not None:
         idleStowed = False
         lastAction = Time.time()
+        socketio.emit("message", json.dumps({"type": "target", "data": { "x": round(float(match.group('x')) % 360, 3), "y": round(float(match.group('y')), 3)}}))
         readPositionUntilIdle()
 
 def reconnect():
@@ -472,11 +476,15 @@ def getState():
     readState()
     
 def idleMonitor():
-    global lastAction, idleStowed
+    global lastAction, idleStowed, lastHome
     while True:
         Time.sleep(1)
         if (Time.time() - lastAction) > settings["idleTimeout"]:
             if not idleStowed:
+                if(Time.time() - lastHome) > settings["homePeriod"] * 60:
+                    sendRead("HOMING")
+                    home()
+                    lastHome = Time.time()
                 sendRead("IDLE STOW")
                 stowRotor()
             
@@ -529,6 +537,10 @@ def initSocket():
         finally:
             client.close()
             print("Client closed", flush=True)
+            
+def initialHoming():
+    sendRead("HOMING")
+    home()
 
 def initSerialManager():
     global manager
@@ -544,6 +556,10 @@ def initSerialManager():
         #manager.subscribe("r", lambda x: print(x.rstrip()))
         #manager.subscribe("w", lambda x: print("> " + x.rstrip()))
         manager.connect(settings['port'], settings['baud'])
+
+        if settings["homeOnStart"]:
+            Thread(target=initialHoming).start()            
+
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
             
@@ -575,7 +591,7 @@ def appStart():
         finally:
             app.cleanup()
     else:
-        return socketio
+        return app
     
 
 if __name__ == '__main__':
