@@ -73,37 +73,38 @@ export default function SatelliteTracker() {
     }, [])
 
     useEffect(() => {
-        const x = document.getElementById("messages")
-        if(messages.length < maxMessages) {
-            if(x.scrollHeight - (x.scrollTop + x.clientHeight) <= newMessageCount.current * messageHeight + 10) {
-                newMessageCount.current = 0
-                x.scrollTo(0, x.scrollHeight)
-                setDisplayScroll(false)
-            }
-            else {
-                setDisplayScroll(true)
-            }
-        }
-
-        return () => {}
-    }, [messages])
-
-    useEffect(() => {
         drawPositionPlot()
-    }, [azimuth, elevation, target])
+    }, [azimuth, elevation, target])    
 
     const initEventListeners = () => {
         let command = document.getElementById('command')
         command.addEventListener('keydown', handleKeyboardEvent)
 
-        let messages = document.getElementById("messages")
-        messages.addEventListener("scroll", e => {
+        let messageContainer = document.getElementById("messages")
+        messageContainer.addEventListener("scroll", e => {
             setDisplayScroll(e.target.scrollHeight - (e.target.clientHeight + e.target.scrollTop) > 100)
         })
 
-        // window.addEventListener("resize", () => {
-        //     drawPositionPlot()
-        // })
+        const observer = new MutationObserver((mutationsList, observer) => {
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList') {
+                    if(messages.length < maxMessages) {
+                        if(messageContainer.scrollHeight - (messageContainer.scrollTop + messageContainer.clientHeight) <= newMessageCount.current * messageHeight) {
+                            newMessageCount.current = 0
+                            messageContainer.scrollTo(0, messageContainer.scrollHeight)
+                            setDisplayScroll(false)
+                        }
+                        else {
+                            setDisplayScroll(true)
+                        }
+                    }
+                }
+            }
+        });
+
+        const config = { attributes: false, childList: true, subtree: true };
+
+        observer.observe(messageContainer, config);
     }
 
     const handleKeyboardEvent = e => {
