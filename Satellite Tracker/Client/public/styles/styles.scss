@@ -2,44 +2,228 @@
     position: relative;
     display: inline-block;
     width: 60px;
-    height: 30px;
+    height: 24px;
     cursor: pointer;
     background-color: #ccc;
     -webkit-transition: .4s;
     transition: .4s;
     border-radius: 30px;
+
+    &.selected {
+        background-color: #2196F3;
+
+        &:before {
+            -webkit-transform: translateX(33px);
+            -ms-transform: translateX(33px);
+            transform: translateX(33px);
+        }
+    }
+
+    &:before {
+        position: absolute;
+        content: "";
+        height: 19px;
+        width: 19px;
+        left: 4px;
+        bottom: 3px;
+        background-color: white;
+        -webkit-transition: .4s;
+        transition: .4s;
+        border-radius: 50%;
+    }
 }
 
-.switch.selected {
-    background-color: #2196F3;
-}
-
-.switch:before {
-    position: absolute;
-    content: "";
-    height: 24px;
-    width: 24px;
-    left: 4px;
-    bottom: 3px;
-    background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
-    border-radius: 50%;
-}
-
-.switch.selected:before {
-    -webkit-transform: translateX(28px);
-    -ms-transform: translateX(28px);
-    transform: translateX(28px);
-}
-
-#canvas-container {
+.canvas-container {
     aspect-ratio: 1;
     border-radius: 8px;
     overflow: hidden;
 
     canvas {
+        max-width: 375px;
         width: 100%;
         height: 100%;
+    }
+}
+
+.messages {
+    div {
+        text-wrap-mode: nowrap;
+    }
+}
+
+button {
+    cursor: pointer;
+}
+
+.background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #00000080;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .editor {
+        position: relative;
+        width: max-content;
+        height: max-content;
+        padding: 4px;
+        margin: 8px;
+        background: #fff;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .body {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .zones {
+                display: flex;
+                flex-direction: column;
+                border: solid 1px #000;
+                border-radius: 8px;
+                background: #f3f3f3;
+                overflow: hidden;
+                height: 300px;
+
+                .title {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    font-weight: 700;
+                    background: #fff;
+                    padding: 4px;
+                    border-bottom: solid 1px #000;
+
+                    .add {
+                        background: royalblue;
+                        color: white;
+                        width: 23px;
+                        height: 23px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 4px;
+                        font-size: 17px;
+                        font-weight: 700;
+                    }
+                }
+
+                .list {
+                    height: 100%;
+                    overflow: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    padding: 4px;
+
+                    .zone {
+                        display: flex;
+                        flex-direction: column;
+                        padding: 4px;
+                        background: #fff;
+                        border-radius: 4px;
+                        overflow: hidden;
+                        border: solid 1px #d5d5d5;
+                        flex-shrink: 0;
+
+                        .remove {
+                            background: red;
+                            color: white;
+                            width: 19px;
+                            height: 19px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            border-radius: 4px;
+                            font-size: 17px;
+                            font-weight: 700;
+                        }
+
+                        .title {
+                            display: flex;
+                            justify-content: space-between;
+                            border: none;
+
+                            .expand-toggle {
+                                transition: all 0.2s ease;
+
+                                &.expand {
+                                    transform: rotate(180deg);
+                                }
+                            }
+                        }
+
+                        .points-tray {
+                            position: relative;
+                            overflow: hidden;
+                            height: 0;
+                            transition: height 0.2s ease;
+
+                            .points {
+                                display: flex;
+                                flex-direction: column;
+                                gap: 4px;
+                                position: absolute;
+                                width: 100%;
+                                bottom: 0;
+                                left: 0;
+                                padding: 4px;
+                                background: #f3f3f3;
+
+                                .point {
+                                    display: flex;
+                                    justify-content: space-between;
+                                    padding: 4px;
+                                    background: #fff;
+                                    border-radius: 4px;
+                                    flex-shrink: 0;
+                                    font-size: 10px;
+                                    transition: all 0.2s ease;
+
+                                    .remove {
+                                        width: 13px;
+                                        height: 13px;
+                                        font-size: 13px;
+                                    }
+
+                                    &:hover {
+                                        background: #aaa;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+
+            button {
+                width: 100px;
+                color: white;
+                border-radius: 4px;
+            }
+
+            .cancel {
+                background: red;
+            }
+
+            .save {
+                background: green;
+            }
+        }
     }
 }
