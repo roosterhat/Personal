@@ -14,6 +14,9 @@ import socket
 from datetime import datetime
 import math
 from os import path as Path
+import shapely
+from shapely import Polygon, Point, LineString
+from collections.abc import Iterable
 
 class FlaskWrapper(Flask):
     def __init__(self):
@@ -43,6 +46,9 @@ manager = None
 idleStowed = False
 socketRef = None
 readPositionLock = Lock()
+homingLock = Lock()
+grid = None
+zones = []
 
 statePattern = r'<(?P<state>\w+).*WPos:(?P<x>-?\d+\.\d{3}),(?P<y>-?\d+\.\d{3})'
 settingsPattern = r'\$(?P<index>\d+)=(?P<value>[\d\.]+)'
@@ -57,6 +63,7 @@ class Subscriber:
         self.id = id
         self.type = type
         self.callback = callback
+        self.connected = False
 
 class SerialManager:
     def __init__(self):
@@ -64,6 +71,7 @@ class SerialManager:
         self.subscribers = {}
         self.running = False
         self.subscriberLock = Lock()
+        self.writeLock = Lock()
 
     def close(self):
         self.running = False
@@ -73,6 +81,7 @@ class SerialManager:
     def connect(self, port, baud, scan = False):
         self.serialInterface = serial.Serial(port, baud, timeout=0.1)
         self.running = True
+        self.connected = True
         self.scan = scan
         Thread(target=self._read).start()
 
@@ -91,6 +100,7 @@ class SerialManager:
                     
         except Exception as ex:
             if self.running and not self.scan:
+                self.connected = False
                 print(traceback.format_exc(), flush=True)
 
         
@@ -111,7 +121,9 @@ class SerialManager:
 
     def write(self, data):
         if self.serialInterface is not None:
-            self.serialInterface.write((data + '\n').encode())
+            with self.writeLock:
+                self.serialInterface.write((data + '\n').encode())
+
             callbacks = []
             with self.subscriberLock:
                 for s in self.subscribers:
@@ -186,6 +198,7 @@ def setSettings():
                 settings[x] = body[x]
 
         saveSettings()
+        loadSettings()
         sendRead("SETTINGS SAVED")
         return "", 200
     except Exception as ex:
@@ -302,20 +315,21 @@ def sendCommand():
 def home():
     global lastAction
     try:
-        setRotorPosition(0, 10, False)
-        readPositionUntilIdle()
-        manager.write('$H')
-        Time.sleep(0.5)
-        start = Time.perf_counter()
-        with SerialBuffer(manager) as buffer:
-            while (Time.perf_counter() - start) < 30:
-                manager.write('?')
-                line = buffer.readline(1)
-                buffer.clear()
-                if len(line) > 0:
-                    Time.sleep(0.5)
-                    manager.write("G0 X0 Y0")
-                    break        
+        with homingLock:
+            setRotorPosition(0, 10, False, keepOutOverride=True)
+            readPositionUntilIdle()
+            manager.write('$H')
+            Time.sleep(0.5)
+            start = Time.perf_counter()
+            with SerialBuffer(manager) as buffer:
+                while (Time.perf_counter() - start) < 30:
+                    manager.write('?')
+                    line = buffer.readline(1)
+                    buffer.clear()
+                    if len(line) > 0:
+                        Time.sleep(0.5)
+                        manager.write("G0 X0 Y0")
+                        break        
         return "", 200
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
@@ -352,12 +366,137 @@ def stow():
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
         return "Failed", 500
-    
-def setRotorPosition(xpos, ypos, absolute, feedRate = None):
-    global position, lastAction
 
-    readPositionUntilIdle()    
 
+def search(grid, init, goal):
+    DIRECTIONS = [(0,1), (1,0), (0,-1), (-1,0), (1,1), (-1,1), (1,-1), (-1,-1)]
+    heuristic = lambda x,y: math.dist((x,y), goal) * (3 if grid[x][y] else 1)
+
+    closed = [[0 for col in range(len(grid[0]))] for row in range(len(grid))]     
+    action = [[0 for col in range(len(grid[0]))] for row in range(len(grid))]
+    closed[init[0]][init[1]] = 1
+
+    x = init[0]
+    y = init[1]
+    g = 0
+    f = g + heuristic(x, y)
+    cell = [[f, g, x, y]]
+
+
+    while True:
+        if len(cell) == 0:
+            raise ValueError("Algorithm is unable to find solution")
+        else:  
+            cell.sort(key=lambda x: x[0], reverse=True)
+            next_cell = cell.pop()
+            x = next_cell[2]
+            y = next_cell[3]
+            g = next_cell[1]
+
+            if x == goal[0] and y == goal[1]:
+                break
+            else:
+                for i in range(len(DIRECTIONS)):
+                    x2 = x + DIRECTIONS[i][0]
+                    y2 = y + DIRECTIONS[i][1]
+                    if (0 <= x2 < len(grid) and 0 <= y2 < len(grid[0]) and not closed[x2][y2]):
+                        g2 = g + 1
+                        f2 = g2 + heuristic(x2, y2)
+                        cell.append([f2, g2, x2, y2])
+                        closed[x2][y2] = 1
+                        action[x2][y2] = i
+    invpath = []
+    x = goal[0]
+    y = goal[1]
+    invpath.append([x, y])
+    while x != init[0] or y != init[1]:
+        x2 = x - DIRECTIONS[action[x][y]][0]
+        y2 = y - DIRECTIONS[action[x][y]][1]
+        x = x2
+        y = y2
+        invpath.append([x, y])
+
+    path = []
+    for i in range(len(invpath)):
+        path.append(invpath[len(invpath) - 1 - i])
+
+    return path
+
+def smooth_path(path, grid):
+    if not path:
+        return []
+    smoothed = [path[0]]
+    for i in range(2, len(path)):
+        if not has_obstacle(smoothed[-1], path[i], grid):
+            continue  # skip middle point
+        smoothed.append(path[i-1])
+    smoothed.append(path[-1])
+    return smoothed
+
+def has_obstacle(p1, p2, grid):
+    x1, y1 = p1
+    x2, y2 = p2
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    sx = 1 if x1 < x2 else -1
+    sy = 1 if y1 < y2 else -1
+    err = dx - dy
+    while (x1, y1) != (x2, y2):
+        if grid[x1][y1]:
+            return True
+        e2 = 2 * err
+        if e2 > -dy:
+            err -= dy
+            x1 += sx
+        if e2 < dx:
+            err += dx
+            y1 += sy
+    return False
+
+def getMoves(x, y, keepOutOverride):
+    global position, grid, zones
+
+    moves = []    
+    if keepOutOverride or (x == position["x"] and y == position["y"] or len(zones) == 0): 
+        moves = [{"x": x, "y": y}]
+    else:
+        pos = (position["x"], position["y"])
+        lines = []
+        try:
+            path = smooth_path(search(grid, (round(pos[0]), round(pos[1])), (round(x), round(y))), grid)
+            for i in range(len(path) - 1):
+                lines.append(LineString((path[i], path[i + 1])))
+        except Exception as ex:
+            print(ex, flush=True)
+            print(traceback.format_exc(), flush=True)
+            lines = [LineString([pos, (x, y)])]
+
+
+        for line in lines:
+            inter = None
+            for zone in zones:
+                inter = zone.intersection(line)
+                if not inter.is_empty:
+                    break
+                
+            if inter is None or inter.is_empty:
+                moves.append({"x": line.coords[-1][0], "y": line.coords[-1][1]})
+            else:
+                print(inter, flush=True)
+                if inter.geom_type == "LineString":
+                    moves.append({"x": inter.coords[-1][0], "y": inter.coords[-1][1]})
+                elif inter.geom_type == "MultiPoint":
+                    moves.append({"x": inter[0].x, "y": inter[0].y})
+                elif inter.geom_type == "Point":
+                    moves.append({"x": inter.x, "y": inter.y})
+                break
+
+    return moves
+
+def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = False):
+    global position, lastAction, settings
+
+    readPositionUntilIdle()
     if absolute:
         diff = xpos - (position["x"] % 360)
         sign = 1 if diff == 0 else abs(diff) / diff
@@ -366,19 +505,25 @@ def setRotorPosition(xpos, ypos, absolute, feedRate = None):
         y = max(min(ypos, 180), 0)
     else:
         x = xpos + position["x"]             
-        y = max(min(ypos + position["y"], 180), 0)
+        y = max(min(ypos + position["y"], 180), 0)    
 
-    manager.write(f"$7=255")
-    if feedRate is None:
-        manager.write(f"G0 X{x} Y{y}")
-    else:
-        manager.write(f"G1 X{x} Y{y} F{feedRate}")
+    moves = getMoves(x, y, keepOutOverride)
+
+    if settings["displayPath"]:
+        socketio.emit("message", json.dumps({"type": "path", "data": [position] + moves}))
+
+    for move in moves:        
+        manager.write(f"$7=255")
+        if feedRate is None:
+            manager.write(f"G0 X{round(move['x'], 3)} Y{round(move['y'], 3)}")
+        else:
+            manager.write(f"G1 X{round(move['x'], 3)} Y{round(move['y'], 3)} F{feedRate}")
+        readPositionUntilIdle()
 
 def stowRotor(): 
     global idleStowed
     if not idleStowed:
-        setRotorPosition(0, 10, False)
-        setRotorPosition(settings["stowPosition"], 10, True)
+        setRotorPosition(settings["stowPosition"], 0, True)
         readPositionUntilIdle()
         manager.write(f"$7=25")
         manager.write(f"G0 Y0")
@@ -407,7 +552,7 @@ def watchMove(line):
     if match is not None:
         idleStowed = False
         lastAction = Time.time()
-        socketio.emit("message", json.dumps({"type": "target", "data": { "x": round(float(match.group('x')) % 360, 3), "y": round(float(match.group('y')), 3)}}))
+        socketio.emit("message", json.dumps({"type": "target", "data": { "x": round(float("0" if match.group('x') is None else match.group('x')) % 360, 3), "y": round(float("0" if match.group('y') is None else match.group('y')), 3)}}))
         readPositionUntilIdle()
 
 def reconnect():
@@ -442,11 +587,11 @@ def readPositionUntilIdle(wait = True):
                         position['x'] = float(match.group('x'))
                         position['y'] = float(match.group('y'))
                         if match.group('state') == 'Idle':
-                            Time.sleep(0.5) # allow serial response to propagate                    
+                            Time.sleep(0.1) # allow serial response to propagate                    
                             return
                     if Time.perf_counter() - start > 2:
                         sendRead("NO RESPONSE")
-                        return
+                        return                    
         except Exception as ex:
             print(traceback.format_exc(), flush=True)
 
@@ -476,10 +621,12 @@ def getState():
     readState()
     
 def idleMonitor():
-    global lastAction, idleStowed, lastHome
+    global lastAction, idleStowed, lastHome, manager
     while True:
         Time.sleep(1)
-        if (Time.time() - lastAction) > settings["idleTimeout"]:
+        if not manager.connected:
+            lastAction = Time.time()
+        elif (Time.time() - lastAction) > settings["idleTimeout"]:
             if not idleStowed:
                 if(Time.time() - lastHome) > settings["homePeriod"] * 60:
                     sendRead("HOMING")
@@ -497,7 +644,7 @@ def initSocket():
     global position, grblSettings, socketRef
     socketRef = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        port = 3002
+        port = 4533
         socketRef.bind(('', port)) 
         socketRef.listen(5) 
         print("Socket open: " + str(port), flush=True)
@@ -562,13 +709,32 @@ def initSerialManager():
 
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
+    
+def loadSettings():
+    global settings, zones, grid
+    f = open(f"./Data/settings", 'rb')
+    settings = json.loads(f.read())
+    f.close()
+
+    zones = []
+    grid = [[0 for y in range(90)] for x in range(-360, 360)]
+    for zone in settings["keepOutZones"]:
+        poly = Polygon((point['az'] - (360 if any(point['az'] > zone[(i + x) % len(zone)]['az'] + 180 for x in range(-1, 2)) else 0), point['el']) for i, point in enumerate(zone))
+        zones.append(poly)
+        poly = poly.buffer(2)
+        for x in range(round(poly.bounds[0]), round(poly.bounds[2])):
+            for y in range(round(poly.bounds[1]), round(poly.bounds[3])):
+                if poly.contains(Point(x, y)):
+                    if y >= 0:
+                        grid[round(x)][round(y)] = 1
+
+    res = shapely.union_all(zones)
+    zones = [p.boundary for p in (res if isinstance(res, Iterable) else [res])]
             
 def appStart():
     global settings, manager
     print("Loading Settings", flush=True)
-    f = open(f"./Data/settings", 'rb')
-    settings = json.loads(f.read())
-    f.close()
+    loadSettings()
     if not settings:
         exit("Failed to load settings")
 

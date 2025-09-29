@@ -1,1 +1,1 @@
-{"baud": 9600, "port": "/dev/ttyACM0", "offset": 104.998, "idleTimeout": 30, "stowPosition": 0, "homeOnStart": true, "homePeriod": 1440}
+{"baud": 9600, "port": "/dev/ttyACM0", "offset": 44.999, "idleTimeout": 30, "stowPosition": 0, "homeOnStart": true, "homePeriod": 1440, "displayPath": true, "keepOutZones": [[{"az": 135.6585431775636, "el": 4.8152026231087905}, {"az": 145.66034829453534, "el": 5.317439252969239}, {"az": 155.3914971954855, "el": -9.752385743592427}, {"az": 125.44571032759825, "el": -10.27713078553794}]]}
