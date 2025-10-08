@@ -372,16 +372,13 @@ def search(grid, init, goal):
     DIRECTIONS = [(0,1), (1,0), (0,-1), (-1,0), (1,1), (-1,1), (1,-1), (-1,-1)]
     heuristic = lambda x,y: math.dist((x,y), goal) * (3 if grid[x][y] else 1)
 
+    R = len(grid) / 2
+    H = len(grid[0])
     closed = [[0 for col in range(len(grid[0]))] for row in range(len(grid))]     
     action = [[0 for col in range(len(grid[0]))] for row in range(len(grid))]
     closed[init[0]][init[1]] = 1
 
-    x = init[0]
-    y = init[1]
-    g = 0
-    f = g + heuristic(x, y)
-    cell = [[f, g, x, y]]
-
+    cell = [[heuristic(init[0], init[1]), 0, init[0], init[1]]]
 
     while True:
         if len(cell) == 0:
@@ -396,22 +393,22 @@ def search(grid, init, goal):
             if x == goal[0] and y == goal[1]:
                 break
             else:
-                for i in range(len(DIRECTIONS)):
+                for i in range(8):
                     x2 = x + DIRECTIONS[i][0]
                     y2 = y + DIRECTIONS[i][1]
-                    if (0 <= x2 < len(grid) and 0 <= y2 < len(grid[0]) and not closed[x2][y2]):
+                    if (-R < x2 <= R and 0 <= y2 < H and not closed[x2 + R][y2]):
                         g2 = g + 1
                         f2 = g2 + heuristic(x2, y2)
                         cell.append([f2, g2, x2, y2])
-                        closed[x2][y2] = 1
-                        action[x2][y2] = i
+                        closed[x2 + R][y2] = 1
+                        action[x2 + R][y2] = i
     invpath = []
     x = goal[0]
     y = goal[1]
     invpath.append([x, y])
     while x != init[0] or y != init[1]:
-        x2 = x - DIRECTIONS[action[x][y]][0]
-        y2 = y - DIRECTIONS[action[x][y]][1]
+        x2 = x - DIRECTIONS[action[x + R][y]][0]
+        y2 = y - DIRECTIONS[action[x + R][y]][1]
         x = x2
         y = y2
         invpath.append([x, y])
@@ -457,13 +454,15 @@ def getMoves(x, y, keepOutOverride):
     global position, grid, zones
 
     moves = []    
-    if keepOutOverride or (x == position["x"] and y == position["y"] or len(zones) == 0): 
+    if keepOutOverride or (x == position["x"] and y == position["y"] or len(zones) == 0) or not settings["usePathing"]: 
         moves = [{"x": x, "y": y}]
     else:
         pos = (position["x"], position["y"])
         lines = []
+        offset = math.floor(abs((x - (x  % 360))) / 360) * 360
+
         try:
-            path = smooth_path(search(grid, (round(pos[0]), round(pos[1])), (round(x), round(y))), grid)
+            path = smooth_path(search(grid, (round(pos[0] + offset), round(pos[1])), (round(x + offset), round(y))), grid)
             for i in range(len(path) - 1):
                 lines.append(LineString((path[i], path[i + 1])))
         except Exception as ex:
@@ -480,15 +479,15 @@ def getMoves(x, y, keepOutOverride):
                     break
                 
             if inter is None or inter.is_empty:
-                moves.append({"x": line.coords[-1][0], "y": line.coords[-1][1]})
+                moves.append({"x": line.coords[-1][0] - offset, "y": line.coords[-1][1]})
             else:
                 print(inter, flush=True)
                 if inter.geom_type == "LineString":
-                    moves.append({"x": inter.coords[-1][0], "y": inter.coords[-1][1]})
+                    moves.append({"x": inter.coords[-1][0] - offset, "y": inter.coords[-1][1]})
                 elif inter.geom_type == "MultiPoint":
-                    moves.append({"x": inter[0].x, "y": inter[0].y})
+                    moves.append({"x": inter.geoms[0].x - offset, "y": inter.geoms[0].y})
                 elif inter.geom_type == "Point":
-                    moves.append({"x": inter.x, "y": inter.y})
+                    moves.append({"x": inter.x - offset, "y": inter.y})
                 break
 
     return moves
@@ -518,7 +517,8 @@ def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = Fa
             manager.write(f"G0 X{round(move['x'], 3)} Y{round(move['y'], 3)}")
         else:
             manager.write(f"G1 X{round(move['x'], 3)} Y{round(move['y'], 3)} F{feedRate}")
-        readPositionUntilIdle()
+        if settings["waitWhilePathing"]:
+            readPositionUntilIdle()
 
 def stowRotor(): 
     global idleStowed
