@@ -1,0 +1,7 @@
+hcsr04sensor
+flask
+flask_cors
+gunicorn
+adafruit-circuitpython-dht
+mysql-connector-python
+RPi.GPIO
