@@ -33,10 +33,45 @@
     }
 }
 
+.plot-container {
+    &.zoom {
+        background: #00000052;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+
+        &>div {
+            max-height: 95%;
+            max-width: 95%;
+            aspect-ratio: 1;
+
+            .canvas-container {
+                canvas {
+                    max-width: none;
+                }
+            }
+        }
+    }
+}
+
+.spacer {
+    width: calc(min(375px, 50vw - 48px));
+    height: 100%;
+    aspect-ratio: 1;
+}
+
 .canvas-container {
     aspect-ratio: 1;
     border-radius: 8px;
     overflow: hidden;
+    height: 100%;
+    width: 100%;
 
     canvas {
         max-width: 375px;
@@ -92,6 +127,7 @@ button {
                 background: #f3f3f3;
                 overflow: hidden;
                 height: 300px;
+                flex-shrink: 0;
 
                 .title {
                     display: flex;
