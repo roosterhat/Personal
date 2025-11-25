@@ -5,7 +5,6 @@ function uuidv4() {
 }
 
 function loess(xval, yval, bandwidth) {
-	console.log("loess", bandwidth)
     function tricube(x) {
         var tmp = 1 - x * x * x;
         return tmp * tmp * tmp;

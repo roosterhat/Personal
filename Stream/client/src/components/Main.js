@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon, RefreshCcw } from "lucide-react";
 import Settings from './Settings';
 import { loess } from '../utility';
 
 
 export default function StreamGuage() {
-    let now = new Date()
+    const getNow = () => new Date(new Date(new Date().setTime(Date.now() + 86400000)).toDateString())
+
+    let now = getNow()
     const [settings, setSettingsState] = useState({})
     const [dateRange, setDateRangeState] = useState([new Date(now.getTime() - 86400000), now])
     const [dateRangeScale, setDateRangeScaleState] = useState("day")
     const [viewType, setviewTypeState] = useState("full")
+    const [loading, setLoading] = useState(false)
 
     const data = useRef([])
     const toggleDisplaySettings = useRef(null)
 
-    const origin = "http://192.168.1.27:3001"//window.location.origin
+    const origin = window.location.origin
 
 
     useEffect(() => {
@@ -33,10 +36,8 @@ export default function StreamGuage() {
     }, [settings])
 
     useEffect(() => {
-        (async () => {
-            await getData()
-            plot()
-        })()
+        refreshData()
+
         return () => { }
     }, [dateRange, viewType])
 
@@ -67,6 +68,7 @@ export default function StreamGuage() {
 
     const getData = async () => {
         try {
+            setLoading(true)
             let response = await fetch(`${origin}/api/list`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -83,6 +85,9 @@ export default function StreamGuage() {
         catch (e) {
             console.log(e)
         }
+        finally {
+            setLoading(false)
+        }
     }
 
     const updateAndSaveSettings = (s) => {
@@ -96,7 +101,7 @@ export default function StreamGuage() {
 
     const updateViewType = (type) => {
         setviewTypeState(type)
-    }    
+    }        
 
     const getDateOffset = (date, amount, scale) => {
         if (scale == "day")
@@ -106,7 +111,7 @@ export default function StreamGuage() {
         else if (scale == "month")
             return new Date(new Date(date.getTime()).setMonth(date.getMonth() + amount))
         else if (scale == "year")
-            return new Date(new Date(date.getTime()).setYear(date.getYear() + amount))
+            return new Date(new Date(date.getTime()).setYear(date.getFullYear() + amount))
     }
 
     const incrementDateRange = (dir) => {
@@ -114,19 +119,38 @@ export default function StreamGuage() {
     }
 
     const setDateRangeScale = (scale) => {
+        if(scale == "month" && viewType == "full")
+            updateViewType("hour")
+
+        if(scale == "year" && viewType == "full")
+            updateViewType("hour")
+
         setDateRangeScaleState(scale)
-        console.log(getDateOffset(dateRange[1], -1, scale), dateRange[1])
-        setDateRangeState([getDateOffset(dateRange[1], -1, scale), dateRange[1]])        
+        let now = getNow()
+        setDateRangeState([getDateOffset(now, -1, scale), now])        
     }
 
     const getLoessData = (data) => {
         const xval = data.map((x, i) => i)
-        const res = loess(xval, data, settings["trendlineAccuracy"]);
+        const res = loess(xval, data, Number(settings["trendlineAccuracy"]));
         return res
     }
 
+    const refreshData = async () => {
+        await getData()
+        plot()
+    }
+
+    const formatDate = (date) => {
+        const format = new Intl.DateTimeFormat('en-US', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
+        return format.format(date);
+    }
+
     const plot = () => {
-        console.log("plot", settings)
         if (!data.current["metadata"] || !data.current["data"]) return
 
         let plotData = []
@@ -136,10 +160,10 @@ export default function StreamGuage() {
         let earliestDate = new Date()
 
         for (let d of data.current["data"]) {
-            let value = d[0] - average
+            let value = average - d[0]
             let date = new Date(d[2])
 
-            earliestDate = Math.min(earliestDate, date)
+            earliestDate = new Date(Math.min(earliestDate, date))
 
             heightData[0].push(date)
             heightData[1].push(value)
@@ -208,10 +232,12 @@ export default function StreamGuage() {
             name: 'temperature'
         })
 
-        let now = new Date()
         let layout = {
             autosize: true,
             dragmode: "pan",
+            selectdirection: "h",
+            hovermode: "x unified",
+            hoversubplots: "axis",
             paper_bgcolor: '#ffffff50',
             plot_bgcolor: '#ffffff50',
             legend: { x: 0.4, y: 1.2 },
@@ -226,14 +252,12 @@ export default function StreamGuage() {
                 range: [tempRange[0] == Number.MAX_VALUE ? 0 : tempRange[0] - 5, tempRange[1] == Number.MIN_VALUE ? 0 : tempRange[1] + 5]
             },
             xaxis: {
-                range: [Math.max(new Date(now.getTime() - 86400000), earliestDate), now]
+                range: [new Date(Math.max(dateRange[0], earliestDate)).toLocaleString("en-US"), dateRange[1].toLocaleString("en-US")]
             }
         }
         let config = {
             displayModeBar: true
         }
-
-        console.log(plotData)
 
         let plot = document.getElementById('plot')
         window.Plotly.newPlot(plot, { data: plotData, layout: layout, config: config });
@@ -242,7 +266,7 @@ export default function StreamGuage() {
     return (
         <div className="main">
             <div className="plot">
-                <div className="plot-header">
+                <div className="plot-header">                    
                     <div className="radio-group">
                         <label>
                             <input type="radio" name="view" id="full" checked={viewType == "full"} onChange={() => updateViewType("full")}></input>
@@ -275,8 +299,9 @@ export default function StreamGuage() {
                             <span>Year</span>
                         </label>
                     </div>
+                    <button className={"refresh" + (loading ? " loading" : "")} onClick={() => setDateRangeScale(dateRangeScale)}><RefreshCcw /></button>
                 </div>
-                <div className="daterange">{dateRange[0].toJSON()} - {dateRange[1].toJSON()}</div>
+                <div className="daterange">{formatDate(dateRange[0])} - {formatDate(dateRange[1])}</div>
                 <div className="plot-wrapper">
                     <button onClick={() => incrementDateRange(-1)}>{"<"}</button>
                     <div id="plot"></div>

@@ -1,15 +1,12 @@
 from flask import Flask, request, send_from_directory
 from flask_cors import CORS
-import re
-from os import listdir, path as Path, system
+from os import path as Path
 import sys
 import json
-import uuid
-from datetime import datetime, timedelta, time
+from datetime import datetime, timezone
 import time as Time
 from threading import Thread
 import traceback
-import random
 from hcsr04sensor import sensor as hcsr04
 import board
 from adafruit_dht import DHT11
@@ -19,7 +16,7 @@ import mysql.connector
 
 class FlaskWrapper(Flask):
     def __init__(self):
-        super().__init__(__name__, static_folder='../Client/build')
+        super().__init__(__name__, static_folder='../client/build')
 
     def cleanup(self):
         global DHT11Sensor
@@ -64,7 +61,7 @@ def listMeasurments():
         body = request.get_json(force = True, silent = True)
         with mysql.connector.connect(**config) as conn:
             with conn.cursor() as cursor:
-                if body["type"] == "fine":
+                if body["type"] == "full":
                     sql = "SELECT * FROM data WHERE datetime >= %s AND datetime <= %s ORDER BY datetime"
                 elif body["type"] == "hour":
                     sql = "SELECT AVG(value), AVG(temperature), FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(datetime) / 3600) * 3600) as datetime FROM data WHERE datetime >= %s AND datetime <= %s GROUP BY FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(datetime) / 3600) * 3600) ORDER BY datetime"
@@ -87,27 +84,26 @@ def saveSettings():
     if body is None:
         return 'No settings data', 400
     
-    try:        
-        f = open(f"./Data/settings", 'w')
-        f.write(json.dumps(settings))
+    try:
+        for key in settings:
+            settings[key] = body[key]
+
+        with open(f"./Data/settings", 'w') as f:
+            f.write(json.dumps(settings))
         return "Success", 200
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
         return "Failed", 500
-    finally:
-        f.close()
 
 @app.route('/api/settings', methods=["GET"])
 def retrieveSettings():
     try:
-        f = open(f"./Data/settings", 'r')
-        data = json.loads(f.read())
-        return data, 200, {'Content-Type':'application/json'} 
+        with open(f"./Data/settings", 'r') as f:
+            data = json.loads(f.read())
+            return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
         return "Failed", 500
-    finally:
-        f.close()
 
 def temperatureWorker():
     while True:
@@ -133,7 +129,7 @@ def temperatureWorker():
                     except Exception as error:
                         print("temperatureWorker, Error: " + str(error), flush=True)
                         raise error                    
-                Time.sleep(settings["temperaturePeriod"])
+                Time.sleep(int(settings["temperaturePeriod"]))
         finally:
             if DHT11Sensor:
                 DHT11Sensor.exit()
@@ -150,7 +146,7 @@ def ultrasonicWorker():
                 value = sensor.raw_distance()
                 with mysql.connector.connect(**config) as conn:
                     with conn.cursor() as cursor:
-                        cursor.execute("INSERT INTO data VALUES (%s, %s, %s)", (value, sensorData["temperature"], datetime.now()))
+                        cursor.execute("INSERT INTO data VALUES (%s, %s, %s)", (value, sensorData["temperature"], datetime.now(timezone.utc)))
                         cursor.execute("SELECT (SELECT total from metadata) as total, (SELECT COUNT(value) from data) as count")
                         row = cursor.fetchone()
                         total = row[0] + value
@@ -159,7 +155,7 @@ def ultrasonicWorker():
                     conn.commit()
             except Exception as error:
                 print("ultrasonicWorker, Error: " + str(error), flush=True)
-            Time.sleep(settings["ultrasonicPeriod"])
+            Time.sleep(int(settings["ultrasonicPeriod"]))
     finally:
         GPIO.cleanup((TRIG_PIN, ECHO_PIN))    
 

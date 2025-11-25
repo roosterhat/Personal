@@ -25,7 +25,6 @@ class Settings extends React.Component {
             for (let k in this.props.settings)
                 this.state.settings[k] = this.props.settings[k]
 
-            console.log("settings", this.state.settings)
             this.setState(this.state.settings)
         }
     }
