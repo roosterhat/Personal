@@ -12,6 +12,7 @@ import board
 from adafruit_dht import DHT11
 import RPi.GPIO as GPIO
 import mysql.connector
+import ADS1x15
 
 
 class FlaskWrapper(Flask):
@@ -38,8 +39,8 @@ settings = {}
 sensorData = { "temperature": 15 }
 DHT11Sensor = None
 DEBUG = len(sys.argv) >= 2 and sys.argv[1] == 'debug'
-TRIG_PIN = 3
-ECHO_PIN = 2
+TRIG_PIN = 14
+ECHO_PIN = 15
 config = {
   'user': 'admin',
   'password': 'password',
@@ -55,8 +56,8 @@ def serve(path):
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
-@app.route('/api/list', methods=["POST"])
-def listMeasurments():
+@app.route('/api/measurements', methods=["POST"])
+def getMeasurments():
     try:
         body = request.get_json(force = True, silent = True)
         with mysql.connector.connect(**config) as conn:
@@ -68,11 +69,27 @@ def listMeasurments():
                 elif body["type"] == "day":
                     sql = "SELECT AVG(value), AVG(temperature), DATE(datetime) FROM data WHERE datetime >= %s AND datetime <= %s GROUP BY DATE(datetime) ORDER BY datetime"
                 cursor.execute(sql, (body["start"], body["end"]))
-                #data = [{"value": x[0], "temp": x[1], "time": x[2].isoformat()} for x in cursor.fetchall()]
                 data = [[round(x[0], 2), round(x[1], 2), x[2].isoformat()] for x in cursor.fetchall()]
                 cursor.execute("SELECT average from metadata")
                 row = cursor.fetchone()
                 return json.dumps({ "data": data, "metadata": { "average": row[0] }}), 200, {'Content-Type':'application/json'} 
+    except Exception as ex:
+        print(traceback.format_exc(), flush=True)
+        return "Failed", 500
+    
+@app.route('/api/battery', methods=["POST"])
+def getBattery():
+    try:
+        body = request.get_json(force = True, silent = True)
+        with mysql.connector.connect(**config) as conn:
+            with conn.cursor() as cursor:
+                if body["type"] == "range":
+                    cursor.execute("SELECT * FROM battery WHERE datetime >= %s AND datetime <= %s ORDER BY datetime", (body["start"], body["end"]))
+                elif body["type"] == "current":
+                    cursor.execute("SELECT * from battery ORDER BY datetime DESC LIMIT 1")
+                
+                data = [[round(x[1], 2), x[2].isoformat()] for x in cursor.fetchall()]
+                return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
         return "Failed", 500
@@ -107,9 +124,10 @@ def retrieveSettings():
 
 def temperatureWorker():
     while True:
-        global DHT11Sensor, sensorData
-        DHT11Sensor = DHT11(board.D4)
+        global DHT11Sensor, sensorData        
         try:
+            DHT11Sensor = DHT11(board.D4)
+
             while True:
                 retries = 0            
                 while True:
@@ -131,8 +149,11 @@ def temperatureWorker():
                         raise error                    
                 Time.sleep(int(settings["temperaturePeriod"]))
         finally:
-            if DHT11Sensor:
-                DHT11Sensor.exit()
+            try:
+                if DHT11Sensor:
+                    DHT11Sensor.exit()
+            except:
+                pass
 
 def ultrasonicWorker():   
     global sensorData    
@@ -159,6 +180,28 @@ def ultrasonicWorker():
     finally:
         GPIO.cleanup((TRIG_PIN, ECHO_PIN))    
 
+def batteryWorker():   
+    try:
+        ADS = ADS1x15.ADS1115(1)
+        ADS.setMode(1)
+        ADS.setGain(0)
+
+        while True:
+            try:
+                raw = ADS.readADC(0)
+                VCF = float(settings["voltageConversionFactor"])
+                voltage = ADS.toVoltage(raw) if VCF == 0 else raw * VCF
+
+                with mysql.connector.connect(**config) as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("INSERT INTO battery VALUES (%s, %s, %s)", (raw, voltage, datetime.now(timezone.utc)))
+                    conn.commit()
+            except Exception as error:
+                print("batteryWorker, Error: " + str(error), flush=True)
+            Time.sleep(int(settings["batteryPeriod"]))
+    except Exception as ex:
+         print("batteryWorker, Start up Error: " + str(error), flush=True)
+
 def appStart():
     global settings
     print("Loading Settings", flush=True)
@@ -170,6 +213,8 @@ def appStart():
     Thread(target=temperatureWorker).start()
     print("Starting Ultrasonic Manager", flush=True)
     Thread(target=ultrasonicWorker).start()
+    print("Starting Battery Manager", flush=True)
+    Thread(target=batteryWorker).start()
     print("Loading Complete", flush=True)
     if DEBUG:
         try:

@@ -1,1 +1,1 @@
-{"ultrasonicPeriod": 10, "temperaturePeriod": 60, "temperatureUnit": "C"}
+{"ultrasonicPeriod": "30", "temperaturePeriod": 60, "batteryPeriod": 60, "temperatureUnit": "C", "trendlineAccuracy": "0.05", "voltageConversionFactor": "0", "batteryMax": 4.2, "batteryMin": 3}

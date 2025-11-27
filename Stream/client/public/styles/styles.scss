@@ -17,15 +17,15 @@ body {
 
     .settings-icon {
         position: absolute;
-        top: 10px;
-        right: 10px;
+        top: 8px;
+        right: 8px;
         height: 40px;
         width: 40px;
     }
 
     .close {
-        height: 24px;
-        width: 24px;
+        height: 30px;
+        width: 30px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -103,11 +103,16 @@ body {
             display: flex;
             justify-content: space-evenly;
             margin: 8px 0;
+            padding-right: 55px;
+            gap: 8px;
 
             .radio-group {
                 display: flex;
                 gap: 8px;
                 align-items: center;
+                overflow: auto;
+                border: solid 1px #000;
+                border-radius: 4px;
 
                 input[type="radio"]:checked~span {
                     background: #b3b3b3;
@@ -212,6 +217,7 @@ body {
             .header {
                 display: flex;
                 justify-content: space-between;
+                height: 30px;
             }
 
             .spinner {
@@ -225,7 +231,7 @@ body {
                 align-items: center;
                 z-index: 1;
 
-                svg {                    
+                svg {
                     animation: rotateCW 1s linear infinite;
                     width: 100;
                     height: 100;

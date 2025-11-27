@@ -5,3 +5,4 @@ gunicorn
 adafruit-circuitpython-dht
 mysql-connector-python
 RPi.GPIO
+ADS1x15-ADC
