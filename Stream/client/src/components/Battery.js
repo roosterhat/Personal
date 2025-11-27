@@ -1,8 +1,9 @@
 import React from 'react'
 import { Battery as BatteryIcon, LoaderCircle, X as XIcon } from "lucide-react";
+import { loess } from '../utility';
 
 class Battery extends React.Component {
-    origin = "http://192.168.1.27:3001"//window.location.origin
+    origin = window.location.origin
 
     constructor(props) {
         super(props);
@@ -94,6 +95,12 @@ class Battery extends React.Component {
         this.openPlot()
     }
 
+    getLoessData = (data) => {
+        const xval = data.map((x, i) => i)
+        const res = loess(xval, data, Number(this.props.settings["trendlineAccuracy"]));
+        return res
+    }
+
     plot = () => {
         let plotData = []
         let batteryData = [[], []]
@@ -117,6 +124,21 @@ class Battery extends React.Component {
             line: {
                 color: '#3780bf55',
                 width: 3
+            },
+            yaxis: 'y1',
+            name: 'voltage'
+        })
+
+        plotData.push({
+            x: batteryData[0],
+            y: this.getLoessData(batteryData[1]),
+            showlegend: false,
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#3780bf',
+                width: 3,
+                dash: 'longdashdot'
             },
             yaxis: 'y1',
             name: 'voltage'

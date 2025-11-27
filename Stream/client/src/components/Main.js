@@ -18,7 +18,7 @@ export default function StreamGuage() {
     const data = useRef([])
     const toggleDisplaySettings = useRef(null)
 
-    const origin = "http://192.168.1.27:3001"//window.location.origin
+    const origin = window.location.origin
 
 
     useEffect(() => {
@@ -144,10 +144,6 @@ export default function StreamGuage() {
     const refreshData = async () => {
         await getData()
         plot()
-    }
-
-    const refresh = async () => {
-        
     }
 
     const formatDate = (date) => {

@@ -12,8 +12,7 @@ class Settings extends React.Component {
             ["Battery Period (s)", "batteryPeriod", "input"],
             ["Trend Line Accuracy", "trendlineAccuracy", "input"],
             ["Battery Min", "batteryMin", "input"],
-            ["Battery Max", "batteryMax", "input"],
-            ["Voltage Conversion Const", "voltageConversionFactor", "input"],
+            ["Battery Max", "batteryMax", "input"]
         ]
 
         this.props.setToggleSettings(this.toggleSettings)

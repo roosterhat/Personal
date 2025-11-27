@@ -88,7 +88,7 @@ def getBattery():
                 elif body["type"] == "current":
                     cursor.execute("SELECT * from battery ORDER BY datetime DESC LIMIT 1")
                 
-                data = [[round(x[1], 2), x[2].isoformat()] for x in cursor.fetchall()]
+                data = [[round(x[0], 2), x[1].isoformat()] for x in cursor.fetchall()]
                 return data, 200, {'Content-Type':'application/json'} 
     except Exception as ex:
         print(traceback.format_exc(), flush=True)
@@ -188,13 +188,11 @@ def batteryWorker():
 
         while True:
             try:
-                raw = ADS.readADC(0)
-                VCF = float(settings["voltageConversionFactor"])
-                voltage = ADS.toVoltage(raw) if VCF == 0 else raw * VCF
+                voltage = ADS.toVoltage(ADS.readADC(0)) 
 
                 with mysql.connector.connect(**config) as conn:
                     with conn.cursor() as cursor:
-                        cursor.execute("INSERT INTO battery VALUES (%s, %s, %s)", (raw, voltage, datetime.now(timezone.utc)))
+                        cursor.execute("INSERT INTO battery VALUES (%s, %s)", (voltage, datetime.now(timezone.utc)))
                     conn.commit()
             except Exception as error:
                 print("batteryWorker, Error: " + str(error), flush=True)
