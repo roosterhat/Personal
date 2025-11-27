@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Settings as SettingsIcon, RefreshCcw } from "lucide-react";
 import Settings from './Settings';
 import { loess } from '../utility';
+import Battery from './Battery';
 
 
 export default function StreamGuage() {
@@ -17,7 +18,7 @@ export default function StreamGuage() {
     const data = useRef([])
     const toggleDisplaySettings = useRef(null)
 
-    const origin = window.location.origin
+    const origin = "http://192.168.1.27:3001"//window.location.origin
 
 
     useEffect(() => {
@@ -69,7 +70,7 @@ export default function StreamGuage() {
     const getData = async () => {
         try {
             setLoading(true)
-            let response = await fetch(`${origin}/api/list`, {
+            let response = await fetch(`${origin}/api/measurements`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -88,7 +89,7 @@ export default function StreamGuage() {
         finally {
             setLoading(false)
         }
-    }
+    }    
 
     const updateAndSaveSettings = (s) => {
         console.log("updateAndSaveSettings", JSON.stringify(s))
@@ -141,6 +142,10 @@ export default function StreamGuage() {
         plot()
     }
 
+    const refresh = async () => {
+        
+    }
+
     const formatDate = (date) => {
         const format = new Intl.DateTimeFormat('en-US', {
             day: '2-digit',
@@ -158,10 +163,11 @@ export default function StreamGuage() {
         let heightData = [[], []], tempData = [[], []]
         let average = data.current["metadata"]["average"]
         let earliestDate = new Date()
+        let offset = new Date().getTimezoneOffset() / 60 * 3600000
 
         for (let d of data.current["data"]) {
             let value = average - d[0]
-            let date = new Date(d[2])
+            let date = new Date(new Date(d[2]).getTime() - offset)
 
             earliestDate = new Date(Math.min(earliestDate, date))
 
@@ -300,6 +306,7 @@ export default function StreamGuage() {
                         </label>
                     </div>
                     <button className={"refresh" + (loading ? " loading" : "")} onClick={() => setDateRangeScale(dateRangeScale)}><RefreshCcw /></button>
+                    <Battery settings={settings}/>
                 </div>
                 <div className="daterange">{formatDate(dateRange[0])} - {formatDate(dateRange[1])}</div>
                 <div className="plot-wrapper">

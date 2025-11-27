@@ -23,6 +23,18 @@ body {
         width: 40px;
     }
 
+    .close {
+        height: 24px;
+        width: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f00;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+    }
+
     .settings {
         transform: translateX(100%);
         transition: 0.5s;
@@ -50,18 +62,6 @@ body {
             justify-content: space-between;
             flex-shrink: 0;
             font-size: 32px;
-
-            .close {
-                height: 24px;
-                width: 24px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: #f00;
-                color: #fff;
-                border: none;
-                border-radius: 4px;
-            }
         }
 
         .body {
@@ -141,7 +141,7 @@ body {
                 justify-content: center;
 
                 &.loading svg {
-                    animation: rotate 1s linear infinite;
+                    animation: rotateCCW 1s linear infinite;
                 }
             }
         }
@@ -164,20 +164,91 @@ body {
                 padding-bottom: 20px;
             }
 
-            & > button {
+            &>button {
                 height: 200px;
                 margin: 8px;
             }
         }
     }
+
+    .battery-container {
+        .battery {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+
+            span {
+                position: absolute;
+                font-size: 10px;
+                background: #000;
+                color: #fff;
+                transform: translateX(-2px);
+                width: 16px;
+                text-align: center;
+            }
+        }
+
+        .battery-plot-container {
+            position: fixed;
+            width: 90%;
+            height: 90%;
+            max-width: 500px;
+            max-height: 500px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            z-index: 1;
+            border-radius: 8px;
+            box-shadow: -4px 4px 9px 0 #b9b9b9;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+
+            .header {
+                display: flex;
+                justify-content: space-between;
+            }
+
+            .spinner {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1;
+
+                svg {                    
+                    animation: rotateCW 1s linear infinite;
+                    width: 100;
+                    height: 100;
+                }
+            }
+        }
+    }
 }
 
-@keyframes rotate {
+@keyframes rotateCW {
     0% {
         transform: rotate(0deg);
     }
 
     100% {
-        transform: rotate(360deg);
+        transform: rotate(-360deg);
+    }
+}
+
+@keyframes rotateCCW {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(-360deg);
     }
 }

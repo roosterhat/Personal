@@ -9,7 +9,11 @@ class Settings extends React.Component {
         this.fields = [
             ["Ultrasonic Period (s)", "ultrasonicPeriod", "input"],
             ["Temperature Period (s)", "temperaturePeriod", "input"],
+            ["Battery Period (s)", "batteryPeriod", "input"],
             ["Trend Line Accuracy", "trendlineAccuracy", "input"],
+            ["Battery Min", "batteryMin", "input"],
+            ["Battery Max", "batteryMax", "input"],
+            ["Voltage Conversion Const", "voltageConversionFactor", "input"],
         ]
 
         this.props.setToggleSettings(this.toggleSettings)
