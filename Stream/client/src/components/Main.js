@@ -27,7 +27,11 @@ export default function StreamGuage() {
             await getSettings()
         })()
 
-        return () => { }
+        window.addEventListener("resize", plot)
+
+        return () => { 
+            window.removeEventListener("resize", plot)
+        }
     }, [])
 
     useEffect(() => {
