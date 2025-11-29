@@ -59,8 +59,8 @@ class Battery extends React.Component {
             if (response.status == 200) {
                 let data = await response.json()
                 let percent = this.props.settings ? 
-                    Math.round((data[0][0] - Number(this.props.settings["batteryMin"])) / (Number(this.props.settings["batteryMax"]) - Number(this.props.settings["batteryMin"])) * 100)
-                    : 0
+                    Math.max(Math.round((data[0][0] - Number(this.props.settings["batteryMin"])) / (Number(this.props.settings["batteryMax"]) - Number(this.props.settings["batteryMin"])) * 100), 0)
+                    : "-"
                 this.setState({battery: percent})
             }
         }
@@ -92,6 +92,7 @@ class Battery extends React.Component {
     
     setDateRange = (range) => {
         this.setState({dateRange: range})
+        this.state.dateRange = range
         this.openPlot()
     }
 

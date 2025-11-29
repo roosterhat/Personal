@@ -1,152 +1,61 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import { Settings as SettingsIcon, RefreshCcw } from "lucide-react";
 import Settings from './Settings';
 import { loess } from '../utility';
 import Battery from './Battery';
 
+class StreamGuage extends React.Component {
+    constructor(props) {
+        super(props);
+        
+        const now = this.getNow();
 
-export default function StreamGuage() {
-    const getNow = () => new Date(new Date(new Date().setTime(Date.now() + 86400000)).toDateString())
+        this.state = {
+            settings: {},
+            dateRange: [new Date(now.getTime() - 86400000), now],
+            dateRangeScale: "day",
+            viewType: "full",
+            loading: false,
+        };
 
-    let now = getNow()
-    const [settings, setSettingsState] = useState({})
-    const [dateRange, setDateRangeState] = useState([new Date(now.getTime() - 86400000), now])
-    const [dateRangeScale, setDateRangeScaleState] = useState("day")
-    const [viewType, setviewTypeState] = useState("full")
-    const [loading, setLoading] = useState(false)
+        this.data = [];
+        this.toggleDisplaySettings = null;
 
-    const data = useRef([])
-    const toggleDisplaySettings = useRef(null)
+        this.origin = window.location.origin;
+    }
 
-    const origin = window.location.origin
+    async componentDidMount() {
+        await this.getData();
+        await this.getSettings();
 
+        window.addEventListener("resize", this.plot);
+    }
 
-    useEffect(() => {
-        (async () => {
-            await getData()
-            await getSettings()
-        })()
-
-        window.addEventListener("resize", plot)
-
-        return () => { 
-            window.removeEventListener("resize", plot)
+    componentDidUpdate(prevProps, prevState) {
+        if (prevState.settings !== this.state.settings) {
+            this.plot();
         }
-    }, [])
 
-    useEffect(() => {
-        plot()
-
-        return () => { }
-    }, [settings])
-
-    useEffect(() => {
-        refreshData()
-
-        return () => { }
-    }, [dateRange, viewType])
-
-    const getSettings = async () => {
-        try {
-            let response = await fetch(`${origin}/api/settings`);
-            if (response.status == 200) {
-                setSettingsState(await response.json())
-            }
-        }
-        catch (e) {
-            console.log(e)
+        if (prevState.dateRange !== this.state.dateRange || prevState.viewType !== this.state.viewType) {
+            this.refreshData();
         }
     }
 
-    const saveSettings = async (s) => {
-        try {
-            let response = await fetch(`${origin}/api/settings`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(s)
-            });
-        }
-        catch (e) {
-            console.log(e)
-        }
+    componentWillUnmount() {
+        window.removeEventListener("resize", this.plot);
     }
 
-    const getData = async () => {
-        try {
-            setLoading(true)
-            let response = await fetch(`${origin}/api/measurements`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    "start": dateRange[0].toISOString(),
-                    "end": dateRange[1].toISOString(),
-                    "type": viewType
-                })
-            });
-            if (response.status == 200) {
-                data.current = await response.json()
-            }
-        }
-        catch (e) {
-            console.log(e)
-        }
-        finally {
-            setLoading(false)
-        }
-    }    
+    getNow = () => new Date(new Date(new Date().setTime(Date.now() + 86400000)).toDateString())
 
-    const updateAndSaveSettings = (s) => {
-        console.log("updateAndSaveSettings", JSON.stringify(s))
-        for (let k in s)
-            settings[k] = s[k]
-        setSettingsState(s)
-        saveSettings(s)
-        plot()
+    getLoessData = (data) => {
+        const xval = data.map((x, i) => i);
+        const { settings } = this.state;
+        const accuracy = settings["trendlineAccuracy"] ? Number(settings["trendlineAccuracy"]) : 0.5;
+        const res = loess(xval, data, accuracy);
+        return res;
     }
 
-    const updateViewType = (type) => {
-        setviewTypeState(type)
-    }        
-
-    const getDateOffset = (date, amount, scale) => {
-        if (scale == "day")
-            return new Date(date.getTime() + 86400000 * amount)
-        else if (scale == "week")
-            return new Date(date.getTime() + 86400000 * amount * 7)
-        else if (scale == "month")
-            return new Date(new Date(date.getTime()).setMonth(date.getMonth() + amount))
-        else if (scale == "year")
-            return new Date(new Date(date.getTime()).setYear(date.getFullYear() + amount))
-    }
-
-    const incrementDateRange = (dir) => {
-        setDateRangeState([getDateOffset(dateRange[0], dir, dateRangeScale), getDateOffset(dateRange[1], dir, dateRangeScale)])
-    }
-
-    const setDateRangeScale = (scale) => {
-        if(scale == "month" && viewType == "full")
-            updateViewType("hour")
-
-        if(scale == "year" && viewType == "full")
-            updateViewType("hour")
-
-        setDateRangeScaleState(scale)
-        let now = getNow()
-        setDateRangeState([getDateOffset(now, -1, scale), now])        
-    }
-
-    const getLoessData = (data) => {
-        const xval = data.map((x, i) => i)
-        const res = loess(xval, data, Number(settings["trendlineAccuracy"]));
-        return res
-    }
-
-    const refreshData = async () => {
-        await getData()
-        plot()
-    }
-
-    const formatDate = (date) => {
+    formatDate = (date) => {
         const format = new Intl.DateTimeFormat('en-US', {
             day: '2-digit',
             month: '2-digit',
@@ -155,17 +64,126 @@ export default function StreamGuage() {
         return format.format(date);
     }
 
-    const plot = () => {
-        if (!data.current["metadata"] || !data.current["data"]) return
+    getDateOffset = (date, amount, scale) => {
+        if (scale === "day")
+            return new Date(date.getTime() + 86400000 * amount)
+        else if (scale === "week")
+            return new Date(date.getTime() + 86400000 * amount * 7)
+        else if (scale === "month")
+            return new Date(new Date(date.getTime()).setMonth(date.getMonth() + amount))
+        else if (scale === "year")
+            return new Date(new Date(date.getTime()).setYear(date.getFullYear() + amount))
+        return date; // Fallback
+    }
+
+    getSettings = async () => {
+        try {
+            let response = await fetch(`${this.origin}/api/settings`);
+            if (response.status === 200) {
+                this.setState({ settings: await response.json() })
+            }
+        }
+        catch (e) {
+            console.error("Error fetching settings:", e)
+        }
+    }
+
+    saveSettings = async (s) => {
+        try {
+            await fetch(`${this.origin}/api/settings`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(s)
+            });
+        }
+        catch (e) {
+            console.error("Error saving settings:", e)
+        }
+    }
+
+    getData = async () => {
+        const { dateRange, viewType } = this.state;
+        try {
+            this.setState({ loading: true });
+            let response = await fetch(`${this.origin}/api/measurements`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    "start": dateRange[0].toISOString(),
+                    "end": dateRange[1].toISOString(),
+                    "type": viewType
+                })
+            });
+            if (response.status === 200) {
+                this.data = await response.json();
+            }
+        }
+        catch (e) {
+            console.error("Error fetching data:", e)
+        }
+        finally {
+            this.setState({ loading: false });
+        }
+    }
+
+    updateAndSaveSettings = (newSettings) => {       
+        let updatedSettings = { ...this.state.settings, ...newSettings };
+        
+        this.setState({ settings: updatedSettings }, () => {
+            this.saveSettings(updatedSettings);
+            this.plot();
+        });
+    }
+
+    updateViewType = (type) => {
+        this.setState({ viewType: type });
+    }
+
+    incrementDateRange = (dir) => {
+        const { dateRange, dateRangeScale } = this.state;
+        this.setState({
+            dateRange: [
+                this.getDateOffset(dateRange[0], dir, dateRangeScale),
+                this.getDateOffset(dateRange[1], dir, dateRangeScale)
+            ]
+        });
+    }
+
+    setDateRangeScale = (scale) => {
+        const { viewType } = this.state;
+        let newViewType = viewType;
+
+        if ((scale === "month" || scale === "year") && viewType === "full") {
+            newViewType = "hour";
+        }
+
+        const now = this.getNow();
+        
+        this.setState({
+            dateRangeScale: scale,
+            viewType: newViewType,
+            dateRange: [this.getDateOffset(now, -1, scale), now]
+        });
+    }
+
+    refreshData = async () => {
+        await this.getData()
+        this.plot()
+    }
+    
+    plot = () => {
+        if (!this.data["metadata"] || !this.data["data"] || !window.Plotly) return;
+
+        const { dateRange, settings } = this.state;
 
         let plotData = []
         let heightRange = [-5, 5], tempRange = [Number.MAX_VALUE, Number.MIN_VALUE]
         let heightData = [[], []], tempData = [[], []]
-        let average = data.current["metadata"]["average"]
+        let average = this.data["metadata"]["average"]
         let earliestDate = new Date()
         let offset = new Date().getTimezoneOffset() / 60 * 3600000
 
-        for (let d of data.current["data"]) {
+        for (let d of this.data["data"]) {
             let value = average - d[0]
             let date = new Date(new Date(d[2]).getTime() - offset)
 
@@ -208,35 +226,37 @@ export default function StreamGuage() {
             name: 'temperature'
         })
 
-        plotData.push({
-            x: heightData[0],
-            y: getLoessData(heightData[1]),
-            showlegend: false,
-            type: 'scatter',
-            mode: 'lines',
-            line: {
-                color: '#3780bf',
-                width: 3,
-                dash: 'longdashdot'
-            },
-            yaxis: 'y1',
-            name: 'height'
-        })
+        if (settings["trendlineAccuracy"]) {
+            plotData.push({
+                x: heightData[0],
+                y: this.getLoessData(heightData[1]),
+                showlegend: false,
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#3780bf',
+                    width: 3,
+                    dash: 'longdashdot'
+                },
+                yaxis: 'y1',
+                name: 'height trend'
+            })
 
-        plotData.push({
-            x: tempData[0],
-            y: getLoessData(tempData[1]),
-            showlegend: false,
-            type: 'scatter',
-            mode: 'lines',
-            line: {
-                color: '#adadad',
-                width: 3,
-                dash: 'longdashdot'
-            },
-            yaxis: 'y2',
-            name: 'temperature'
-        })
+            plotData.push({
+                x: tempData[0],
+                y: this.getLoessData(tempData[1]),
+                showlegend: false,
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#adadad',
+                    width: 3,
+                    dash: 'longdashdot'
+                },
+                yaxis: 'y2',
+                name: 'temperature trend'
+            })
+        }
 
         let layout = {
             autosize: true,
@@ -253,9 +273,9 @@ export default function StreamGuage() {
                 range: heightRange
             },
             yaxis2: {
-                title: "º" + (settings["temperatureUnit"] == "F" ? "F" : "C"),
+                title: "º" + (settings["temperatureUnit"] === "F" ? "F" : "C"),
                 side: 'right',
-                range: [tempRange[0] == Number.MAX_VALUE ? 0 : tempRange[0] - 5, tempRange[1] == Number.MIN_VALUE ? 0 : tempRange[1] + 5]
+                range: [tempRange[0] === Number.MAX_VALUE ? 0 : tempRange[0] - 5, tempRange[1] === Number.MIN_VALUE ? 0 : tempRange[1] + 5]
             },
             xaxis: {
                 range: [new Date(Math.max(dateRange[0], earliestDate)).toLocaleString("en-US"), dateRange[1].toLocaleString("en-US")]
@@ -265,58 +285,68 @@ export default function StreamGuage() {
             displayModeBar: true
         }
 
-        let plot = document.getElementById('plot')
-        window.Plotly.newPlot(plot, { data: plotData, layout: layout, config: config });
+        let plotElement = document.getElementById('plot')
+        window.Plotly.newPlot(plotElement, { data: plotData, layout: layout, config: config });
     }
 
-    return (
-        <div className="main">
-            <div className="plot">
-                <div className="plot-header">                    
-                    <div className="radio-group">
-                        <label>
-                            <input type="radio" name="view" id="full" checked={viewType == "full"} onChange={() => updateViewType("full")}></input>
-                            <span>Full</span>
-                        </label>
-                        <label>                            
-                            <input type="radio" name="view" id="hour" checked={viewType == "hour"} onChange={() => updateViewType("hour")}></input>
-                            <span>Hour</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="view" id="day" checked={viewType == "day"} onChange={() => updateViewType("day")}></input>
-                            <span>Day</span>
-                        </label>
+    render() {
+        const { settings, dateRange, dateRangeScale, viewType, loading } = this.state;
+        
+        return (
+            <div className="main">
+                <div className="plot">
+                    <div className="plot-header">
+                        <div className="radio-group">
+                            <label>
+                                <input type="radio" name="view" id="full" checked={viewType === "full"} onChange={() => this.updateViewType("full")}></input>
+                                <span>Full</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="view" id="hour" checked={viewType === "hour"} onChange={() => this.updateViewType("hour")}></input>
+                                <span>Hour</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="view" id="day" checked={viewType === "day"} onChange={() => this.updateViewType("day")}></input>
+                                <span>Day</span>
+                            </label>
+                        </div>
+                        <div className="radio-group">
+                            <label>
+                                <input type="radio" name="scale" id="day" checked={dateRangeScale === "day"} onChange={() => this.setDateRangeScale("day")}></input>
+                                <span>Day</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="scale" id="week" checked={dateRangeScale === "week"} onChange={() => this.setDateRangeScale("week")}></input>
+                                <span>Week</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="scale" id="month" checked={dateRangeScale === "month"} onChange={() => this.setDateRangeScale("month")}></input>
+                                <span>Month</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="scale" id="year" checked={dateRangeScale === "year"} onChange={() => this.setDateRangeScale("year")}></input>
+                                <span>Year</span>
+                            </label>
+                        </div>
+                        <button className={"refresh" + (loading ? " loading" : "")} onClick={() => this.setDateRangeScale(dateRangeScale)}><RefreshCcw /></button>
+                        <Battery settings={settings}/>
                     </div>
-                    <div className="radio-group">
-                        <label>
-                            <input type="radio" name="scale" id="day" checked={dateRangeScale == "day"} onChange={() => setDateRangeScale("day")}></input>
-                            <span>Day</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="scale" id="week" checked={dateRangeScale == "week"} onChange={() => setDateRangeScale("week")}></input>
-                            <span>Week</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="scale" id="month" checked={dateRangeScale == "month"} onChange={() => setDateRangeScale("month")}></input>
-                            <span>Month</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="scale" id="year" checked={dateRangeScale == "year"} onChange={() => setDateRangeScale("year")}></input>
-                            <span>Year</span>
-                        </label>
+                    <div className="daterange">{this.formatDate(dateRange[0])} - {this.formatDate(dateRange[1])}</div>
+                    <div className="plot-wrapper">
+                        <button onClick={() => this.incrementDateRange(-1)}>{"<"}</button>
+                        <div id="plot"></div>
+                        <button onClick={() => this.incrementDateRange(1)}>{">"}</button>
                     </div>
-                    <button className={"refresh" + (loading ? " loading" : "")} onClick={() => setDateRangeScale(dateRangeScale)}><RefreshCcw /></button>
-                    <Battery settings={settings}/>
                 </div>
-                <div className="daterange">{formatDate(dateRange[0])} - {formatDate(dateRange[1])}</div>
-                <div className="plot-wrapper">
-                    <button onClick={() => incrementDateRange(-1)}>{"<"}</button>
-                    <div id="plot"></div>
-                    <button onClick={() => incrementDateRange(1)}>{">"}</button>
-                </div>
+                <button onClick={() => this.toggleDisplaySettings()} className="settings-icon"><SettingsIcon /></button>
+                <Settings 
+                    settings={settings} 
+                    setToggleSettings={x => this.toggleDisplaySettings = x} 
+                    saveSettings={this.updateAndSaveSettings} 
+                />
             </div>
-            <button onClick={toggleDisplaySettings.current} className="settings-icon"><SettingsIcon /></button>
-            <Settings settings={settings} setToggleSettings={x => toggleDisplaySettings.current = x} saveSettings={updateAndSaveSettings} />
-        </div>
-    );
+        );
+    }
 }
+
+export default StreamGuage;

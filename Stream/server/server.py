@@ -123,9 +123,10 @@ def retrieveSettings():
         return "Failed", 500
 
 def temperatureWorker():
-    while True:
-        global DHT11Sensor, sensorData        
+    global DHT11Sensor, sensorData
+    while True:                
         try:
+            print("temperatureWorker, creating DHT11", flush=True)
             DHT11Sensor = DHT11(board.D4)
 
             while True:
@@ -151,9 +152,10 @@ def temperatureWorker():
         finally:
             try:
                 if DHT11Sensor:
+                    print("temperatureWorker, closing DHT11", flush=True)
                     DHT11Sensor.exit()
             except:
-                pass
+                print("temperatureWorker, Error closing DHT11: " + str(error), flush=True)
 
 def ultrasonicWorker():   
     global sensorData    
@@ -185,6 +187,7 @@ def batteryWorker():
         ADS = ADS1x15.ADS1115(1)
         ADS.setMode(1)
         ADS.setGain(0)
+        ADS.setDataRate(0)
 
         while True:
             try:
