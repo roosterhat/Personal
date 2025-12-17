@@ -9,7 +9,7 @@ class Settings extends React.Component {
         this.fields = [
             ["Ultrasonic Period (s)", "ultrasonicPeriod", "input"],
             ["Temperature Period (s)", "temperaturePeriod", "input"],
-            ["Battery Period (s)", "batteryPeriod", "input"],
+            ["ADS Period (s)", "ADSPeriod", "input"],
             ["Trend Line Accuracy", "trendlineAccuracy", "input"],
             ["Battery Min", "batteryMin", "input"],
             ["Battery Max", "batteryMax", "input"]

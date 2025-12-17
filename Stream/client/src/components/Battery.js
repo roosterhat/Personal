@@ -21,15 +21,15 @@ class Battery extends React.Component {
     }
     
     componentDidUpdate(prevProps) {
-        if (this.props.settings["batteryPeriod"] && !this.updateInterval) {
-            this.updateInterval = setInterval(this.getBattery, Math.max(this.props.settings["batteryPeriod"] * 1000, 1000))
+        if (this.props.settings["ADSPeriod"] && !this.updateInterval) {
+            this.updateInterval = setInterval(this.getBattery, Math.max(this.props.settings["ADSPeriod"] * 1000, 1000))
             this.getBattery()
         }
     }
 
     getBatteryRange = async (range) => {
         try {
-            let response = await fetch(`${this.origin}/api/battery`, {
+            let response = await fetch(`${this.origin}/api/voltage`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -49,7 +49,7 @@ class Battery extends React.Component {
 
     getBattery = async () => {
         try {
-            let response = await fetch(`${this.origin}/api/battery`, {
+            let response = await fetch(`${this.origin}/api/voltage`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -104,17 +104,18 @@ class Battery extends React.Component {
 
     plot = () => {
         let plotData = []
-        let batteryData = [[], []]
+        let batteryData = [[], [], []]
         let earliestDate = new Date()
         let offset = new Date().getTimezoneOffset() / 60 * 3600000
 
         for (let d of this.batteryHistory) {
-            let date = new Date(new Date(d[1]).getTime() - offset)
+            let date = new Date(new Date(d[2]).getTime() - offset)
 
             earliestDate = new Date(Math.min(earliestDate, date))
 
             batteryData[0].push(date)
             batteryData[1].push(d[0])
+            batteryData[2].push(d[1])
         }
 
         plotData.push({
@@ -127,7 +128,7 @@ class Battery extends React.Component {
                 width: 3
             },
             yaxis: 'y1',
-            name: 'voltage'
+            name: 'Battery'
         })
 
         plotData.push({
@@ -142,7 +143,35 @@ class Battery extends React.Component {
                 dash: 'longdashdot'
             },
             yaxis: 'y1',
-            name: 'voltage'
+            name: 'Battery'
+        })
+
+        plotData.push({
+            x: batteryData[0],
+            y: batteryData[2],
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#adadad55',
+                width: 3
+            },
+            yaxis: 'y1',
+            name: 'Source'
+        })
+
+        plotData.push({
+            x: batteryData[0],
+            y: this.getLoessData(batteryData[2]),
+            showlegend: false,
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#adadad',
+                width: 3,
+                dash: 'longdashdot'
+            },
+            yaxis: 'y1',
+            name: 'Source'
         })
 
         let now = new Date()

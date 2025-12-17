@@ -73,7 +73,6 @@ class StreamGuage extends React.Component {
             return new Date(new Date(date.getTime()).setMonth(date.getMonth() + amount))
         else if (scale === "year")
             return new Date(new Date(date.getTime()).setYear(date.getFullYear() + amount))
-        return date; // Fallback
     }
 
     getSettings = async () => {
