@@ -372,16 +372,21 @@ def search(grid, init, goal):
     DIRECTIONS = [(0,1), (1,0), (0,-1), (-1,0), (1,1), (-1,1), (1,-1), (-1,-1)]
     heuristic = lambda x,y: math.dist((x,y), goal) * (3 if grid[x][y] else 1)
 
-    R = len(grid) / 2
+    R = int(len(grid) / 2)
     H = len(grid[0])
-    closed = [[0 for col in range(len(grid[0]))] for row in range(len(grid))]     
-    action = [[0 for col in range(len(grid[0]))] for row in range(len(grid))]
+    closed = [[0 for col in range(len(grid[0]))] for row in range(len(grid) + 1)]     
+    action = [[0 for col in range(len(grid[0]))] for row in range(len(grid) + 1)]
     closed[init[0]][init[1]] = 1
 
     cell = [[heuristic(init[0], init[1]), 0, init[0], init[1]]]
 
     while True:
         if len(cell) == 0:
+            global settings, position
+            print("position: " + str(position), flush=True)
+            print("init: " + str(init), flush=True)
+            print("goal: " + str(goal), flush=True)
+            print("settings: " + str(settings), flush=True)
             raise ValueError("Algorithm is unable to find solution")
         else:  
             cell.sort(key=lambda x: x[0], reverse=True)
@@ -396,9 +401,10 @@ def search(grid, init, goal):
                 for i in range(8):
                     x2 = x + DIRECTIONS[i][0]
                     y2 = y + DIRECTIONS[i][1]
-                    if (-R < x2 <= R and 0 <= y2 < H and not closed[x2 + R][y2]):
-                        g2 = g + 1
-                        f2 = g2 + heuristic(x2, y2)
+                    if (-R <= x2 <= R and 0 <= y2 < H and not closed[x2 + R][y2]):
+                        g2 = g + 10
+                        f2 = heuristic(x2, y2)
+                        #f2 = g2 + heuristic(x2, y2)
                         cell.append([f2, g2, x2, y2])
                         closed[x2 + R][y2] = 1
                         action[x2 + R][y2] = i
@@ -457,18 +463,26 @@ def getMoves(x, y, keepOutOverride):
     if keepOutOverride or (x == position["x"] and y == position["y"] or len(zones) == 0) or not settings["usePathing"]: 
         moves = [{"x": x, "y": y}]
     else:
-        pos = (position["x"], position["y"])
+        pos = [position["x"], position["y"]]
         lines = []
-        offset = math.floor(abs((x - (x  % 360))) / 360) * 360
+        normX = x % 360
+        normPos = pos[0] % 360
+        offset = normX - x 
+        diff = abs(normPos - normX)
+        if(normPos > normX):
+            pos[0] = (-(360 - normPos) if diff > 180 else normPos)
+        else:
+            normX = (-(360 - normX) if diff > 180 else normX)
+            pos[0] = normPos
 
         try:
-            path = smooth_path(search(grid, (round(pos[0] + offset), round(pos[1])), (round(x + offset), round(y))), grid)
+            path = smooth_path(search(grid, (round(pos[0]), round(pos[1])), (round(normX), round(y))), grid)
             for i in range(len(path) - 1):
                 lines.append(LineString((path[i], path[i + 1])))
         except Exception as ex:
             print(ex, flush=True)
             print(traceback.format_exc(), flush=True)
-            lines = [LineString([pos, (x, y)])]
+            #lines = [LineString([pos, (x, y)])]
 
 
         for line in lines:
@@ -481,7 +495,6 @@ def getMoves(x, y, keepOutOverride):
             if inter is None or inter.is_empty:
                 moves.append({"x": line.coords[-1][0] - offset, "y": line.coords[-1][1]})
             else:
-                print(inter, flush=True)
                 if inter.geom_type == "LineString":
                     moves.append({"x": inter.coords[-1][0] - offset, "y": inter.coords[-1][1]})
                 elif inter.geom_type == "MultiPoint":
@@ -490,6 +503,12 @@ def getMoves(x, y, keepOutOverride):
                     moves.append({"x": inter.x - offset, "y": inter.y})
                 break
 
+    for move in moves:
+        diff = move["x"] - (position["x"] % 360)
+        sign = 1 if diff == 0 else abs(diff) / diff
+        nsign = -1 * sign
+        move["x"] = (diff if abs(diff) <= 180 else (360 - abs(diff)) * nsign) + position["x"]
+
     return moves
 
 def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = False):
@@ -497,10 +516,7 @@ def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = Fa
 
     readPositionUntilIdle()
     if absolute:
-        diff = xpos - (position["x"] % 360)
-        sign = 1 if diff == 0 else abs(diff) / diff
-        nsign = -1 * sign
-        x = round((diff if abs(diff) <= 180 else (360 - abs(diff)) * nsign) + position["x"], 3)
+        x = xpos
         y = max(min(ypos, 180), 0)
     else:
         x = xpos + position["x"]             
@@ -674,8 +690,9 @@ def initSocket():
                 elif command == 'P': # set position
                     paramPos = [float(x) for x in params.split(" ")]
                     pos = getPositionWithOffset()
+                    paramPos[0] = (paramPos[0] + settings["offset"]) % 360
                     dist = math.dist(paramPos, [pos["x"], pos["y"]])
-                    setRotorPosition((paramPos[0] + settings["offset"]) % 360, paramPos[1], True, round(max(1500 * min(dist / 20, 1), 100), 3))
+                    setRotorPosition(paramPos[0], paramPos[1], True, round(max(1500 * min(dist / 20, 1), 100), 3))
                     socketSend(client, "RPRT 0")
         except ConnectionResetError:
             pass
@@ -721,10 +738,10 @@ def loadSettings():
     for zone in settings["keepOutZones"]:
         poly = Polygon((point['az'] - (360 if any(point['az'] > zone[(i + x) % len(zone)]['az'] + 180 for x in range(-1, 2)) else 0), point['el']) for i, point in enumerate(zone))
         zones.append(poly)
-        poly = poly.buffer(2)
-        for x in range(round(poly.bounds[0]), round(poly.bounds[2])):
-            for y in range(round(poly.bounds[1]), round(poly.bounds[3])):
-                if poly.contains(Point(x, y)):
+        bufferPoly = poly.buffer(2)
+        for x in range(round(bufferPoly.bounds[0]), round(bufferPoly.bounds[2])):
+            for y in range(round(bufferPoly.bounds[1]), round(bufferPoly.bounds[3])):
+                if bufferPoly.contains(Point(x, y)):
                     if y >= 0:
                         grid[round(x)][round(y)] = 1
 
