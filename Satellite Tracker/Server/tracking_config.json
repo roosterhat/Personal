@@ -1,0 +1,143 @@
+{
+    "parameters": {
+        "agc": true,
+        "bias": true,
+        "gain": 0.0,
+        "ppm_correction": 0,
+        "source": "rtlsdr",
+        "samplerate": 2048000,
+        "initial_frequency": 1700000000,
+        "fft_enable": true,
+        "fft_size": 8192,
+        "fft_rate": 120,
+        "fft_avgn": 5.60699987411499,
+        "fft_min": -85,
+        "fft_max": 0
+    },
+    "finish_processing": true,
+    "output_folder": "/home/erik/satdump",
+    "http_server": "0.0.0.0:8081",
+    "qth": {
+        "lat": 38.540630,
+        "lon": -106.222800,
+        "alt": 2605.0
+    },
+    "tracking": {
+        "rotator_algo": {
+            "meridian_flip_correction": false,
+            "park_position": {
+                "az": 0.0,
+                "el": 0.0
+            },
+            "park_while_idle": false,
+            "rotator_arrowkeys_enable": false,
+            "rotator_az_max": 360,
+            "rotator_az_min": 0,
+            "rounding": false,
+            "rounding_decimal_places": 3,
+            "unpark_at_minus": 60.0,
+            "update_period": 1.0
+        },
+        "autotrack_cfg": {
+            "autotrack_min_elevation": 30.0,
+            "stop_sdr_when_idle": true,
+            "multi_mode": true,
+            "use_localtime": false
+        },
+        "rotator_cfg": {
+            "address": "127.0.0.1",
+            "port": 4533
+        }
+    },
+    "tracked_objects": [
+        {
+            "norad": 57166,
+            "min_elevation": 30.0,
+            "downlinks": [
+                {
+                    "frequency": 1700000000,
+                    "record": false,
+                    "live": true,
+                    "pipeline_name": "meteor_hrpt",
+                    "pipeline_params": {
+                        "dc_block": false,
+                        "freq_shift": 0,
+                        "iq_swap": false,
+                        "year_override": -1
+                    },
+                    "baseband_format": "cs16",
+                    "baseband_decimation": 1
+                }
+            ]
+        },
+        {
+            "norad": 59051,
+            "min_elevation": 30.0,
+            "downlinks": [
+                {
+                    "frequency": 1700000000,
+                    "record": false,
+                    "live": true,
+                    "pipeline_name": "meteor_hrpt",
+                    "pipeline_params": {
+                        "dc_block": false,
+                        "freq_shift": 0,
+                        "iq_swap": false,
+                        "year_override": -1
+                    },
+                    "baseband_format": "cs16",
+                    "baseband_decimation": 1
+                }
+            ]
+        },
+        {
+            "norad": 44387,
+            "min_elevation": 30.0,
+            "downlinks": [
+                {
+                    "frequency": 1700000000,
+                    "record": false,
+                    "live": true,
+                    "pipeline_name": "meteor_hrpt",
+                    "pipeline_params": {
+                        "dc_block": false,
+                        "freq_shift": 0,
+                        "iq_swap": false,
+                        "year_override": -1
+                    },
+                    "baseband_format": "cs16",
+                    "baseband_decimation": 1
+                }
+            ]
+        }
+    ],
+    "viewer": {
+        "instruments": {
+            "msu_mr": {
+                "handler": "image_handler",
+                "name": "MSU-MR",
+                "rgb_composites": {
+                    "Natural Map": {
+                        "equation": "((0.5*max(ch4,min(ch2,ch1)) + 0.5*ch2)+0.3*ch3)*0.85, ch2, ch1",
+                        "geo_correct": true,
+                        "project": {
+                            "draw_map_overlay": true,
+                            "draw_qth_overlay": true,
+                            "draw_cities_overlay": true,
+                            "individual_equalize": true,
+                            "config": {
+                                "type": "equirec",
+                                "offset_x": -180,
+                                "offset_y": 90,
+                                "scalar_x": 0.087890625,
+                                "scalar_y": -0.087890625,
+                                "width": 4096,
+                                "height": 2048
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }    
+}

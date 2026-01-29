@@ -55,6 +55,8 @@ settingsPattern = r'\$(?P<index>\d+)=(?P<value>[\d\.]+)'
 rotctlCommandPattern = r'(?P<command>\w+)\s*(?P<params>[^\\n]+)?'
 movePattern = r'G[01] (?:(?:(?:X(?P<x>[\-\d\.]+))|(?:Y(?P<y>[\-\d\.]+))|(?:[A-Z][\-\d\.]+))\s*)+'
 typePattern = r'[rw]'
+resetPattern = r'.*ctrl-x.*'
+GRBLInitPattern = r"Grbl [\d\.]+c ['$' for help]"
 
 baudRates = [4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
 
@@ -328,7 +330,7 @@ def home():
                     buffer.clear()
                     if len(line) > 0:
                         Time.sleep(0.5)
-                        manager.write("G0 X0 Y0")
+                        manager.write("G0 X0 Y0")                        
                         break        
         return "", 200
     except Exception as ex:
@@ -467,7 +469,6 @@ def getMoves(x, y, keepOutOverride):
         lines = []
         normX = x % 360
         normPos = pos[0] % 360
-        offset = normX - x 
         diff = abs(normPos - normX)
         if(normPos > normX):
             pos[0] = (-(360 - normPos) if diff > 180 else normPos)
@@ -482,8 +483,6 @@ def getMoves(x, y, keepOutOverride):
         except Exception as ex:
             print(ex, flush=True)
             print(traceback.format_exc(), flush=True)
-            #lines = [LineString([pos, (x, y)])]
-
 
         for line in lines:
             inter = None
@@ -493,14 +492,17 @@ def getMoves(x, y, keepOutOverride):
                     break
                 
             if inter is None or inter.is_empty:
-                moves.append({"x": line.coords[-1][0] - offset, "y": line.coords[-1][1]})
+                moves.append({"x": line.coords[-1][0], "y": line.coords[-1][1]})
             else:
                 if inter.geom_type == "LineString":
-                    moves.append({"x": inter.coords[-1][0] - offset, "y": inter.coords[-1][1]})
+                    interPoint = [inter.coords[-1][0], inter.coords[-1][1]]
                 elif inter.geom_type == "MultiPoint":
-                    moves.append({"x": inter.geoms[0].x - offset, "y": inter.geoms[0].y})
-                elif inter.geom_type == "Point":
-                    moves.append({"x": inter.x - offset, "y": inter.y})
+                    interPoint = [inter.geoms[0].x, inter.geoms[0].y]
+                else:
+                    interPoint = [inter.x, inter.y]
+
+                angle = (math.atan2(interPoint[1] - line.coords[0][1], interPoint[0] - line.coords[0][0]) + math.pi / 2) % (math.pi * 2)
+                moves.append({"x": interPoint[0] - 2 * math.sin(angle), "y": interPoint[1] - 2 * math.cos(angle)})
                 break
 
     for move in moves:
@@ -559,6 +561,18 @@ def sendPosition(line):
     if match is not None:
         socketio.emit("message", json.dumps({"type": "position", "data": { "x": round(float(match.group('x')) % 360, 3), "y": round(float(match.group('y')), 3)}}))
 
+def monitorSoftReset(line):
+    global position
+    match = re.search(resetPattern, line)
+    if match is not None:
+        manager.write(chr(24))
+
+def monitorGRBLReset(line):
+    global position
+    match = re.search(GRBLInitPattern, line)
+    if match is not None:
+        readPositionUntilIdle(True, 3)
+
 def sendWrite(line): 
     socketio.emit("message", json.dumps({"type": "write", "data": line.rstrip()}))
 
@@ -586,7 +600,7 @@ def getPositionWithOffset():
     global position, settings
     return {"x": (position["x"] - settings["offset"]) % 360, "y": position["y"]}
 
-def readPositionUntilIdle(wait = True):
+def readPositionUntilIdle(wait = True, timeout = 2):
     global manager, position
     if readPositionLock.acquire(timeout=0.1): # ensure only one thread is attempting to read position, others can get same outcome by waiting for lock
         try:
@@ -605,7 +619,7 @@ def readPositionUntilIdle(wait = True):
                         if match.group('state') == 'Idle':
                             Time.sleep(0.1) # allow serial response to propagate                    
                             return
-                    if Time.perf_counter() - start > 2:
+                    if Time.perf_counter() - start > timeout:
                         sendRead("NO RESPONSE")
                         return                    
         except Exception as ex:
@@ -645,6 +659,9 @@ def idleMonitor():
         elif (Time.time() - lastAction) > settings["idleTimeout"]:
             if not idleStowed:
                 if(Time.time() - lastHome) > settings["homePeriod"] * 60:
+                    sendRead("RESET")
+                    manager.write('crtl-x')
+                    Time.sleep(3)
                     sendRead("HOMING")
                     home()
                     lastHome = Time.time()
@@ -717,6 +734,8 @@ def initSerialManager():
         manager.subscribe("r", sendPosition)
         manager.subscribe("w", sendWrite)
         manager.subscribe("w", watchMove)
+        manager.subscribe("w", monitorSoftReset)
+        manager.subscribe("w", monitorGRBLReset)
         #manager.subscribe("r", lambda x: print(x.rstrip()))
         #manager.subscribe("w", lambda x: print("> " + x.rstrip()))
         manager.connect(settings['port'], settings['baud'])
