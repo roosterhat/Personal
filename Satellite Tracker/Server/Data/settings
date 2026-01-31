@@ -1,1 +1,35 @@
-{"baud": 9600, "port": "/dev/ttyACM0", "offset": 0, "idleTimeout": 15, "stowPosition": 0, "homeOnStart": true, "homePeriod": 1440, "displayPath": true, "maxMessages": 1000, "usePathing": true, "waitWhilePathing": false, "keepOutZones": [[{"az": 135, "el": 9.71618392066584}, {"az": 139.55995008741183, "el": 9.95234407595116}, {"az": 149.51426629366844, "el": -9.617760589425375}, {"az": 125.44571032759825, "el": -10.27713078553794}]]}
+{
+    "baud": 9600,
+    "port": "/dev/ttyACM0",
+    "offset": 175.008,
+    "idleTimeout": 30,
+    "stowPosition": 0,
+    "homeOnStart": true,
+    "homePeriod": 1440,
+    "displayPath": true,
+    "displayPathTrail": true,
+    "pathTrailDuration": 300,
+    "maxMessages": 1000,
+    "usePathing": true,
+    "waitWhilePathing": false,
+    "keepOutZones": [
+        [
+            {
+                "az": 135,
+                "el": 9.71618392066584
+            },
+            {
+                "az": 139.55995008741183,
+                "el": 9.95234407595116
+            },
+            {
+                "az": 149.51426629366844,
+                "el": -9.617760589425375
+            },
+            {
+                "az": 125.44571032759825,
+                "el": -10.27713078553794
+            }
+        ]
+    ]
+}

@@ -17,6 +17,7 @@ export default function SatelliteTracker() {
     const [displayScroll, setDisplayScrollState] = useState(false);
     const [settings, setSettingsState] = useState({})
     const [path, setPath] = useState([])
+    const [trail, setTrail] = useState([])
     const [zoom, setZoom] = useState(false)
 
     const commandIndex = useRef(-1)
@@ -27,15 +28,18 @@ export default function SatelliteTracker() {
     const updateRadialPlot = useRef(null)
     const scrollDisplayed = useRef(false)
     const maxMessages = useRef(1000)
+    const trailProxy = useRef([])
+    const settingsProxy = useRef({})
 
     const messageHeight = 20    
-    const origin = "http://192.168.1.27:3001"//window.location.origin
+    const origin = window.location.origin
 
     
     useEffect(() => {
         initEventListeners()            
         getPortsAndBaud()
         getSettings()
+        setInterval(manageTrail, 1000)
 
         return () => { }
     }, [])
@@ -62,12 +66,15 @@ export default function SatelliteTracker() {
                 case "position":
                     setAzimuth(data["data"]["x"])
                     setElevation(data["data"]["y"])
+                    if(trailProxy.current.length == 0 || (trailProxy.current[trailProxy.current.length - 1]["x"] != data["data"]["x"] || trailProxy.current[trailProxy.current.length - 1]["y"] != data["data"]["y"])) 
+                        setTrail([...trailProxy.current, {"time": Date.now(), ...data["data"]}])
+                    
                     break;
                 case "target":
                     setTarget({'azimuth': data["data"]["x"], 'elevation': data["data"]["y"]})
                     break;
                 case "path":
-                    setPath(data["data"])
+                    setPath(data["data"])                    
                     break;
             }
         });
@@ -79,6 +86,14 @@ export default function SatelliteTracker() {
             }
         }
     }, [])
+
+    useEffect(() => {
+        settingsProxy.current = settings
+    }, [settings])
+
+    useEffect(() => {
+        trailProxy.current = trail
+    }, [trail])
 
     useEffect(() => {
         updateRadialPlot.current()
@@ -113,6 +128,14 @@ export default function SatelliteTracker() {
         const config = { attributes: false, childList: true, subtree: true };
 
         observer.observe(messageContainer, config);
+    }
+
+    const manageTrail = () => {
+        //console.log(trailProxy.current.length)
+        if(settingsProxy.current["displayPathTrail"]) 
+            setTrail(trailProxy.current.filter(x => (Date.now() - x.time) / 1000 < settingsProxy.current["pathTrailDuration"]))
+        else if(trailProxy.current.length)
+            setTrail([])
     }
 
     const handleKeyboardEvent = e => {
@@ -385,7 +408,7 @@ export default function SatelliteTracker() {
                         {zoom ? <div className="spacer"></div> : null}
                         <div className={"plot-container" + (zoom ? " zoom" : "")}>
                             <div style={{position: "relative"}}>
-                                <RadialPlot setUpdateHandler={x => updateRadialPlot.current = x} settings={settings} target={target} position={{'azimuth': azimuth, 'elevation': elevation}} path={path}/>                                
+                                <RadialPlot setUpdateHandler={x => updateRadialPlot.current = x} settings={settings} target={target} position={{'azimuth': azimuth, 'elevation': elevation}} path={path} trail={trail}/>                                
                                 {zoom ? null : <button className="absolute top-1 right-1 cursor-pointer bg-white rounded-sm p-1" onClick={toggleDisplayEditor.current}><PencilRuler className="w-4 h-4"/></button>}
                                 {zoom ? <button className="absolute bottom-1 right-1 cursor-pointer bg-white rounded-sm p-1" onClick={toggleZoom}><ZoomOut className="w-4 h-4"/></button> :
                                     <button className="absolute bottom-1 right-1 cursor-pointer bg-white rounded-sm p-1" onClick={toggleZoom}><ZoomIn className="w-4 h-4"/></button>}

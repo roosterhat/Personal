@@ -62,6 +62,14 @@ class Settings extends React.Component {
                         <Switch State={this.props.settings["displayPath"]} OnSelect={x => this.toggleValue("displayPath")}/>
                     </div>
                     <div className="flex justify-between items-center gap-2">
+                        <span>Display Path Trail</span>
+                        <Switch State={this.props.settings["displayPathTrail"]} OnSelect={x => this.toggleValue("displayPathTrail")}/>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                        <span>Path Trail Duration (s)</span>
+                        <input className="flex-1 border rounded p-2 font-mono text-sm w-full h-6" placeholder={this.props.settings["pathTrailDuration"]} onChange={e => this.props.settings["pathTrailDuration"] = Number(e.target.value)} />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
                         <span>Use Pathing</span>
                         <Switch State={this.props.settings["usePathing"]} OnSelect={x => this.toggleValue("usePathing")}/>
                     </div>

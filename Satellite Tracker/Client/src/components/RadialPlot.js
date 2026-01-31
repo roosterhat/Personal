@@ -182,7 +182,39 @@ class RadialPlot extends React.Component {
                 }                
             }
             this.state.context.stroke()
-        }        
+        }
+
+        if(this.props.settings["displayPathTrail"] && this.props.trail && this.props.trail.length > 0) {
+            let now = Date.now()     
+            for(let p = 0; p < this.props.trail.length - 1; p++) {
+                let p1 = {...this.props.trail[p]}
+                let p2 = {...this.props.trail[p + 1]}
+                let diff = p2.x - (p1.x % 360)
+                let sign = diff == 0 ? 1 : Math.abs(diff) / diff
+                let nsign = -1 * sign
+                p2.x = (Math.abs(diff) <= 180 ? diff :(360 - Math.abs(diff)) * nsign) + p1.x
+
+                let d = this.Dist(p1, p2)
+                let cur = p1
+                let opacity = 1 - ((now - p1.time) / 1000) / this.props.settings["pathTrailDuration"]
+                this.state.context.strokeStyle = `rgba(255, 255, 255, ${opacity})`
+
+                this.state.context.beginPath()
+                for(let i = 0; i <= d; i += 1) {
+                    let point = this.polarToCartesian(cur)
+                    this.state.context.moveTo(point.x, point.y)
+
+                    let l = this.LerpPoint(p1, p2, i / d)
+                    point = this.polarToCartesian(l)
+                    this.state.context.lineTo(point.x, point.y)
+                    cur = l
+                }
+                let point = this.polarToCartesian(p2)
+                this.state.context.lineTo(point.x, point.y)
+                
+                this.state.context.stroke()         
+            }            
+        }    
 
         if(this.props.settings && this.props.settings["keepOutZones"]) {
             for(let z in this.props.settings["keepOutZones"]) {

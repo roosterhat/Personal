@@ -318,7 +318,7 @@ def home():
     global lastAction
     try:
         with homingLock:
-            setRotorPosition(0, 10, False, keepOutOverride=True)
+            setRotorPosition(0, 10, False, keepOutOverride=True, homingOverride=True)
             readPositionUntilIdle()
             manager.write('$H')
             Time.sleep(0.5)
@@ -513,8 +513,10 @@ def getMoves(x, y, keepOutOverride):
 
     return moves
 
-def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = False):
+def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = False, homingOverride = False):
     global position, lastAction, settings
+
+    if(homingLock.acquire(0.1) and not homingOverride): return
 
     readPositionUntilIdle()
     if absolute:
@@ -706,9 +708,8 @@ def initSocket():
                     socketSend(client, f'{pos["x"]}\n{pos["y"]}')
                 elif command == 'P': # set position
                     paramPos = [float(x) for x in params.split(" ")]
-                    pos = getPositionWithOffset()
                     paramPos[0] = (paramPos[0] + settings["offset"]) % 360
-                    dist = math.dist(paramPos, [pos["x"], pos["y"]])
+                    dist = math.dist(paramPos, [position["x"] % 360, position["y"]])
                     setRotorPosition(paramPos[0], paramPos[1], True, round(max(1500 * min(dist / 20, 1), 100), 3))
                     socketSend(client, "RPRT 0")
         except ConnectionResetError:
