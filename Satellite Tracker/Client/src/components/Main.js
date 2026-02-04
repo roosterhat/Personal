@@ -32,6 +32,7 @@ export default function SatelliteTracker() {
     const maxMessages = useRef(1000)
     const trailProxy = useRef([])
     const settingsProxy = useRef({})
+    const tracking = useRef(false)
 
     const messageHeight = 20    
     const origin = window.location.origin
@@ -68,6 +69,7 @@ export default function SatelliteTracker() {
                 case "position":
                     setAzimuth(data["data"]["x"])
                     setElevation(data["data"]["y"])
+                    tracking.current = data["data"]["tracking"] || false
                     if((!settingsProxy.current["onlyDisplayTrackingTrail"] || data["data"]["tracking"]) 
                         && (trailProxy.current.length == 0 || (trailProxy.current[trailProxy.current.length - 1]["x"] != data["data"]["x"] || trailProxy.current[trailProxy.current.length - 1]["y"] != data["data"]["y"]))) {
                         setTrail([...trailProxy.current, {"time": Date.now(), ...data["data"]}])
@@ -136,14 +138,14 @@ export default function SatelliteTracker() {
     const manageTrail = () => {
         if(settingsProxy.current["displayPathTrail"]) {
             const now = Date.now()
-            const tracking = settingsProxy.current["displayFullTrack"] && trailProxy.current[trailProxy.current.length - 1]["tracking"]
+            const isTracking = settingsProxy.current["displayFullTrack"] && tracking.current
             setTrail(trailProxy.current
                 .map(x => {
-                    if(tracking && x.tracking)
+                    if(isTracking && x.tracking)
                         x.time = now
                     return x
                 })
-                .filter(x => (now - x.time) / 1000 < settingsProxy.current["pathTrailDuration"])                
+                .filter(x => (now - x.time) / 1000 < settingsProxy.current["pathTrailDuration"])
             )
         }
         else if(trailProxy.current.length)
@@ -377,7 +379,7 @@ export default function SatelliteTracker() {
             <div className="flex flex-col items-center gap-4">
                 <div className="flex w-full justify-between gap-4">
                     <div className="flex flex-col gap-4 shrink-0">
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-2">
                             <div></div>
                             <button onClick={() => setPosition({x: 0, y: 10}, false)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">
                                 <ArrowUp />
@@ -401,7 +403,7 @@ export default function SatelliteTracker() {
                             <div></div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-2">
                             <div></div>
                             <button onClick={() => setPosition({x: directionWithOffset(0), y: elevation}, true)} className="rounded-full w-12 h-12 flex items-center justify-center cursor-pointer text-white bg-black">N</button>
                             <div></div>

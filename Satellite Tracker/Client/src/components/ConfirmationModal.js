@@ -28,8 +28,8 @@ class ConfirmationModal extends React.Component {
                     <div class="modal">
                         <div className='title'>{this.props.title}</div>
                         <div className='actions'>
-                            <button className='confirm' onClick={() => this.onAction(this.props.onConfirm)}>Confirm</button>
                             <button className='cancel' onClick={() => this.onAction(this.props.onCancel)}>Cancel</button>
+                            <button className='confirm' onClick={() => this.onAction(this.props.onConfirm)}>Confirm</button>                            
                         </div>
                     </div>
                 </div>
