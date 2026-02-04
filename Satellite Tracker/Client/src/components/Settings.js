@@ -18,9 +18,10 @@ class Settings extends React.Component {
         ]        
     }
 
-    componentDidMount () {
-        for(let key of this.trays)
-            this.updateHeight(key)
+    componentDidUpdate(prevProps, prevState) {
+        if(prevProps != this.props)
+            for(let key of this.trays)
+                this.updateHeight(key)
     }
 
     toggleSettings = () => this.setState({displaySettings: !this.state.displaySettings})
