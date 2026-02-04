@@ -33,6 +33,64 @@
     }
 }
 
+.tray {
+    position: relative;
+    overflow: hidden;
+    height: 0;
+    transition: height 0.2s ease;
+
+    .tray-items {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-left: 16px;
+        position: absolute;
+        bottom: 0;
+        background: #f6f6f6;
+        width: 100%;
+        border-radius: 8px;
+        padding: 8px;
+    }
+}
+
+.modal {
+    width: 300px;
+    display: flex;
+    padding: 16px;
+    border-radius: 16px;
+    background: #fff;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .title {
+        margin: 16px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .actions {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+
+        button {
+            padding: 8px;
+            border-radius: 4px;
+            color: #fff;
+            width: 100px;
+
+            &.confirm {
+                background: green;
+            }
+
+            &.cancel {
+                background: red;
+            }
+        }
+    }
+}
+
 .plot-container {
     &.zoom {
         background: #00000052;

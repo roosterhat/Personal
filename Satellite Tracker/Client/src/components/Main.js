@@ -3,6 +3,7 @@ import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Home, RefreshCcw, Trash, Set
 import Settings from './Settings';
 import RadialPlot from './RadialPlot'
 import Editor from './Editor'
+import ConfirmationModal from './ConfirmationModal'
 
 export default function SatelliteTracker() {
     const [messages, setMessages] = useState([]);
@@ -25,6 +26,7 @@ export default function SatelliteTracker() {
     const newMessageCount = useRef(0)
     const toggleDisplaySettings = useRef(null)
     const toggleDisplayEditor = useRef(null)
+    const toggleDisplayConfirmation = useRef(null)
     const updateRadialPlot = useRef(null)
     const scrollDisplayed = useRef(false)
     const maxMessages = useRef(1000)
@@ -66,9 +68,10 @@ export default function SatelliteTracker() {
                 case "position":
                     setAzimuth(data["data"]["x"])
                     setElevation(data["data"]["y"])
-                    if(trailProxy.current.length == 0 || (trailProxy.current[trailProxy.current.length - 1]["x"] != data["data"]["x"] || trailProxy.current[trailProxy.current.length - 1]["y"] != data["data"]["y"])) 
+                    if((!settingsProxy.current["onlyDisplayTrackingTrail"] || data["data"]["tracking"]) 
+                        && (trailProxy.current.length == 0 || (trailProxy.current[trailProxy.current.length - 1]["x"] != data["data"]["x"] || trailProxy.current[trailProxy.current.length - 1]["y"] != data["data"]["y"]))) {
                         setTrail([...trailProxy.current, {"time": Date.now(), ...data["data"]}])
-                    
+                    }
                     break;
                 case "target":
                     setTarget({'azimuth': data["data"]["x"], 'elevation': data["data"]["y"]})
@@ -131,9 +134,18 @@ export default function SatelliteTracker() {
     }
 
     const manageTrail = () => {
-        //console.log(trailProxy.current.length)
-        if(settingsProxy.current["displayPathTrail"]) 
-            setTrail(trailProxy.current.filter(x => (Date.now() - x.time) / 1000 < settingsProxy.current["pathTrailDuration"]))
+        if(settingsProxy.current["displayPathTrail"]) {
+            const now = Date.now()
+            const tracking = settingsProxy.current["displayFullTrack"] && trailProxy.current[trailProxy.current.length - 1]["tracking"]
+            setTrail(trailProxy.current
+                .map(x => {
+                    if(tracking && x.tracking)
+                        x.time = now
+                    return x
+                })
+                .filter(x => (now - x.time) / 1000 < settingsProxy.current["pathTrailDuration"])                
+            )
+        }
         else if(trailProxy.current.length)
             setTrail([])
     }
@@ -433,11 +445,11 @@ export default function SatelliteTracker() {
                     </button>
                 </div>
 
-                <div className="flex gap-2">
-                    <button onClick={toggleMotorHold} className="cursor-pointer text-white bg-black rounded-sm p-2">Toggle Motor Hold</button>
-                    <button onClick={stow} className="cursor-pointer text-white bg-black rounded-sm p-2">Stow</button>
-                    <button onClick={setNorth} className="cursor-pointer text-white bg-black rounded-sm p-2">Set North</button>
-                    <button onClick={resetController} className="cursor-pointer text-white bg-black rounded-sm p-2">Reset Controller</button>
+                <div className="flex flex-wrap gap-2 w-full">
+                    <button onClick={toggleMotorHold} className="cursor-pointer text-white bg-black rounded-sm p-2" style={{"width": "calc(50% - 4px)"}}>Toggle Motor Hold</button>
+                    <button onClick={stow} className="cursor-pointer text-white bg-black rounded-sm p-2" style={{"width": "calc(50% - 4px)"}}>Stow</button>
+                    <button onClick={toggleDisplayConfirmation.current} className="cursor-pointer text-white bg-black rounded-sm p-2" style={{"width": "calc(50% - 4px)"}}>Set North</button>
+                    <button onClick={resetController} className="cursor-pointer text-white bg-black rounded-sm p-2" style={{"width": "calc(50% - 4px)"}}>Reset Controller</button>
                 </div>
             </div>
 
@@ -480,6 +492,7 @@ export default function SatelliteTracker() {
             </div>
             <button onClick={toggleDisplaySettings.current} className="absolute top-4 right-4 cursor-pointer text-white bg-black rounded-sm p-2"><SettingsIcon /></button>
             <Settings settings={settings} setToggleSettings={x => toggleDisplaySettings.current = x} saveSettings={updateAndSaveSettings}/>
+            <ConfirmationModal title={"Set North Offset?"} setToggleEnable={x => toggleDisplayConfirmation.current = x} onConfirm={setNorth}/>
         </div>
     );
 }
