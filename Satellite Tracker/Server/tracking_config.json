@@ -119,22 +119,16 @@
                 "rgb_composites": {
                     "Natural Map": {
                         "equation": "((0.5*max(ch4,min(ch2,ch1)) + 0.5*ch2)+0.3*ch3)*0.85, ch2, ch1",
-                        "geo_correct": true,
-                        "project": {
-                            "draw_map_overlay": true,
-                            "draw_qth_overlay": true,
-                            "draw_cities_overlay": true,
-                            "individual_equalize": true,
-                            "config": {
-                                "type": "equirec",
-                                "offset_x": -180,
-                                "offset_y": 90,
-                                "scalar_x": 0.087890625,
-                                "scalar_y": -0.087890625,
-                                "width": 4096,
-                                "height": 2048
-                            }
-                        }
+                        "individual_equalize": true
+                    }
+                },
+                "project": {
+                    "draw_map_overlay": true,
+                    "draw_qth_overlay": true,
+                    "draw_cities_overlay": true,
+                    "individual_equalize": true,
+                    "config": {
+                        "type": "equirec"
                     }
                 }
             }

@@ -35,6 +35,10 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 socketio.init_app(app, cors_allowed_origins="*")
+
+testParamsPattern = r'test=(?P<x1>[\-\d.]+),(?P<y1>[\-\d.]+),(?P<x2>[\-\d.]+),(?P<y2>[\-\d.]+)'
+testParamsMatch = re.search(testParamsPattern, sys.argv[1])
+TEST = len(sys.argv) >= 2 and testParamsMatch is not None
 DEBUG = len(sys.argv) >= 2 and sys.argv[1] == 'debug'
 
 settings = {}
@@ -44,6 +48,7 @@ lastAction = Time.time()
 lastHome = Time.time()
 manager = None
 idleStowed = False
+tracking = False
 socketRef = None
 readPositionLock = Lock()
 homingLock = Lock()
@@ -462,7 +467,7 @@ def getMoves(x, y, keepOutOverride):
     global position, grid, zones
 
     moves = []    
-    if keepOutOverride or (x == position["x"] and y == position["y"] or len(zones) == 0) or not settings["usePathing"]: 
+    if keepOutOverride or (x == position["x"] and y == position["y"]) or len(zones) == 0 or not settings["usePathing"]: 
         moves = [{"x": x, "y": y}]
     else:
         pos = [position["x"], position["y"]]
@@ -474,10 +479,10 @@ def getMoves(x, y, keepOutOverride):
             pos[0] = (-(360 - normPos) if diff > 180 else normPos)
         else:
             normX = (-(360 - normX) if diff > 180 else normX)
-            pos[0] = normPos
-
+            pos[0] = normPos        
+        
         try:
-            path = smooth_path(search(grid, (round(pos[0]), round(pos[1])), (round(normX), round(y))), grid)
+            path = smooth_path(search(grid, applyGridModifier(round(pos[0]), round(pos[1])), applyGridModifier(round(normX), round(y))), grid)
             for i in range(len(path) - 1):
                 lines.append(LineString((path[i], path[i + 1])))
         except Exception as ex:
@@ -485,48 +490,86 @@ def getMoves(x, y, keepOutOverride):
             print(traceback.format_exc(), flush=True)
 
         for line in lines:
-            inter = None
-            for zone in zones:
-                inter = zone.intersection(line)
-                if not inter.is_empty:
-                    break
-                
-            if inter is None or inter.is_empty:
-                moves.append({"x": line.coords[-1][0], "y": line.coords[-1][1]})
-            else:
-                if inter.geom_type == "LineString":
-                    interPoint = [inter.coords[-1][0], inter.coords[-1][1]]
-                elif inter.geom_type == "MultiPoint":
-                    interPoint = [inter.geoms[0].x, inter.geoms[0].y]
-                else:
-                    interPoint = [inter.x, inter.y]
-
-                angle = (math.atan2(interPoint[1] - line.coords[0][1], interPoint[0] - line.coords[0][0]) + math.pi / 2) % (math.pi * 2)
-                moves.append({"x": interPoint[0] - 2 * math.sin(angle), "y": interPoint[1] - 2 * math.cos(angle)})
+            res = checkZones(line)
+            moves.append(res["move"])
+            if res["zone"]:
                 break
+
+        moves = [{"x": m["x"] / settings["gridResolutionModifier"], "y": m["y"] / settings["gridResolutionModifier"]} for m in moves]
+
+    return moves
+
+def applyGridModifier(x, y):
+    global settings
+    return (x * settings["gridResolutionModifier"], y * settings["gridResolutionModifier"])
+
+def checkZones(line):
+    for zone in zones:
+        inter = zone.boundary.intersection(line)
+        if not inter.is_empty:
+            if inter.geom_type == "LineString":
+                interPoint = [inter.coords[-1][0], inter.coords[-1][1]]
+            elif inter.geom_type == "MultiPoint":
+                interPoint = [inter.geoms[0].x, inter.geoms[0].y]
+            else:
+                interPoint = [inter.x, inter.y]
+
+            return { "zone": True, "move": offsetPoint(line.coords[0], interPoint, -2) }
+        
+        elif zone.covers(line):
+            h = LineString([(-100000, line.coords[0][0]), (100000, line.coords[1][0])])
+            v = LineString([(line.coords[0][1], -100000), (line.coords[1][1], 100000)])
+            minPoint = None
+            minDist = math.inf
+
+            for p in [Point(p) for p in zone.boundary.coords]:
+                d = p.distance(line)
+                if d < minDist:
+                    minPoint = p
+            for l in [h,v]:
+                inter = l.intersection(zone.boundary)
+                if not inter.is_empty and inter.geom_type == "Point":
+                    d = inter.distance(line)
+                    if d < minDist:
+                        minPoint = inter
+
+            return { "zone": True, "move": offsetPoint(line.coords[0], [minPoint.x, minPoint.y], 2) }
+        
+    return { "zone": False, "move": {"x": line.coords[-1][0], "y": line.coords[-1][1]} }
+
+def offsetPoint(p1, p2, d):
+    angle = math.atan2(p2[1] - p1[1], p2[0] - p1[0])
+    return {"x": p2[0] + d * math.cos(angle), "y": p2[1] + d * math.sin(angle)}
+
+def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = False, homingOverride = False):
+    global position, lastAction, settings, TEST
+
+    if(homingLock.acquire(timeout=0.1)):
+        homingLock.release()
+    elif(not homingOverride):
+        return
+    
+    if not TEST:
+        readPositionUntilIdle()
+
+    if absolute:
+        x = xpos % 360
+        y = max(min(ypos, 180), 0)
+    else:
+        x = (xpos + position["x"]) % 360
+        y = max(min(ypos + position["y"], 180), 0)    
+
+    moves = getMoves(x, y, keepOutOverride)
 
     for move in moves:
         diff = move["x"] - (position["x"] % 360)
         sign = 1 if diff == 0 else abs(diff) / diff
         nsign = -1 * sign
-        move["x"] = (diff if abs(diff) <= 180 else (360 - abs(diff)) * nsign) + position["x"]
+        move["x"] = min(diff if abs(diff) <= 180 else (360 - abs(diff)) * nsign, 360) + position["x"]
 
-    return moves
-
-def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = False, homingOverride = False):
-    global position, lastAction, settings
-
-    if(homingLock.acquire(0.1) and not homingOverride): return
-
-    readPositionUntilIdle()
-    if absolute:
-        x = xpos
-        y = max(min(ypos, 180), 0)
-    else:
-        x = xpos + position["x"]             
-        y = max(min(ypos + position["y"], 180), 0)    
-
-    moves = getMoves(x, y, keepOutOverride)
+    if TEST:
+        print(moves)
+        return
 
     if settings["displayPath"]:
         socketio.emit("message", json.dumps({"type": "path", "data": [position] + moves}))
@@ -539,15 +582,18 @@ def setRotorPosition(xpos, ypos, absolute, feedRate = None, keepOutOverride = Fa
             manager.write(f"G1 X{round(move['x'], 3)} Y{round(move['y'], 3)} F{feedRate}")
         if settings["waitWhilePathing"]:
             readPositionUntilIdle()
+        else:
+            Time.sleep(0.5)
 
 def stowRotor(): 
-    global idleStowed
+    global idleStowed, tracking
     if not idleStowed:
+        tracking = False
         setRotorPosition(settings["stowPosition"], 0, True)
         readPositionUntilIdle()
         manager.write(f"$7=25")
         manager.write(f"G0 Y0")
-        idleStowed = True
+        idleStowed = True        
         readPositionUntilIdle()
         socketio.emit("message", json.dumps({"type": "target", "data": position}))
 
@@ -559,9 +605,10 @@ def sendRead(line):
     socketio.emit("message", json.dumps({"type": "read", "data": line.rstrip()}))
 
 def sendPosition(line): 
+    global tracking
     match = re.search(statePattern, line)
     if match is not None:
-        socketio.emit("message", json.dumps({"type": "position", "data": { "x": round(float(match.group('x')) % 360, 3), "y": round(float(match.group('y')), 3)}}))
+        socketio.emit("message", json.dumps({"type": "position", "data": { "x": round(float(match.group('x')) % 360, 3), "y": round(float(match.group('y')), 3), "tracking": tracking}}))
 
 def monitorSoftReset(line):
     global position
@@ -676,7 +723,7 @@ def socketSend(client, data):
     client.send(str(data).encode())
 
 def initSocket():
-    global position, grblSettings, socketRef
+    global position, grblSettings, socketRef, tracking
     socketRef = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         port = 4533
@@ -706,10 +753,11 @@ def initSocket():
                 if command == 'p': # get position
                     pos = getPositionWithOffset()
                     socketSend(client, f'{pos["x"]}\n{pos["y"]}')
-                elif command == 'P': # set position
+                elif command == 'P': # set position                    
                     paramPos = [float(x) for x in params.split(" ")]
                     paramPos[0] = (paramPos[0] + settings["offset"]) % 360
                     dist = math.dist(paramPos, [position["x"] % 360, position["y"]])
+                    tracking = paramPos[1] >= 1
                     setRotorPosition(paramPos[0], paramPos[1], True, round(max(1500 * min(dist / 20, 1), 100), 3))
                     socketSend(client, "RPRT 0")
         except ConnectionResetError:
@@ -748,15 +796,18 @@ def initSerialManager():
         print(traceback.format_exc(), flush=True)
     
 def loadSettings():
-    global settings, zones, grid
+    global settings
     f = open(f"./Data/settings", 'rb')
     settings = json.loads(f.read())
     f.close()
+    createGrid()
 
+def createGrid():
+    global settings, zones, grid
     zones = []
-    grid = [[0 for y in range(90)] for x in range(-360, 360)]
+    grid = [[0 for y in range(90 * settings["gridResolutionModifier"])] for x in range(-360 * settings["gridResolutionModifier"], 360 * settings["gridResolutionModifier"])]
     for zone in settings["keepOutZones"]:
-        poly = Polygon((point['az'] - (360 if any(point['az'] > zone[(i + x) % len(zone)]['az'] + 180 for x in range(-1, 2)) else 0), point['el']) for i, point in enumerate(zone))
+        poly = Polygon(((point['az'] - (360 if any(point['az'] > zone[(i + x) % len(zone)]['az'] + 180 for x in range(-1, 2)) else 0)) * settings["gridResolutionModifier"], point['el'] * settings["gridResolutionModifier"]) for i, point in enumerate(zone))
         zones.append(poly)
         bufferPoly = poly.buffer(2)
         for x in range(round(bufferPoly.bounds[0]), round(bufferPoly.bounds[2])):
@@ -766,7 +817,7 @@ def loadSettings():
                         grid[round(x)][round(y)] = 1
 
     res = shapely.union_all(zones)
-    zones = [p.boundary for p in (res if isinstance(res, Iterable) else [res])]
+    zones = [p for p in (res if isinstance(res, Iterable) else [res])]
             
 def appStart():
     global settings, manager
@@ -798,4 +849,19 @@ def appStart():
     
 
 if __name__ == '__main__':
-    appStart()
+    if TEST:
+        print("Loading Settings")
+        #loadSettings()
+        settings = {"gridResolutionModifier": 4, "baud": 9600, "port": "/dev/ttyACM0", "offset": 175.008, "idleTimeout": 30, "stowPosition": 0, "homeOnStart": True, "homePeriod": 1440, "displayPath": True, "displayPathTrail": True, "pathTrailDuration": 120, "maxMessages": 1000, "usePathing": True, "waitWhilePathing": False, "keepOutZones": [[{"az": 135, "el": 9.71618392066584}, {"az": 139.55995008741183, "el": 9.95234407595116}, {"az": 149.51426629366844, "el": -9.617760589425375}, {"az": 125.44571032759825, "el": -10.27713078553794}]]}
+        print(f'settings: {settings}')
+        createGrid()
+        print(f'Grid: {len(grid) * len(grid[0])}')
+        position = {'x': float(testParamsMatch.group("x1")), 'y': float(testParamsMatch.group("y1"))}
+        goal = {'x': float(testParamsMatch.group("x2")), 'y':float(testParamsMatch.group("y2"))}
+        print(f'position: {position}')        
+        print(f'setRotorPosition({goal["x"]}, {goal["y"]}, False)')
+        start = Time.perf_counter()
+        setRotorPosition(goal["x"], goal["y"], False)
+        print((Time.perf_counter() - start))
+    else:
+        appStart()
