@@ -13,16 +13,7 @@
         "fft_avgn": 5.60699987411499,
         "fft_min": -85,
         "fft_max": 0
-    },
-    "finish_processing": true,
-    "output_folder": "/home/erik/satdump",
-    "http_server": "0.0.0.0:8081",
-    "qth": {
-        "lat": 38.540630,
-        "lon": -106.222800,
-        "alt": 2605.0
-    },
-    "tracking": {
+    },"tracking": {
         "rotator_algo": {
             "meridian_flip_correction": false,
             "park_position": {
@@ -49,6 +40,14 @@
             "port": 4533
         }
     },
+    "finish_processing": true,
+    "output_folder": "",
+    "http_server": "0.0.0.0:8081",
+    "qth": {
+        "lat": 0,
+        "lon": 0,
+        "alt": 2605.0
+    },    
     "tracked_objects": [
         {
             "norad": 57166,
