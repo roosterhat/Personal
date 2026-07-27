@@ -13,7 +13,8 @@
         "fft_avgn": 5.60699987411499,
         "fft_min": -85,
         "fft_max": 0
-    },"tracking": {
+    },
+    "tracking": {
         "rotator_algo": {
             "meridian_flip_correction": false,
             "park_position": {

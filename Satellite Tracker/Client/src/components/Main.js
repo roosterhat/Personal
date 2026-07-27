@@ -72,7 +72,7 @@ export default function SatelliteTracker() {
                     tracking.current = data["data"]["tracking"] || false
                     if((!settingsProxy.current["onlyDisplayTrackingTrail"] || data["data"]["tracking"]) 
                         && (trailProxy.current.length == 0 || (trailProxy.current[trailProxy.current.length - 1]["x"] != data["data"]["x"] || trailProxy.current[trailProxy.current.length - 1]["y"] != data["data"]["y"]))) {
-                        setTrail([...trailProxy.current, {"time": Date.now(), ...data["data"]}])
+                        setTrail(smoothPoints([...trailProxy.current, {"time": Date.now(), ...data["data"]}]))
                     }
                     break;
                 case "target":
@@ -135,12 +135,39 @@ export default function SatelliteTracker() {
         observer.observe(messageContainer, config);
     }
 
+    const smoothPoints = (points, window = 3) => {
+        const smoothed = [];
+
+        for (let i = 0; i < points.length; i++) {
+            let sumX = 0;
+            let sumY = 0;
+            let count = 0;
+
+            const start = Math.max(0, i - window);
+            const end = Math.min(points.length - 1, i + window);
+
+            for (let j = start; j <= end; j++) {
+                sumX += points[j].x;
+                sumY += points[j].y;
+                count++;
+            }
+
+            smoothed.push({
+                ...points[i],
+                x: sumX / count,
+                y: sumY / count
+            });
+        }
+
+        return smoothed;
+    }
+
     const manageTrail = () => {
         if(settingsProxy.current["displayPathTrail"]) {
             const now = Date.now()
             const isTracking = settingsProxy.current["displayFullTrack"] && tracking.current
             setTrail(trailProxy.current
-                .map(x => {
+                .map((x, i) => {
                     if(isTracking && x.tracking)
                         x.time = now
                     return x
