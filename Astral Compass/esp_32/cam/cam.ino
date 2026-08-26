@@ -104,18 +104,29 @@ void SerialMonitor(void *pvParameters) {
   }
 }
 
-void writeToSerial(const char str[]) {
-  if(!serialReady) return;
+bool writeToSerial(const char str[]) {
+  if(!serialReady) return false;
 
-  while(mainSerial.availableForWrite() == 0) {}
-  mainSerial.print(str);
+  for(int i = 0; i < 100; i++) {
+    if(mainSerial.availableForWrite() > 0) {
+      mainSerial.print(str);
+      return true;
+    }
+  }
+
+  return false;
 }
 
-void writeToSerialf(const char * format, ...) {
+bool writeToSerialf(const char * format, ...) { 
+  if(!serialReady) return false;
+
   va_list args;
+  for(int i = 0; i < 100; i++) {
+    if(mainSerial.availableForWrite() > 0) {
+      mainSerial.printf(format, args);
+      return true;
+    }
+  }
 
-  if(!serialReady) return;
-
-  while(mainSerial.availableForWrite() == 0) {}
-  mainSerial.printf(format, args);
+  return false;
 }

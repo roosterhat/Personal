@@ -20,7 +20,7 @@
 #define SERIAL_RX 3
 
 enum class Status {
-    INIT, HOMING, CAL, PAIRING, PAIRED, TRACKING, IDLE
+    INIT, HOMING, PAIRING, PAIRED, TRACKING, IDLE
 };
 
 volatile extern Status status;
