@@ -2,9 +2,9 @@
 
 #include <Arduino.h>
 
-#define LED_R 21
+#define LED_R 18
 #define LED_G 19
-#define LED_B 18
+#define LED_B 21
 #define S1_EN 12
 #define S1_DIR 2
 #define S1_STEP 15
@@ -24,7 +24,4 @@ enum class Status {
 };
 
 volatile extern Status status;
-volatile extern int64_t currentTick, previousTick;
-
-
- 
+volatile extern int64_t currentTick, previousTick; 

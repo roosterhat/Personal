@@ -36,7 +36,7 @@ void setup() {
       .frame_size     = FRAMESIZE_QQVGA, // The resolution size of the image: FRAMESIZE_ + QVGA|CIF|VGA|SVGA|XGA|SXGA|UXGA
       .fb_count       = 2,
       .fb_location    = CAMERA_FB_IN_PSRAM,            
-      .grab_mode      = CAMERA_GRAB_WHEN_EMPTY
+      .grab_mode      = CAMERA_GRAB_LATEST
   };
 
   esp_err_t err = esp_camera_init(&config);
@@ -48,23 +48,29 @@ void setup() {
   Serial.println("Camera Initialized");
 
   xTaskCreate(SerialMonitor, "SerialMonitor", 8192, NULL, 1, NULL);  
-  xTaskCreate(TrackerLoop, "TrackerLoop", 1048576, NULL, 1, NULL);  
+  xTaskCreate(TrackerLoop, "TrackerLoop", 16384, NULL, 1, NULL);  
 }
 
 void loop() {
+  delay(10000);
 }
 
 void TrackerLoop(void *pvParameters) {
   tracker.init();
 
   while (true) {
+    vTaskDelay(1);
+
+    if(!serialReady) continue;
+
     tracker.setGyroPrediction(gyroIntegratedThetaX, gyroIntegratedThetaY, gyroIntegratedThetaZ);
     RotationEstimate est = tracker.update();
     
     if (est.valid) {
       writeToSerialf("U %.5f %.5f %.5f %.4f %d %.5f", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);
-      Serial.printf("dtheta=[%.5f, %.5f, %.5f] rad  dt=%.4f s  inliers=%d  rms=%.5f\n", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);      
+      //Serial.printf("dtheta=[%.5f, %.5f, %.5f] rad  dt=%.4f s  inliers=%d  rms=%.5f\n", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);      
     } else {
+      writeToSerial("E Insufficient tracks");
       Serial.println("Insufficient tracks");
     }
   }
@@ -79,18 +85,17 @@ void SerialMonitor(void *pvParameters) {
   Serial.println("Serial: waiting for host");
 
   while (true) {
-    while (mainSerial.available() == 0){}
+    while (mainSerial.available() == 0) vTaskDelay(1);
     String command = mainSerial.readString();
 
     switch(command[0]) {
       case 'I':
-        while(mainSerial.availableForWrite() == 0) {}
+        while(mainSerial.availableForWrite() == 0) vTaskDelay(1);
         mainSerial.print("ACK");
         Serial.println("Serial: connection established");
         serialReady = true;
         break;
       case 'P':
-        while(mainSerial.availableForWrite() == 0) {}
         writeToSerial("ACK");
         break;
       case 'G':
@@ -112,6 +117,8 @@ bool writeToSerial(const char str[]) {
       mainSerial.print(str);
       return true;
     }
+
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 
   return false;
@@ -126,6 +133,8 @@ bool writeToSerialf(const char * format, ...) {
       mainSerial.printf(format, args);
       return true;
     }
+
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 
   return false;

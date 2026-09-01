@@ -12,12 +12,12 @@
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
 
-volatile int64_t previousTick = 0, currentTick = 1, lastICMPoll, lastGyroStateUpdate;
+volatile int64_t lastICMPoll, lastGyroStateUpdate;
 volatile bool serialReady = false, BTSerialReady = false;
-double vel[] = {0,0,0}, pos[] = {0,0,0}, angle[] = {0,0,0}, northOffset = 0;
 volatile Status status = Status::INIT;
-Adafruit_ICM20948 ICM;
+double angle[] = {0,0,0}, northOffset = 0;
 sensors_event_t accel, gyro, temp, mag;
+Adafruit_ICM20948 ICM;
 HardwareSerial camSerial(2);
 BluetoothSerial BTSerial;
 SensorFusionEKF fusion;
@@ -54,18 +54,17 @@ void setup() {
   camSerial.begin(38400, SERIAL_8N1, SERIAL_RX, SERIAL_TX, false, 1000);
   Serial.println("CamSerial: Connection opened");   
 
-  xTaskCreate(SerialMonitor, "SerialMonitor", 1024, NULL, 5, NULL);  
+  xTaskCreate(SerialMonitor, "SerialMonitor", 4096, NULL, 5, NULL);  
   xTaskCreate(SerialConnectionMonitor, "SerialConnectionMonitor", 1024, NULL, 1, NULL);
-  xTaskCreate(BluetoothMonitor, "SerialConnectionMonitor", 4096, NULL, 5, NULL);
+  xTaskCreate(BluetoothMonitor, "BluetoothMonitor", 4096, NULL, 5, NULL);
   xTaskCreate(ProcessICMUpdates, "ProcessICMUpdates", 4096, NULL, 10, NULL);
-  xTaskCreate(StepperLoop, "StepperLoop", 4096, NULL, 9, NULL);
+  //xTaskCreate(StepperLoop, "StepperLoop", 4096, NULL, 9, NULL);
   xTaskCreate(ProcessLEDs, "ProcessLEDs", 1024, NULL, 1, NULL);
   Serial.println("Threads Initialized");  
 }
 
 void loop() {
-  previousTick = currentTick;
-  currentTick = esp_timer_get_time();
+  delay(10000);
 }
 
 void BluetoothMonitor(void *pvParameters) {
@@ -97,8 +96,10 @@ void BluetoothMonitor(void *pvParameters) {
       Serial.println("Bluetooth: Disconnected");
       BTSerialReady = false;
       UpdateStatus(Status::PAIRING);
-    }    
-  }
+    }  
+
+    vTaskDelay(1);  
+  }  
 }
 
 void SerialConnectionMonitor(void *pvParameters) {
@@ -109,24 +110,27 @@ void SerialConnectionMonitor(void *pvParameters) {
         Serial.println("CamSerial: Connection unresponsive");
       }
     }
-    else {
-      while(camSerial.availableForWrite() == 0) {}
+    else {      
+      Serial.println(camSerial.availableForWrite());
+      while(camSerial.availableForWrite() == 0) vTaskDelay(1); 
       camSerial.print("I");
       Serial.println("CamSerial: Waiting for client");
 
-      while (true) {
-        while (camSerial.available() == 0){} 
-        String command = camSerial.readString();
+      for(int i = 0; i < 1000; i++) {
+        if (camSerial.available() > 0) { 
+          String command = camSerial.readString();
 
-        if(command == "ACK") {
-          Serial.println("CamSerial: Connection established");
-          serialReady = true;
-          break;
+          if(command == "ACK") {
+            Serial.println("CamSerial: Connection established");
+            serialReady = true;
+            break;
+          }
         }
-      }      
+        vTaskDelay(pdMS_TO_TICKS(1)); 
+      }
     }
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(1);
   }
 }
 
@@ -135,7 +139,7 @@ void SerialMonitor(void *pvParameters) {
   std::regex camPattern("U (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+) (\d+\.\d+)");    
 
   while (true) {
-    while (camSerial.available() == 0){}
+    while (camSerial.available() == 0) vTaskDelay(1);
     String command = camSerial.readString();
 
     switch(command[0]) {
@@ -169,7 +173,7 @@ void ProcessICMUpdates(void *pvParameters) {
   fusion.init();
 
   while(true) {
-    int64_t start = currentTick;
+    int64_t currentTick = esp_timer_get_time();
     ICM.getEvent(&accel, &gyro, &temp, &mag);
     double dt = pdTICKS_TO_MS(currentTick - lastICMPoll);
     lastICMPoll = currentTick;
@@ -185,12 +189,12 @@ void ProcessICMUpdates(void *pvParameters) {
     Vector3 rpy = fusion.getEulerRPY_deg();
     Vector3 b = fusion.getGyroBias();
 
-    lastGyroStateUpdate = currentTick;
+    lastGyroStateUpdate = esp_timer_get_time();
     writeToSerialf("G %2.2f %2.2f %2.2f", rpy.x, rpy.y, rpy.z);
 
-    Serial.printf("RPY: [%.2f, %.2f, %.2f] deg   bias: [%.5f, %.5f, %.5f] rad/s\n", rpy.x, rpy.y, rpy.z, b.x, b.y, b.z);
+    //Serial.printf("RPY: [%.2f, %.2f, %.2f] deg   bias: [%.5f, %.5f, %.5f] rad/s\n", rpy.x, rpy.y, rpy.z, b.x, b.y, b.z);
 
-    vTaskDelay(fmax(pdMS_TO_TICKS(1) - (currentTick - start), 1));
+    vTaskDelay(fmax(pdMS_TO_TICKS(1) - (lastGyroStateUpdate - currentTick), 1));
   }
 }
 
@@ -221,7 +225,7 @@ void UpdateStatus(Status s) {
 void SearchForICM() {
   Serial.println("Searching for ICM...");
 
-  Wire.begin();
+  Wire.begin(ACC_SDA, ACC_SCL);
   byte error, address;
   for(address = 1; address < 127; address++ ) {
     Wire.beginTransmission(address);
@@ -236,6 +240,7 @@ void SearchForICM() {
       }
     }
   }
+  Serial.print("Unable to find ICM, Halting");
   while(1) delay(10);
 }
 

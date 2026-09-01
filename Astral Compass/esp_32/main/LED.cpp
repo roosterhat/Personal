@@ -7,7 +7,7 @@ int _onPeriod = 1e6, _offPeriod = 0, _totalPeriod = 1e6;
 int LEDS[] = {LED_R, LED_G, LED_B};
 
 void UpdateLEDs() {
-    if(currentTick % _totalPeriod < _onPeriod) {
+    if(esp_timer_get_time() % _totalPeriod < _onPeriod) {
         for(int i = 0; i < 3; i++)
             ledcWrite(LEDS[i], _color[i]);
     }
