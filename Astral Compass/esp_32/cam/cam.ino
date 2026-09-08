@@ -49,10 +49,11 @@ void setup() {
 
   xTaskCreate(SerialMonitor, "SerialMonitor", 8192, NULL, 1, NULL);  
   xTaskCreate(TrackerLoop, "TrackerLoop", 16384, NULL, 1, NULL);  
+  Serial.println("Threads Initialized");
 }
 
 void loop() {
-  delay(10000);
+  delay(1000);
 }
 
 void TrackerLoop(void *pvParameters) {
@@ -71,7 +72,7 @@ void TrackerLoop(void *pvParameters) {
       //Serial.printf("dtheta=[%.5f, %.5f, %.5f] rad  dt=%.4f s  inliers=%d  rms=%.5f\n", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);      
     } else {
       writeToSerial("E Insufficient tracks");
-      Serial.println("Insufficient tracks");
+      //Serial.println("Insufficient tracks");
     }
   }
 }

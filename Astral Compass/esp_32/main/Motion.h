@@ -10,9 +10,14 @@ enum class StepperStatus {
     INIT, HOMING, IDLE, MOVING
 };
 
+extern LimitSwitch switches[];
+extern float MotionPosition[];
+extern StepperStatus stepperStatus;
+
 void InitSteppers();
 void InitInterrupts();
 void StepperLoop(void *pvParameters);
 void Home();
-void Point(float az, float el);
+void PointTo(float az, float el);
 void UpdateOrientation(float angles[]);
+void SetEnabled(bool enabled);

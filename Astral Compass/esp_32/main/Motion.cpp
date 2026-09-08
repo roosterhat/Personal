@@ -4,8 +4,8 @@
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper_AZ = NULL, *stepper_EL = NULL;
-LimitSwitch switches[] = { { 0, LM1, 0 }, { 0, LM2, 0 } };
-float target[] = { 0, 0 }, position[] = { 0, 0 }, orientation[] = { 0, 0, 0 };
+LimitSwitch switches[2] = { { 0, LM1, 0 }, { 0, LM2, 0 } };
+float target[2] = { 0, 0 }, MotionPosition[2] = { 0, 0 }, orientation[3] = { 0, 0, 0 };
 StepperStatus stepperStatus = StepperStatus::INIT;
 
 FastAccelStepper *InitStepper(int step, int dir, int enable, int steps, int accel) {
@@ -29,6 +29,7 @@ void IRAM_ATTR LimitSwitchEvent(void *arg) {
   if (now - lswitch.lastEvent > pdMS_TO_TICKS(50)) {
     lswitch.lastEvent = now;
     lswitch.status = !((bool)digitalRead(lswitch.pin));
+    Serial.printf("limit swtich %i\n", (int)(intptr_t)arg);
   }
 }
 
@@ -48,10 +49,10 @@ void InitInterrupts() {
 
 void Home() {
   stepperStatus = StepperStatus::HOMING;
-  Point(0, 0);
+  PointTo(0, 0);
 }
 
-void Point(float az, float el) {
+void PointTo(float az, float el) {
   target[0] = az;
   target[1] = el;
 }
@@ -62,8 +63,20 @@ void UpdateOrientation(float angles[]) {
 
 void StepperLoop(void *pvParameters) {
   while (true) {
-    Serial.println("Step");
-    //stepper_AZ->move(100000, true);
-    stepper_AZ->runForward();
+    // Serial.println("Step");
+    // stepper_AZ->move(100000, true);
+    //stepper_AZ->runForward();
+    vTaskDelay(pdMS_TO_TICKS(1));
+  }
+}
+
+void SetEnabled(bool enabled) {
+  if(enabled) {
+    stepper_AZ->enableOutputs();
+    stepper_EL->enableOutputs();
+  }
+  else {
+    stepper_AZ->disableOutputs();
+    stepper_EL->disableOutputs();
   }
 }
