@@ -35,8 +35,8 @@ void IRAM_ATTR LimitSwitchEvent(void *arg) {
 
 void InitSteppers() {
   engine.init();
-  stepper_EL = InitStepper(S1_STEP, S1_DIR, S1_EN, 30, 100000);
-  stepper_AZ = InitStepper(S2_STEP, S2_DIR, S2_EN, 30, 100000);
+  stepper_AZ = InitStepper(S1_STEP, S1_DIR, S1_EN, 30, 100000);
+  stepper_EL = InitStepper(S2_STEP, S2_DIR, S2_EN, 10, 100000);
 }
 
 void InitInterrupts() {
@@ -45,6 +45,18 @@ void InitInterrupts() {
 
   switches[0].status = !((bool)digitalRead(LM1));
   switches[1].status = !((bool)digitalRead(LM2));
+}
+
+void StepperLoop(void *pvParameters) {
+  while (true) {
+    //Serial.println("Step");
+    //stepper_EL->move(10000, true);
+    //vTaskDelay(pdMS_TO_TICKS(500));
+    //stepper_EL->move(-10000, true);
+    
+    //stepper_AZ->runForward();
+    vTaskDelay(pdMS_TO_TICKS(500));
+  }
 }
 
 void Home() {
@@ -59,15 +71,6 @@ void PointTo(float az, float el) {
 
 void UpdateOrientation(float angles[]) {
   std::copy(angles, angles + 3, orientation);
-}
-
-void StepperLoop(void *pvParameters) {
-  while (true) {
-    // Serial.println("Step");
-    // stepper_AZ->move(100000, true);
-    //stepper_AZ->runForward();
-    vTaskDelay(pdMS_TO_TICKS(1));
-  }
 }
 
 void SetEnabled(bool enabled) {

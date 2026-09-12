@@ -22,7 +22,7 @@ class CommandCallback : public BLECharacteristicCallbacks {
   std::regex enablePattern{R"(E (\d))"};
 
   void onWrite(BLECharacteristic *characteristic) {
-    xTaskCreate(BlinkStatusLED, "BlinkStatusLED", 1024, NULL, 1, NULL);
+    BlinkStatusLED();
 
     std::cmatch matches;
     String command = characteristic->getValue();
@@ -67,6 +67,9 @@ void BLEInit() {
     statusHandler = service->createCharacteristic(STATUS_UUID, BLECharacteristic::PROPERTY_NOTIFY);
     statusHandler->addDescriptor(new BLE2902());
 
+    systemHandler = service->createCharacteristic(SYSTEM_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+    systemHandler->addDescriptor(new BLE2902());
+
     service->start();
     server->getAdvertising()->start();
 
@@ -85,4 +88,11 @@ void transmitStatus(char* buffer, int size) {
 
   statusHandler->setValue((uint8_t *) buffer, size);
   statusHandler->notify();
+}
+
+void transmitSystemStatus(const char* buffer, int size) {
+  if(!BLEConnected) return;
+
+  systemHandler->setValue((uint8_t *) buffer, size);
+  systemHandler->notify();
 }

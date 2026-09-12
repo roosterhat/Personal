@@ -5,13 +5,22 @@
 #include <regex>
 
 HardwareSerial mainSerial(2);
+SharedReader serialReader(mainSerial);
 OpticalRotationTracker tracker;
+QueueHandle_t serialMutex = xSemaphoreCreateMutex();
+QueueHandle_t blinkQueue = xQueueCreate(1, sizeof(int));
 volatile float gyroIntegratedThetaX = 0, gyroIntegratedThetaY = 0, gyroIntegratedThetaZ = 0;
 volatile bool serialReady = false;
+volatile int64_t lastMainMessage;
+
+bool writeToSerial(const char* str, bool force = false);
 
 void setup() {
   Serial.begin(115200);
   Serial.println("\nSerial Connected");
+
+  pinMode(LED_STATUS, OUTPUT);
+  digitalWrite(LED_STATUS, HIGH);
 
   camera_config_t config = {
       .pin_pwdn       = -1,
@@ -47,20 +56,46 @@ void setup() {
 
   Serial.println("Camera Initialized");
 
+  xTaskCreate(SerialConnectionMonitor, "SerialConnectionMonitor", 8192, NULL, 1, NULL);  
   xTaskCreate(SerialMonitor, "SerialMonitor", 8192, NULL, 1, NULL);  
   xTaskCreate(TrackerLoop, "TrackerLoop", 16384, NULL, 1, NULL);  
+  xTaskCreate(ProcessStatusLED, "ProcessStatusLED", 1024, NULL, 1, NULL);
   Serial.println("Threads Initialized");
 }
 
 void loop() {
-  delay(1000);
+  delay(1000);  
+}
+
+void Reset() {
+  gyroIntegratedThetaX = 0, gyroIntegratedThetaY = 0, gyroIntegratedThetaZ = 0;
+  tracker.init();
+}
+
+void BlinkStatusLED() {
+  int pvItem;
+  xQueueGenericSend(blinkQueue, &pvItem, 0, queueSEND_TO_BACK);
+}
+
+void ProcessStatusLED(void *pvParameters) {
+  int pvBuffer;
+  while(true) {
+    if (xQueueReceive(blinkQueue, &pvBuffer, 0) == pdTRUE) {
+      digitalWrite(LED_STATUS, HIGH);
+      vTaskDelay(1);
+      digitalWrite(LED_STATUS, LOW);
+    } 
+    else {
+      vTaskDelay(1);
+    }
+  }
 }
 
 void TrackerLoop(void *pvParameters) {
   tracker.init();
 
   while (true) {
-    vTaskDelay(1);
+    vTaskDelay(1);    
 
     if(!serialReady) continue;
 
@@ -77,24 +112,63 @@ void TrackerLoop(void *pvParameters) {
   }
 }
 
-void SerialMonitor(void *pvParameters) {
-  std::cmatch matches;
-  std::regex gyroPattern("G (\d+\.\d+) (\d+\.\d+) (\d+\.\d+)"); 
+void SerialConnectionMonitor(void *pvParameters) {
+  String command;
+  bool acknowledged;
 
-  mainSerial.begin(38400, SERIAL_8N1, SERIAL_RX, SERIAL_TX, false, 1000);
+  mainSerial.begin(115200, SERIAL_8N1, SERIAL_RX, SERIAL_TX, false, 1000);
   Serial.println("Serial: connection opened");
   Serial.println("Serial: waiting for host");
 
   while (true) {
-    while (mainSerial.available() == 0) vTaskDelay(1);
-    String command = mainSerial.readString();
+    if(esp_timer_get_time() > lastMainMessage + 1e6) {
+      int index = -1;
+      writeToSerial("P");
+
+      acknowledged = false;      
+      for(int i = 0; i < 1000; i++) {      
+        if (mainSerial.available() > 0) {          
+          command = serialReader.read(index);
+
+          if(command.startsWith("ACK")) {
+            acknowledged = true;
+            lastMainMessage = esp_timer_get_time();
+            break;
+          }
+        }        
+        vTaskDelay(1); 
+      }
+
+      if(!acknowledged) {
+        serialReady = false;
+        Serial.println("Serial: connection lost");
+      }
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(1000)); 
+  }
+}
+
+void SerialMonitor(void *pvParameters) {
+  int index = 0;
+  String command;
+  std::cmatch matches;
+  std::regex gyroPattern("G (\d+\.\d+) (\d+\.\d+) (\d+\.\d+)");   
+
+  while (true) {
+    while (!mainSerial.available()) vTaskDelay(1);
+    command = serialReader.read(index);
+    lastMainMessage = esp_timer_get_time();
+
+    BlinkStatusLED();
 
     switch(command[0]) {
       case 'I':
-        while(mainSerial.availableForWrite() == 0) vTaskDelay(1);
-        mainSerial.print("ACK");
+        serialReady = false;
+        writeToSerial("ACK", true);
         Serial.println("Serial: connection established");
         serialReady = true;
+        Reset();
         break;
       case 'P':
         writeToSerial("ACK");
@@ -110,33 +184,33 @@ void SerialMonitor(void *pvParameters) {
   }
 }
 
-bool writeToSerial(const char str[]) {
-  if(!serialReady) return false;
+bool writeToSerial(const char* str, bool force) {
+  if(!(serialReady || force)) return false;
 
-  for(int i = 0; i < 100; i++) {
-    if(mainSerial.availableForWrite() > 0) {
-      mainSerial.print(str);
-      return true;
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(1));
+  if (xSemaphoreTake(serialMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return false;
   }
 
-  return false;
+  mainSerial.println(str);
+  xSemaphoreGive(serialMutex);
+  BlinkStatusLED();
+  return true;
 }
 
 bool writeToSerialf(const char * format, ...) { 
   if(!serialReady) return false;
 
-  va_list args;
-  for(int i = 0; i < 100; i++) {
-    if(mainSerial.availableForWrite() > 0) {
-      mainSerial.printf(format, args);
-      return true;
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(1));
+  if (xSemaphoreTake(serialMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return false;
   }
 
-  return false;
+  va_list args;
+  va_start(args, format);
+
+  mainSerial.vprintf(format, args);
+  mainSerial.println();
+  va_end(args);
+  xSemaphoreGive(serialMutex);
+  BlinkStatusLED();
+  return true;
 }

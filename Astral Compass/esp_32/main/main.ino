@@ -16,17 +16,22 @@
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
 
-volatile int64_t lastICMPoll, lastGyroStateUpdate;
+volatile int64_t lastICMPoll, lastGyroStateUpdate, lastCamMessage;
 volatile bool serialReady = false;
 volatile Status status = Status::INIT;
 sensors_event_t accel, gyro, temp, mag;
 Adafruit_ICM20948 ICM;
 HardwareSerial camSerial(2);
 SensorFusionEKF fusion;
-RotationEstimate* currentEstimate = nullptr;
+QueueHandle_t estimateQueue = xQueueCreate(1, sizeof(RotationEstimate));
+QueueHandle_t blinkQueue = xQueueCreate(1, sizeof(int));
 Vector3 RPY, bias, targetPosition, initMagOrientation;
 double northOffset;
-int laserStatus; 
+int laserStatus, camFPS, IMUhz; 
+SharedReader serialReader(camSerial);
+QueueHandle_t serialMutex = xSemaphoreCreateMutex();
+
+bool writeToSerial(const char* str, bool force = false);
 
 void setup() {
   ledcAttach(LED_R, 5000, 8);
@@ -62,14 +67,16 @@ void setup() {
 
   BLEInit();
   Serial.println("BLE Initialized");
-
-  xTaskCreate(SerialConnectionMonitor, "SerialConnectionMonitor", 1024, NULL, 1, NULL);
-  xTaskCreate(SerialMonitor, "SerialMonitor", 4096, NULL, 5, NULL);  
+  
   xTaskCreate(ProcessICMUpdates, "ProcessICMUpdates", 4096, NULL, 10, NULL);
   xTaskCreate(StepperLoop, "StepperLoop", 4096, NULL, 9, NULL);
   xTaskCreate(ProcessLEDs, "ProcessLEDs", 1024, NULL, 1, NULL);
-  xTaskCreate(StateMonitor, "StateMonitor", 1024, NULL, 1, NULL);
-  xTaskCreate(OrientationMonitor, "OrientationMonitor", 1024, NULL, 1, NULL);
+  xTaskCreate(ProcessStatusLED, "ProcessStatusLED", 1024, NULL, 1, NULL);
+  xTaskCreate(StateMonitor, "StateMonitor", 2048, NULL, 5, NULL);
+  xTaskCreate(OrientationMonitor, "OrientationMonitor", 4096, NULL, 5, NULL);
+  xTaskCreate(SystemMonitor, "SystemMonitor", 2048, NULL, 5, NULL);
+  xTaskCreate(SerialConnectionMonitor, "SerialConnectionMonitor", 4096, NULL, 7, NULL);  
+  xTaskCreate(SerialMonitor, "SerialMonitor", 8192, NULL, 7, NULL);      
   Serial.println("Threads Initialized");  
 }
 
@@ -85,16 +92,38 @@ void getInitMagOrientaiton() {
   }
 }
 
+void SystemMonitor(void *pvParameters) {
+  while (true) {
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    uint32_t totalTime;
+    int taskCount = uxTaskGetNumberOfTasks();
+    TaskStatus_t* taskArray = new TaskStatus_t[taskCount]();
+
+    int tasks = uxTaskGetSystemState(taskArray, taskCount, &totalTime);
+
+    String result = String(xPortGetFreeHeapSize()) + "," + String(totalTime);
+    for(int i = 0; i < tasks; i++) {
+      TaskStatus_t task = taskArray[i];
+      result += ("," + String(task.pcTaskName) + "," + String(task.ulRunTimeCounter) + "," + String(task.uxCurrentPriority) + "," + String(task.eCurrentState) + "," + String(task.usStackHighWaterMark));
+    }
+
+    delete[] taskArray;
+
+    transmitSystemStatus(result.c_str(), result.length());
+  }
+}
+
 void StateMonitor(void *pvParameters) {
   char buffer[128];
-  char* statusFormat = "S %i %i %i %i";
+  char* statusFormat = "S %i %i %i %i %i %i";
 
   while(true) {
     laserStatus = digitalRead(LASER);
 
-    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, switches[0].status, switches[1].status, serialReady);
+    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, switches[0].status, switches[1].status, serialReady, IMUhz, camFPS);
     transmitStatus(buffer, size);
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(200));
   }
 }
 
@@ -109,55 +138,82 @@ void OrientationMonitor(void *pvParameters) {
   }
 }
 
-void BlinkStatusLED(void *pvParameters) {
-  digitalWrite(LED_STATUS, HIGH);
-  vTaskDelay(pdMS_TO_TICKS(10));
-  digitalWrite(LED_STATUS, LOW);
-  vTaskDelete(NULL);
+void BlinkStatusLED() {
+  int pvItem;
+  xQueueGenericSend(blinkQueue, &pvItem, 0, queueSEND_TO_BACK);
 }
 
-void SerialConnectionMonitor(void *pvParameters) {
-  camSerial.begin(38400, SERIAL_8N1, SERIAL_RX, SERIAL_TX, false, 1000);
-  Serial.println("CamSerial: Connection opened");  
-
-  while (true) {
-    if(serialReady) {
-      if(!writeToSerial("P")) {
-        serialReady = false;
-        Serial.println("CamSerial: Connection unresponsive");
-      }
+void ProcessStatusLED(void *pvParameters) {
+  int pvBuffer;
+  while(true) {
+    if (xQueueReceive(blinkQueue, &pvBuffer, 0) == pdTRUE) {
+      digitalWrite(LED_STATUS, HIGH);
+      vTaskDelay(1);
+      digitalWrite(LED_STATUS, LOW);
+    } 
+    else {
+      vTaskDelay(1);
     }
-    else {      
-      Serial.println(camSerial.availableForWrite());
-      while(camSerial.availableForWrite() == 0) vTaskDelay(1); 
-      camSerial.print("I");
-      Serial.println("CamSerial: Waiting for client");
+  }
+}
 
-      for(int i = 0; i < 1000; i++) {
-        if (camSerial.available() > 0) { 
-          String command = camSerial.readString();
+void SerialConnectionMonitor(void *pvParameters) {  
+  String command;
+  bool acknowledged;
 
-          if(command == "ACK") {
-            Serial.println("CamSerial: Connection established");
+  vTaskDelay(pdMS_TO_TICKS(200));
+  camSerial.begin(115200, SERIAL_8N1, SERIAL_RX, SERIAL_TX, false, 1000);
+  camSerial.setTimeout(100);
+  Serial.println("CamSerial: Connection opened");  
+  Serial.print("CamSerial: Waiting for client");
+
+  while(true) {
+    if(!serialReady || esp_timer_get_time() > lastCamMessage + 1e6) {
+      int index = -1;
+      writeToSerial(serialReady ? "P" : "I", true);
+      if(!serialReady)
+        Serial.print("...");
+      
+      acknowledged = false;
+      for(int i = 0; i < 1000; i++) {      
+        if (camSerial.available()) {
+          command = serialReader.read(index);
+          
+          if(command.startsWith("ACK")) {
+            if(!serialReady)
+              Serial.println("\nCamSerial: Connection established");
             serialReady = true;
+            acknowledged = true;
+            lastCamMessage = esp_timer_get_time();
             break;
           }
-        }
-        vTaskDelay(pdMS_TO_TICKS(1)); 
+        }     
+
+        vTaskDelay(1); 
+      } 
+
+      if(serialReady && !acknowledged) {
+        serialReady = false;
+        Serial.println("CamSerial: Connection lost");
+        Serial.print("CamSerial: Waiting for client");
       }
     }
-
-    vTaskDelay(1);
+    vTaskDelay(pdMS_TO_TICKS(serialReady ? 100 : 1)); 
   }
 }
 
 void SerialMonitor(void *pvParameters) {
+  int index = 0;
+  String command;
   std::cmatch matches;
-  std::regex camPattern{R"(U (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+) (\d+\.\d+))"};    
+  std::regex camPattern{R"(U (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+) (\d+\.\d+))"};   
 
   while (true) {
-    while (camSerial.available() == 0) vTaskDelay(1);
-    String command = camSerial.readString();
+    while (!(serialReady && camSerial.available())) vTaskDelay(pdMS_TO_TICKS(1));
+    command = serialReader.read(index);
+    camFPS = (int)(1 / ((esp_timer_get_time() - lastCamMessage) / 1e6));
+    lastCamMessage = esp_timer_get_time();
+    //Serial.println(command);
 
     switch(command[0]) {
       case 'P':
@@ -165,7 +221,7 @@ void SerialMonitor(void *pvParameters) {
         break;
       case 'U':
         if (std::regex_search(command.c_str(), matches, camPattern)) {
-          *currentEstimate = RotationEstimate {
+          RotationEstimate estimate {
             .dtheta_x = stof(matches[1].str()),
             .dtheta_y = stof(matches[2].str()),
             .dtheta_z = stof(matches[3].str()),
@@ -173,6 +229,8 @@ void SerialMonitor(void *pvParameters) {
             .inlier_count = stof(matches[5].str()),
             .residual_rms = stof(matches[6].str()),
           };
+
+          xQueueOverwrite(estimateQueue, &estimate);
         }
         break;
     }
@@ -188,16 +246,17 @@ void ProcessLEDs(void *pvParameters) {
 
 void ProcessICMUpdates(void *pvParameters) {
   fusion.init();
+  RotationEstimate estimate;
 
   while(true) {
     int64_t currentTick = esp_timer_get_time();
     ICM.getEvent(&accel, &gyro, &temp, &mag);
-    double dt = pdTICKS_TO_MS(currentTick - lastICMPoll);
-    lastICMPoll = currentTick;
+    double dt = (currentTick - lastICMPoll) / 1e6;
+    IMUhz = (int)(1 / dt);
+    lastICMPoll = currentTick;    
 
-    if(currentEstimate != nullptr) {
-      fusion.updateVision(*currentEstimate);
-      currentEstimate = 0;
+    if (xQueueReceive(estimateQueue, &estimate, 0) == pdTRUE) {
+        fusion.updateVision(estimate);
     }
 
     fusion.predict(Vector3(gyro.gyro.v), dt);
@@ -211,7 +270,7 @@ void ProcessICMUpdates(void *pvParameters) {
 
     //Serial.printf("RPY: [%.2f, %.2f, %.2f] deg   bias: [%.5f, %.5f, %.5f] rad/s\n", RPY.x, RPY.y, RPY.z, bias.x, bias.y, bias.z);
 
-    vTaskDelay(fmax(pdMS_TO_TICKS(1) - (lastGyroStateUpdate - currentTick), 1));
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
 
@@ -261,29 +320,31 @@ void SearchForICM() {
   while(1) delay(10);
 }
 
-bool writeToSerial(const char str[]) {
-  if(!serialReady) return false;
+bool writeToSerial(const char* str, bool force) {
+  if(!(serialReady || force)) return false;
 
-  for(int i = 0; i < 100; i++) {
-    if(camSerial.availableForWrite() > 0) {
-      camSerial.print(str);
-      return true;
-    }
+  if (xSemaphoreTake(serialMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return false;
   }
 
-  return false;
+  camSerial.println(str);
+  xSemaphoreGive(serialMutex);
+  return true;
 }
 
 bool writeToSerialf(const char * format, ...) { 
   if(!serialReady) return false;
 
-  va_list args;
-  for(int i = 0; i < 100; i++) {
-    if(camSerial.availableForWrite() > 0) {
-      camSerial.printf(format, args);
-      return true;
-    }
+  if (xSemaphoreTake(serialMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return false;
   }
 
-  return false;
+  va_list args;
+  va_start(args, format);
+
+  camSerial.vprintf(format, args);
+  camSerial.println();
+  va_end(args);
+  xSemaphoreGive(serialMutex);
+  return true;
 }
