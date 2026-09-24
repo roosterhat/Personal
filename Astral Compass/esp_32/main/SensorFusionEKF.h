@@ -123,7 +123,7 @@ public:
   // Gyro bias random-walk density, rad/s per sqrt(s). Small — bias drifts
   // slowly. Tune from an Allan variance plot if you have one; otherwise
   // start small and increase if the filter seems slow to trust new bias info.
-  float GYRO_BIAS_WALK = 1.0e-5f;
+  float GYRO_BIAS_WALK = 1.0e-3f;
   // Accelerometer measurement noise, in normalized-gravity-vector units
   // (not m/s^2 — the accel measurement is normalized before use).
   float ACCEL_MEAS_VARIANCE = 0.03f;
@@ -132,9 +132,11 @@ public:
   float ACCEL_MAX_DEVIATION_G = 0.25f;
   // Vision measurement base variance (rad^2) at INLIER_REFERENCE inliers
   // and near-zero residual; scaled down as track quality improves.
+  float MAX_CORRECTION_ANGLE_RAD = 0.5f;
   float VISION_BASE_VARIANCE = 0.0006f;   // ~1.4 deg std dev at reference quality
   int   VISION_INLIER_REFERENCE = 10;
   float VISION_RESIDUAL_WEIGHT = 50.0f;   // inflates R as residual_rms grows
+  const float G = 9.80665f;
 
   void init() {
     q = Quaternion(1, 0, 0, 0);
@@ -207,13 +209,15 @@ public:
   // Call whenever you have a fresh accelerometer sample. accelG is the
   // raw reading in units of g (does not need to be pre-normalized).
   void updateAccel(const Vector3 &accelG) {
-    float aNorm = accelG.normal();
+    Vector3 accel(accelG.x / G, accelG.y / G, accelG.z / G);
+
+    float aNorm = accel.normal();
     if (aNorm < 1e-6f) return;
     float deviation = fabsf(aNorm - 1.0f);
     if (deviation > ACCEL_MAX_DEVIATION_G) return; // too dynamic to trust as gravity
 
-    Vector3 accelDir = accelG * (1.0f / aNorm);
-    Vector3 gWorld(0, 0, 1);
+    Vector3 accelDir = accel * (1.0f / aNorm);
+    Vector3 gWorld(0, 0, -1);
     Vector3 predicted = q.rotateWorldToBody(gWorld);
 
     Vector3 y = accelDir - predicted; // innovation
@@ -332,7 +336,13 @@ private:
     Vector3 dtheta(dx[0], dx[1], dx[2]);
     Vector3 dbias(dx[3], dx[4], dx[5]);
 
-    q = q * dtheta.quatFromSmallAngle();
+    // float dthetaMag = dtheta.normal();
+    // if (dthetaMag > MAX_CORRECTION_ANGLE_RAD) {
+    //   dtheta = dtheta * (MAX_CORRECTION_ANGLE_RAD / dthetaMag); // clamp magnitude, keep direction
+    // }
+
+    Quaternion dq = dtheta.quatFromAxisAngle(dtheta.normal());
+    q = q * dq;
     q.normalize();
     bias = bias + dbias;
 

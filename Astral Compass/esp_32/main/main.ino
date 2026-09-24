@@ -30,6 +30,7 @@ double northOffset;
 int laserStatus, camFPS, IMUhz; 
 SharedReader serialReader(camSerial);
 QueueHandle_t serialMutex = xSemaphoreCreateMutex();
+RotationEstimate rotationEstimate;
 
 bool writeToSerial(const char* str, bool force = false);
 
@@ -96,45 +97,56 @@ void SystemMonitor(void *pvParameters) {
   while (true) {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
+    String result;
     uint32_t totalTime;
     int taskCount = uxTaskGetNumberOfTasks();
     TaskStatus_t* taskArray = new TaskStatus_t[taskCount]();
 
-    int tasks = uxTaskGetSystemState(taskArray, taskCount, &totalTime);
+    int tasks = uxTaskGetSystemState(taskArray, taskCount, &totalTime);    
 
-    String result = String(xPortGetFreeHeapSize()) + "," + String(totalTime);
     for(int i = 0; i < tasks; i++) {
       TaskStatus_t task = taskArray[i];
-      result += ("," + String(task.pcTaskName) + "," + String(task.ulRunTimeCounter) + "," + String(task.uxCurrentPriority) + "," + String(task.eCurrentState) + "," + String(task.usStackHighWaterMark));
+      result = "T " + String(task.pcTaskName) + " " + String((float) task.ulRunTimeCounter / totalTime) + " " + String(task.uxCurrentPriority) + " " + String(task.eCurrentState) + " " + String(task.usStackHighWaterMark);
+      transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
     }
 
-    delete[] taskArray;
+    result = "M " + String((float) ESP.getFreeHeap() / ESP.getHeapSize()) + " " + String(totalTime) + " " + String(ESP.getCpuFreqMHz());
+    transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
 
-    transmitSystemStatus(result.c_str(), result.length());
+    delete[] taskArray;    
   }
 }
 
 void StateMonitor(void *pvParameters) {
   char buffer[128];
-  char* statusFormat = "S %i %i %i %i %i %i";
+  char* statusFormat = "%i %i %i %i %i %i %i %i";
 
   while(true) {
     laserStatus = digitalRead(LASER);
 
-    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, switches[0].status, switches[1].status, serialReady, IMUhz, camFPS);
+    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS);
     transmitStatus(buffer, size);
     vTaskDelay(pdMS_TO_TICKS(200));
   }
 }
 
 void OrientationMonitor(void *pvParameters) {
-  char buffer[512];
-  char* orientationFormat = "O %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f";
+  char buffer[128];
+  char* orientationFormat = "%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %d %.2f %.2f %.2f 0 %.2f %.2f 0";
 
   while(true) {
-    int size = snprintf(buffer, sizeof(buffer), orientationFormat, RPY.x, RPY.y, RPY.z, bias.x, bias.y, bias.z, gyro.gyro.v[0], gyro.gyro.v[1], gyro.gyro.v[2], accel.acceleration.v[0], accel.acceleration.v[1], accel.acceleration.v[2]);
-    transmitStatus(buffer, size);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    int size = snprintf(buffer, sizeof(buffer), orientationFormat, 
+      RPY.x, RPY.y, RPY.z, 
+      bias.x, bias.y, bias.z, 
+      gyro.gyro.v[0], gyro.gyro.v[1], gyro.gyro.v[2], 
+      accel.acceleration.v[0], accel.acceleration.v[1], accel.acceleration.v[2],
+      rotationEstimate.dtheta_x, rotationEstimate.dtheta_y, rotationEstimate.dtheta_z, 
+      rotationEstimate.dt_seconds, rotationEstimate.inlier_count, rotationEstimate.residual_rms,
+      M_target[0], M_target[1],
+      M_position[0], M_position[1]);
+
+    transmitOrientation(buffer, size);
+    vTaskDelay(pdMS_TO_TICKS(30));
   }
 }
 
@@ -206,7 +218,7 @@ void SerialMonitor(void *pvParameters) {
   int index = 0;
   String command;
   std::cmatch matches;
-  std::regex camPattern{R"(U (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+) (\d+\.\d+))"};   
+  std::regex camPattern{R"(U (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+\.\d+) (\d+) (\d+\.\d+))"};
 
   while (true) {
     while (!(serialReady && camSerial.available())) vTaskDelay(pdMS_TO_TICKS(1));
@@ -221,7 +233,7 @@ void SerialMonitor(void *pvParameters) {
         break;
       case 'U':
         if (std::regex_search(command.c_str(), matches, camPattern)) {
-          RotationEstimate estimate {
+          rotationEstimate = RotationEstimate {
             .dtheta_x = stof(matches[1].str()),
             .dtheta_y = stof(matches[2].str()),
             .dtheta_z = stof(matches[3].str()),
@@ -230,7 +242,7 @@ void SerialMonitor(void *pvParameters) {
             .residual_rms = stof(matches[6].str()),
           };
 
-          xQueueOverwrite(estimateQueue, &estimate);
+          xQueueOverwrite(estimateQueue, &rotationEstimate);
         }
         break;
     }
@@ -242,6 +254,10 @@ void ProcessLEDs(void *pvParameters) {
     UpdateLEDs();
     vTaskDelay(pdMS_TO_TICKS(1));
   }
+}
+
+void ZeroOrientation() {
+  fusion.init();
 }
 
 void ProcessICMUpdates(void *pvParameters) {
@@ -285,7 +301,7 @@ void UpdateStatus(Status s) {
       SetLEDs((int[]){ 0, 0, 100 }, 500, 500);
       break;
     case Status::PAIRED:
-      SetLEDs((int[]){ 0, 0, 100 }, 100, 100);
+      SetLEDs((int[]){ 0, 0, 100 }, 1, 0);
       break;
     case Status::TRACKING:
       SetLEDs((int[]){ 0, 90, 0 }, 1, 0);

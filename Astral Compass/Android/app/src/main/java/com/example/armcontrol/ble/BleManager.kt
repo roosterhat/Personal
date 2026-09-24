@@ -10,10 +10,13 @@ import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import com.example.armcontrol.models.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
+import kotlin.math.max
 
 sealed class ConnectionState {
     data object Disconnected : ConnectionState()
@@ -22,12 +25,6 @@ sealed class ConnectionState {
     data class Connected(val deviceName: String) : ConnectionState()
     data class Failed(val message: String) : ConnectionState()
 }
-
-data class ScannedDevice(
-    val device: BluetoothDevice,
-    val name: String,
-    val rssi: Int
-)
 
 @SuppressLint("MissingPermission")
 class BleManager(private val context: Context) {
@@ -39,6 +36,7 @@ class BleManager(private val context: Context) {
     private var gatt: BluetoothGatt? = null
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val pendingDescriptorWrites = ArrayDeque<() -> Unit>()
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
@@ -46,9 +44,21 @@ class BleManager(private val context: Context) {
     private val _scannedDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
     val scannedDevices: StateFlow<List<ScannedDevice>> = _scannedDevices.asStateFlow()
 
-    private val _lastStatus = MutableStateFlow<String?>(null)
-    val lastStatus: StateFlow<String?> = _lastStatus.asStateFlow()
+    private val _status = MutableStateFlow<Status?>(null)
+    private val _orientation = MutableStateFlow<Orientation>(Orientation(listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), 0f, 0, 0f))
+    private val _systemStatuses = MutableStateFlow<List<SystemState>>(emptyList())
+    private var _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
+    private val _position = MutableStateFlow<Position>(Position(0f, 0f))
+    private val _target = MutableStateFlow<Position>(Position(0f, 0f))
+    val status: StateFlow<Status?> = _status.asStateFlow()
+    val orientation: StateFlow<Orientation> = _orientation.asStateFlow()
+    val systemStatuses: StateFlow<List<SystemState>> = _systemStatuses.asStateFlow()
+    val position: StateFlow<Position> = _position.asStateFlow()
+    val target: StateFlow<Position> = _target.asStateFlow()
 
+    private val statusPattern = Regex("""(\d+)""")
+    private val orientationPattern = Regex("""(-?\d+(?:\.\d+)?)""")
+    private val systemStatusPattern = Regex("""(T) ([\w\s\-\.]+) (-?\d+(?:\.\d+)?) (\d+) (\d+) (\d+)|(M) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)""")
     fun isBluetoothEnabled(): Boolean = adapter?.isEnabled ?: false
 
     private val scanCallback = object : ScanCallback() {
@@ -57,11 +67,11 @@ class BleManager(private val context: Context) {
             val name = result.device.name ?: result.scanRecord?.deviceName ?: return
             if (!name.startsWith(BleConstants.DEVICE_NAME_PREFIX)) return
 
-            val current = _scannedDevices.value.toMutableList()
-            val idx = current.indexOfFirst { it.device.address == result.device.address }
+            val devices = _scannedDevices.value.toMutableList()
+            val idx = devices.indexOfFirst { it.device.address == result.device.address }
             val entry = ScannedDevice(result.device, name, result.rssi)
-            if (idx >= 0) current[idx] = entry else current.add(entry)
-            _scannedDevices.value = current
+            if (idx >= 0) devices[idx] = entry else devices.add(entry)
+            _scannedDevices.value = devices
         }
 
         override fun onScanFailed(errorCode: Int) {
@@ -77,13 +87,12 @@ class BleManager(private val context: Context) {
         _scannedDevices.value = emptyList()
         _connectionState.value = ConnectionState.Scanning
 
-        val filters = listOf(ScanFilter.Builder().setServiceUuid(null).build())
+        val filters = listOf<ScanFilter>()
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
         scanner?.startScan(filters, settings, scanCallback)
 
-        // Auto-stop after 10s so we don't drain the battery scanning forever.
         mainHandler.postDelayed({
             if (_connectionState.value == ConnectionState.Scanning) {
                 stopScan()
@@ -100,6 +109,7 @@ class BleManager(private val context: Context) {
         stopScan()
         _connectionState.value = ConnectionState.Connecting(device.name ?: device.address)
         gatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        _systemStatuses.value = emptyList()
     }
 
     fun disconnect() {
@@ -114,7 +124,7 @@ class BleManager(private val context: Context) {
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
-                    g.discoverServices()
+                    g.requestMtu(128)
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     commandCharacteristic = null
@@ -123,10 +133,17 @@ class BleManager(private val context: Context) {
             }
         }
 
-        fun initNotificationCharacteristic(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+        override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                g.discoverServices()
+            }
+        }
+
+        private fun initNotificationCharacteristic(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             g.setCharacteristicNotification(characteristic, true)
-            val descriptor = characteristic.getDescriptor(BleConstants.CLIENT_CHARACTERISTIC_CONFIG_UUID)
-            if (descriptor != null) {
+            val descriptor = characteristic.getDescriptor(BleConstants.CLIENT_CHARACTERISTIC_CONFIG_UUID) ?: return
+
+            pendingDescriptorWrites.addLast {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     g.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
                 } else {
@@ -136,6 +153,14 @@ class BleManager(private val context: Context) {
                     g.writeDescriptor(descriptor)
                 }
             }
+            if (pendingDescriptorWrites.size == 1) {
+                pendingDescriptorWrites.first().invoke()
+            }
+        }
+
+        override fun onDescriptorWrite(g: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+            pendingDescriptorWrites.removeFirstOrNull()
+            pendingDescriptorWrites.firstOrNull()?.invoke()
         }
 
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
@@ -154,27 +179,78 @@ class BleManager(private val context: Context) {
                 return
             }
 
-            service.getCharacteristic(BleConstants.STATUS_UUID)?.let { c ->
-                initNotificationCharacteristic(g, c)
-            }
+            service.getCharacteristic(BleConstants.STATE_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
+            service.getCharacteristic(BleConstants.ORIENTATION_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
+            service.getCharacteristic(BleConstants.SYSTEM_STATUS_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
 
             _connectionState.value = ConnectionState.Connected(g.device.name ?: g.device.address)
         }
 
         override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-            when(characteristic.uuid) {
-                BleConstants.STATUS_UUID -> {
-                    _lastStatus.value = String(value, Charsets.UTF_8)
-                }
-            }
-        }
+            val data = String(value, Charsets.UTF_8)
+            //Log.d("BleManager", data)
 
-        // Pre-API 33 callback (deprecated but still called on older devices)
-        @Suppress("DEPRECATION")
-        override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             when(characteristic.uuid) {
-                BleConstants.STATUS_UUID -> {
-                    _lastStatus.value = String(characteristic.value ?: return, Charsets.UTF_8)
+                BleConstants.STATE_UUID -> {
+                    val matches = statusPattern.findAll(data).toList()
+                    if (matches.size == 8) {
+                        _status.value = Status(
+                            matches[0].value == "1",
+                            MotorStatusEnum.entries.getOrNull(matches[1].value.toInt()) ?: MotorStatusEnum.INIT,
+                            matches[2].value == "1",
+                            matches[3].value == "1",
+                            listOf(matches[4].value == "1", matches[5].value == "1"),
+                            matches[6].value.toInt(),
+                            matches[7].value.toInt()
+                        )
+                    }
+                }
+
+                BleConstants.ORIENTATION_UUID -> {
+                    //Log.d("BleManager", data)
+                    val matches = orientationPattern.findAll(data).toList()
+                    if (matches.size == 24) {
+                        val rows = matches.map { it.value.toFloat() }.chunked(3)
+                        _orientation.value = Orientation(rows[0], rows[1], rows[2], rows[3], rows[4], rows[5][0], rows[5][1].toInt(), rows[5][2])
+                        _target.value = Position(rows[6][0], rows[6][1])
+                        _position.value = Position(rows[7][0], rows[7][1])
+                    }
+                }
+
+                BleConstants.SYSTEM_STATUS_UUID -> {
+                    val matches = systemStatusPattern.find(data)
+                    if (matches != null) {
+                        val id = matches.groups[1]?.value ?: matches.groups[7]?.value
+                        when(id) {
+                            "M" -> {
+                                Log.d("BleManager", data)
+                                _systemStatus.heapUsage = matches.groups[8]?.value?.toFloat() ?: 0f
+                                _systemStatus.totalTime = matches.groups[9]?.value?.toLong() ?: 0
+                                _systemStatus.clockSpeed = matches.groups[10]?.value?.toInt() ?: 0
+
+                                _systemStatuses.value = _systemStatuses.value.drop(max(_systemStatuses.value.size - 59, 0)) + _systemStatus
+
+                                _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
+                            }
+
+                            "T" -> {
+                                val name = matches.groups[2]?.value ?: ""
+                                if(name.contains("IDLE")) {
+                                    val coreNum = name.last().digitToInt()
+                                    _systemStatus.coreIDLE[coreNum] = matches.groups[3]?.value?.toFloat() ?: 0f
+                                }
+                                else if(name != "") {
+                                    _systemStatus.taskStates[name] = TaskState(
+                                        name,
+                                        matches.groups[3]?.value?.toFloat() ?: 0f,
+                                        matches.groups[4]?.value?.toInt() ?: 0,
+                                        matches.groups[5]?.value?.toInt() ?: 0,
+                                        matches.groups[6]?.value?.toInt() ?: 0
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -189,11 +265,19 @@ class BleManager(private val context: Context) {
     }
 
     fun setLaser(enabled: Boolean) {
-        sendCommand(String.format(Locale.US, "L %i", enabled))
+        sendCommand(String.format(Locale.US, "L %d", if(enabled) 1 else 0))
     }
 
     fun setMotor(enabled: Boolean) {
-        sendCommand(String.format(Locale.US, "E %i", enabled))
+        sendCommand(String.format(Locale.US, "E %d", if(enabled) 1 else 0))
+    }
+
+    fun zero() {
+        sendCommand(String.format(Locale.US, "Z"))
+    }
+
+    fun setHoldPosition(enabled: Boolean) {
+        sendCommand(String.format(Locale.US, "P %d", if(enabled) 1 else 0))
     }
 
     private fun sendCommand(command: String) {

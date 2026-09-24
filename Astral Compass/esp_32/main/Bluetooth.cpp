@@ -1,25 +1,40 @@
 #include <main.h>
 #include <Bluetooth.h>
 #include <Motion.h>
+#include <LED.h>
 #include <regex>
+
+SemaphoreHandle_t bleMutex = xSemaphoreCreateMutex();
+
+void BlinkOnPaired(void *pvParameters) {
+  SetLEDs((int[]){ 0, 0, 100 }, 100, 100);
+  vTaskDelay(pdMS_TO_TICKS(500));
+  UpdateStatus(Status::IDLE);
+  vTaskDelete(NULL);
+}
 
 class ServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       Serial.println("BLE Connected");
-      UpdateStatus(Status::PAIRED);  
+      xTaskCreate(BlinkOnPaired, "BlinkOnPaired", 1024, NULL, 1, NULL);  
       BLEConnected = true;
     };
+
     void onDisconnect(BLEServer* pServer) {
       Serial.println("BLE Disconnected");
       UpdateStatus(Status::PAIRING);  
       BLEConnected = false;
+      digitalWrite(LASER, LOW);
+      SetHoldPosition(false);
+      SetMotorsEnabled(false);
+
+      server->getAdvertising()->start();
     }
 };
 
 class CommandCallback : public BLECharacteristicCallbacks {  
   std::regex coordinatesPattern{R"(C (\d+\.\d+) (\d+\.\d+))"};
-  std::regex laserPattern{R"(L (\d))"};
-  std::regex enablePattern{R"(E (\d))"};
+  std::regex enablePattern{R"(\w (\d))"};
 
   void onWrite(BLECharacteristic *characteristic) {
     BlinkStatusLED();
@@ -36,17 +51,25 @@ class CommandCallback : public BLECharacteristicCallbacks {
         }
         break;
       case 'L':
-        if (std::regex_search(command.c_str(), matches, laserPattern)) {
+        if (std::regex_search(command.c_str(), matches, enablePattern)) {
           digitalWrite(LASER, stoi(matches[1].str()) ? HIGH : LOW);
         }
         break;
       case 'E':
         if (std::regex_search(command.c_str(), matches, enablePattern)) {
-          SetEnabled((bool)stoi(matches[1].str()));
+          SetMotorsEnabled((bool)stoi(matches[1].str()));
         }
         break;
       case 'H':
         Home();
+        break;
+      case 'Z':
+        ZeroOrientation();
+        break;
+      case 'P':
+        if (std::regex_search(command.c_str(), matches, enablePattern)) {
+          SetHoldPosition((bool)stoi(matches[1].str()));
+        }
         break;
     }
 
@@ -55,7 +78,8 @@ class CommandCallback : public BLECharacteristicCallbacks {
 };
 
 void BLEInit() {
-    BLEDevice::init("Astral-Compass");
+    BLEDevice::init("Astral Compass");
+    BLEDevice::setMTU(128);
     BLEServer *server = BLEDevice::createServer();
     server->setCallbacks(new ServerCallbacks());
 
@@ -67,8 +91,11 @@ void BLEInit() {
     statusHandler = service->createCharacteristic(STATUS_UUID, BLECharacteristic::PROPERTY_NOTIFY);
     statusHandler->addDescriptor(new BLE2902());
 
-    systemHandler = service->createCharacteristic(SYSTEM_UUID, BLECharacteristic::PROPERTY_NOTIFY);
-    systemHandler->addDescriptor(new BLE2902());
+    orientationHandler = service->createCharacteristic(ORIENTATION_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+    orientationHandler->addDescriptor(new BLE2902());
+
+    systemStatusHandler = service->createCharacteristic(SYSTEMSTATUS_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+    systemStatusHandler->addDescriptor(new BLE2902());
 
     service->start();
     server->getAdvertising()->start();
@@ -76,23 +103,23 @@ void BLEInit() {
     UpdateStatus(Status::PAIRING);    
 }
 
-void transmitStatus(String& value) {
+void safeNotify(BLECharacteristic* handler, char* buffer, int size) {
   if(!BLEConnected) return;
 
-  statusHandler->setValue(value);
-  statusHandler->notify();
+  xSemaphoreTake(bleMutex, portMAX_DELAY);
+  handler->setValue((uint8_t*) buffer, size);
+  handler->notify();
+  xSemaphoreGive(bleMutex);
 }
 
 void transmitStatus(char* buffer, int size) {
-  if(!BLEConnected) return;
-
-  statusHandler->setValue((uint8_t *) buffer, size);
-  statusHandler->notify();
+  safeNotify(statusHandler, buffer, size);
 }
 
-void transmitSystemStatus(const char* buffer, int size) {
-  if(!BLEConnected) return;
+void transmitOrientation(char* buffer, int size) {
+  safeNotify(orientationHandler, buffer, size);
+}
 
-  systemHandler->setValue((uint8_t *) buffer, size);
-  systemHandler->notify();
+void transmitSystemStatus(char* buffer, int size) { 
+  safeNotify(systemStatusHandler, buffer, size);
 }

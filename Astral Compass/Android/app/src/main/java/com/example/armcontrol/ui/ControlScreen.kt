@@ -1,32 +1,51 @@
 package com.example.armcontrol.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.armcontrol.ArmControlViewModel
-import com.example.armcontrol.ble.ConnectionState
-import androidx.compose.foundation.Canvas
+import com.example.armcontrol.models.MotorStatusEnum
+import java.util.Locale
+import kotlin.math.*
 
 
+private fun fmt(v: Float): String = String.format(Locale.US, "%+6.2f", v)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlScreen(viewModel: ArmControlViewModel) {
-    val connectionState by viewModel.connectionState.collectAsState()
-    val status by viewModel.lastStatus.collectAsState()
+    val status by viewModel.status.collectAsState()
+    val orientation by viewModel.orientation.collectAsState()
+    val systemStatues by viewModel.systemStatuses.collectAsState()
 
-    var handleX by remember { mutableFloatStateOf(0f) }
-    var handleY by remember { mutableFloatStateOf(0f) }
+    var handleX by remember { mutableFloatStateOf(0.5f) }
+    var handleY by remember { mutableFloatStateOf(0.5f) }
 
     Scaffold(
         topBar = {
@@ -38,126 +57,174 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            val connectedName = (connectionState as? ConnectionState.Connected)?.deviceName
-            Text(
-                text = connectedName?.let { "Connected: $it" } ?: "Disconnected",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            status?.let {
-                Text("Arm status: $it", style = MaterialTheme.typography.bodySmall)
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .align(Alignment.TopCenter),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Target(${(viewModel.target.value?.azimuth ?: 0f)}°, ${(viewModel.target.value?.elevation ?: 0f)}°), Actual(${(viewModel.position.value?.azimuth ?: 0f)}°, ${(viewModel.position.value?.elevation ?: 0f)}°)",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
-            Text("Pan: ${viewModel.pan}°   Tilt: ${viewModel.tilt}°", style = MaterialTheme.typography.titleMedium)
+                PanTiltPad(
+                    x = handleX,
+                    y = handleY,
+                    onDrag = { _x, _y ->
+                        val r = 0.5f
+                        var x = _x - r
+                        var y = _y - r
 
-            Spacer(Modifier.height(24.dp))
+                        val rat = min(r / hypot(x, y), 1f)
 
-            PanTiltPad(
-                x = handleX,
-                y = handleY,
-                onDrag = { x, y ->
-                    handleX = x
-                    handleY = y
-                    val pan = (x - 0.5f) * 2 + viewModel.pan
-                    val tilt = (y - 0.5f) * -2 + viewModel.tilt
-                    viewModel.setPosition(pan, tilt)
-                },
-                onReset = {
-                    handleX = 0.5f
-                    handleY = 0.5f
-                }
-            )
+                        x *= rat
+                        y *= rat
 
-            Spacer(Modifier.height(24.dp))
+                        handleX = r + x
+                        handleY = r + y
 
-            Button(onClick = { viewModel.home() }) {
-                Text("Home")
-            }
-            Button(onClick = { viewModel.toggleLaser() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(if (viewModel.laser) 0xff009b14 else 0xffff0000),
-                    contentColor = Color.White
-                ))
-            {
-                Text("Laser")
-            }
-            Button(onClick = { viewModel.toggleMotors() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(if (viewModel.motors) 0xff009b14 else 0xffff0000),
-                contentColor = Color.White
-            )) {
-                Text("Motors")
-            }
-        }
-    }
-}
-
-@Composable
-private fun PanTiltPad(
-    x: Float,
-    y: Float,
-    onDrag: (fx: Float, fy: Float) -> Unit,
-    onReset: () -> Unit
-) {
-    val padSize = 280.dp
-
-    Box(
-        modifier = Modifier
-            .size(padSize)
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .pointerInput(Unit, {
-                detectDragGestures(
-                    onDragEnd = onReset,
-                    onDragCancel = onReset,
-                    onDrag = { change, _ ->
-                        change.consume()
-                        val fx = (change.position.x / size.width).coerceIn(0f, 1f)
-                        val fy = (change.position.y / size.height).coerceIn(0f, 1f)
-                        onDrag(fx, fy)
+                        viewModel.az = x
+                        viewModel.el = y
+                    },
+                    onReset = {
+                        handleX = 0.5f
+                        handleY = 0.5f
+                        viewModel.az = 0f
+                        viewModel.el = 0f
                     }
                 )
-            })
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            // Crosshair guide lines
-            drawLine(
-                color = Color.Gray,
-                start = Offset(size.width / 2, 0f),
-                end = Offset(size.width / 2, size.height),
-                strokeWidth = 2f
-            )
-            drawLine(
-                color = Color.Gray,
-                start = Offset(0f, size.height / 2),
-                end = Offset(size.width, size.height / 2),
-                strokeWidth = 2f
-            )
 
-            // Handle position
-            val handleCenter = Offset(
-                x = x * size.width,
-                y = y * size.height
-            )
-            drawCircle(
-                color = Color(0xFF3F51B5),
-                radius = 28f,
-                center = handleCenter
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 28f,
-                center = handleCenter,
-                style = Stroke(width = 4f)
+                Spacer(Modifier.height(24.dp))
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.width(280.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = { viewModel.home() },
+                            modifier = Modifier.weight(1f).height(56.dp)
+                        ) {
+                            Text("Home")
+                        }
+                        Button(
+                            onClick = { viewModel.zero() },
+                            modifier = Modifier.weight(1f).height(56.dp)
+                        ) {
+                            Text("Zero")
+                        }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = { viewModel.toggleMotors() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(
+                                    if ((status?.MotorStatus ?: MotorStatusEnum.INIT) != MotorStatusEnum.DISABLED ) 0xff009b14 else 0xffff0000
+                                ),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f).height(56.dp)
+                        ) {
+                            Text("Motors")
+                        }
+                        Button(
+                            onClick = { viewModel.toggleHoldPosition() },
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(
+                                    if (status?.HoldPosition ?: false) 0xff009b14 else 0xffff0000
+                                ),
+                                contentColor = Color.White
+                            ),
+                        ) {
+                            Text("Hold")
+                        }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = { viewModel.toggleLaser() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(
+                                    if (status?.LaserEnabled ?: false ) 0xff009b14 else 0xffff0000
+                                ),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f).height(56.dp)
+                        ) {
+                            Text("Laser")
+                        }
+                    }
+                }
+            }
+            SlideUpTabPanel(
+                tabs = listOf(
+                    BottomTabItem(
+                        label = "Telemetry",
+                        content = {
+                            Column(modifier = Modifier.align(Alignment.BottomCenter),
+                                horizontalAlignment = Alignment.CenterHorizontally)
+                            {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OrientationIndicator3D(
+                                        roll = orientation?.RPY?.get(1) ?: 0f,
+                                        pitch = -(orientation?.RPY?.get(0) ?: 0f),
+                                        yaw = orientation?.RPY?.get(2) ?: 0f,
+                                        modifier = Modifier.size(150.dp)
+                                    )
+
+                                    val rows = buildList {
+                                        status?.let {
+                                            add("Motors" to "${it.MotorStatus}")
+                                            add("Serial" to "${it.SerialReady}")
+                                            add("LM" to "(${it.LimitSwitch[0]}, ${it.LimitSwitch[1]})")
+                                            add("IMU" to "${it.IMU_hz}hz")
+                                            add("CAM" to "${it.CAM_hz}hz")
+                                        }
+                                        orientation?.let {
+                                            add("RPY" to "(${fmt(it.RPY[0])}, ${fmt(it.RPY[1])}, ${fmt(it.RPY[2])})")
+                                            add("Bias" to "(${fmt(it.bias[0])}, ${fmt(it.bias[1])}, ${fmt(it.bias[2])})")
+                                            add("Gyro" to "(${fmt(it.gyro[0])}, ${fmt(it.gyro[1])}, ${fmt(it.gyro[2])})")
+                                            add("Acc" to "(${fmt(it.acceleration[0])}, ${fmt(it.acceleration[1])}, ${fmt(it.acceleration[2])})")
+                                            add("Rot" to "(${fmt(it.rotationEstimate[0])}, ${fmt(it.rotationEstimate[1])}, ${fmt(it.rotationEstimate[2])})")
+                                            add("Fit" to "${it.rotationInlinerCount}, ${String.format(Locale.US, "%.3f", it.rotationResidualRMS)}, ${String.format(Locale.US, "%.3f", it.rotation_dt)}s")
+                                        }
+                                    }
+
+                                    TelemetryTable(rows = rows, modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    ),
+                    BottomTabItem(
+                        label = "Threads",
+                        content = { TaskMonitorPanel(systemStatues) }
+                    )
+                ),
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
     }
 }
+

@@ -4,7 +4,7 @@
             "outputFile": "com.example.armcontrol.app-mergeDebugResources-48:/values-v21/values-v21.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\eriko\\.gradle\\caches\\9.0-milestone-1\\transforms\\808069721e31f5c2e504f1cb951f958f\\transformed\\core-1.13.1\\res\\values-v21\\values-v21.xml",
+                    "source": "C:\\Users\\eriko\\.gradle\\caches\\9.0-milestone-1\\transforms\\ac7e906c28778dcbeadf14871e743a25\\transformed\\core-1.13.1\\res\\values-v21\\values-v21.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,13",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4",

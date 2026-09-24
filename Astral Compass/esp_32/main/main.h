@@ -29,6 +29,7 @@ volatile extern Status status;
 
 void UpdateStatus(Status s);
 void BlinkStatusLED();
+void ZeroOrientation();
 
 class SharedReader {
 public: 

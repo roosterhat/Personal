@@ -5,8 +5,9 @@
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper_AZ = NULL, *stepper_EL = NULL;
 LimitSwitch switches[2] = { { 0, LM1, 0 }, { 0, LM2, 0 } };
-float target[2] = { 0, 0 }, MotionPosition[2] = { 0, 0 }, orientation[3] = { 0, 0, 0 };
+float M_target[2] = { 0, 0 }, M_position[2] = { 0, 0 }, orientation[3] = { 0, 0, 0 };
 StepperStatus stepperStatus = StepperStatus::INIT;
+bool M_hold = false;
 
 FastAccelStepper *InitStepper(int step, int dir, int enable, int steps, int accel) {
   auto *stepper = engine.stepperConnectToPin(step);
@@ -65,21 +66,27 @@ void Home() {
 }
 
 void PointTo(float az, float el) {
-  target[0] = az;
-  target[1] = el;
+  M_target[0] = ((int)(az * 100) % 360) / 100;
+  M_target[1] = max(min((int)(el * 100), 90), 0) / 100;
 }
 
 void UpdateOrientation(float angles[]) {
   std::copy(angles, angles + 3, orientation);
 }
 
-void SetEnabled(bool enabled) {
+void SetMotorsEnabled(bool enabled) {
   if(enabled) {
     stepper_AZ->enableOutputs();
     stepper_EL->enableOutputs();
+    stepperStatus = StepperStatus::IDLE;
   }
   else {
     stepper_AZ->disableOutputs();
     stepper_EL->disableOutputs();
+    stepperStatus = StepperStatus::S_DISABLED;
   }
+}
+
+void SetHoldPosition(bool enabled) {
+  M_hold = enabled;
 }
