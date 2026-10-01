@@ -207,7 +207,7 @@ class BleManager(private val context: Context) {
                 }
 
                 BleConstants.ORIENTATION_UUID -> {
-                    //Log.d("BleManager", data)
+                    // Log.d("BleManager", data)
                     val matches = orientationPattern.findAll(data).toList()
                     if (matches.size == 24) {
                         val rows = matches.map { it.value.toFloat() }.chunked(3)
@@ -223,7 +223,6 @@ class BleManager(private val context: Context) {
                         val id = matches.groups[1]?.value ?: matches.groups[7]?.value
                         when(id) {
                             "M" -> {
-                                Log.d("BleManager", data)
                                 _systemStatus.heapUsage = matches.groups[8]?.value?.toFloat() ?: 0f
                                 _systemStatus.totalTime = matches.groups[9]?.value?.toLong() ?: 0
                                 _systemStatus.clockSpeed = matches.groups[10]?.value?.toInt() ?: 0
@@ -256,8 +255,12 @@ class BleManager(private val context: Context) {
         }
     }
 
+    fun sendDeltaCoordinates(pan: Float, tilt: Float) {
+        sendCommand(String.format(Locale.US, "D %.2f %.2f", pan, tilt))
+    }
+
     fun sendTargetCoordinates(pan: Float, tilt: Float) {
-        sendCommand(String.format(Locale.US, "C %.2f %.2f", pan, tilt))
+        sendCommand(String.format(Locale.US, "T %.2f %.2f", pan, tilt))
     }
 
     fun home() {
@@ -274,6 +277,15 @@ class BleManager(private val context: Context) {
 
     fun zero() {
         sendCommand(String.format(Locale.US, "Z"))
+    }
+
+    fun resetDevice() {
+        sendCommand(String.format(Locale.US, "R"))
+        disconnect()
+    }
+
+    fun calibrate() {
+        sendCommand(String.format(Locale.US, "C"))
     }
 
     fun setHoldPosition(enabled: Boolean) {

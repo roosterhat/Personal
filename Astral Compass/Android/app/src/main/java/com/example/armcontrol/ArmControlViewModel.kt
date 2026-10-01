@@ -51,11 +51,7 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun setPosition() {
         if (sendJob?.isActive == true || (az == 0f && el == 0f)) return
         sendJob = viewModelScope.launch {
-            //Log.d("setPoisition", "$az, $el ${round( az * 10 + (target.value?.azimuth ?: 0f))}, ${round(-el * 10 + (target.value?.elevation ?: 0f))}")
-            bleManager.sendTargetCoordinates(
-                round( az * 10 + (target.value?.azimuth ?: 0f)) ,
-                round(-el * 10 + (target.value?.elevation ?: 0f))
-            )
+            bleManager.sendDeltaCoordinates(round(az * 10), round(-el * 5))
         }
     }
 
@@ -91,6 +87,27 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
             bleManager.setHoldPosition(!(status.value?.HoldPosition ?: false))
+        }
+    }
+
+    fun setPos(az: Float, el: Float) {
+        if (sendJob?.isActive == true) return
+        sendJob = viewModelScope.launch {
+            bleManager.sendTargetCoordinates(az, el)
+        }
+    }
+
+    fun reset() {
+        if (sendJob?.isActive == true) return
+        sendJob = viewModelScope.launch {
+            bleManager.resetDevice()
+        }
+    }
+
+    fun calibrate() {
+        if (sendJob?.isActive == true) return
+        sendJob = viewModelScope.launch {
+            bleManager.calibrate()
         }
     }
 

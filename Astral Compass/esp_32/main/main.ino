@@ -25,12 +25,14 @@ HardwareSerial camSerial(2);
 SensorFusionEKF fusion;
 QueueHandle_t estimateQueue = xQueueCreate(1, sizeof(RotationEstimate));
 QueueHandle_t blinkQueue = xQueueCreate(1, sizeof(int));
-Vector3 RPY, bias, targetPosition, initMagOrientation;
+Vector3 RPY, bias, targetPosition, magOrientation, calibratedBias;
 double northOffset;
 int laserStatus, camFPS, IMUhz; 
 SharedReader serialReader(camSerial);
 QueueHandle_t serialMutex = xSemaphoreCreateMutex();
 RotationEstimate rotationEstimate;
+AzEl previousPos;
+float previousTarget[] = { 0, 0 };
 
 bool writeToSerial(const char* str, bool force = false);
 
@@ -57,9 +59,6 @@ void setup() {
   ICM.setMagDataRate(AK09916_MAG_DATARATE_100_HZ);
   Serial.println("ICM Initialized");
 
-  getInitMagOrientaiton();
-  Serial.println("Mag Orientation Initialized");
-
   InitInterrupts();
   Serial.println("Interrupts Initialized");
 
@@ -70,7 +69,7 @@ void setup() {
   Serial.println("BLE Initialized");
   
   xTaskCreate(ProcessICMUpdates, "ProcessICMUpdates", 4096, NULL, 10, NULL);
-  xTaskCreate(StepperLoop, "StepperLoop", 4096, NULL, 9, NULL);
+  xTaskCreate(StepperLoop, "StepperLoop", 8192, NULL, 9, NULL);
   xTaskCreate(ProcessLEDs, "ProcessLEDs", 1024, NULL, 1, NULL);
   xTaskCreate(ProcessStatusLED, "ProcessStatusLED", 1024, NULL, 1, NULL);
   xTaskCreate(StateMonitor, "StateMonitor", 2048, NULL, 5, NULL);
@@ -85,11 +84,69 @@ void loop() {
   delay(1000);
 }
 
-void getInitMagOrientaiton() {
-  for(int i = 0; i < 10; i++) {
+void setNorthOffset() {
+  Vector3 magSum(0, 0, 0);
+  for (int i = 0; i < 10; i++) {
     ICM.getEvent(&accel, &gyro, &temp, &mag);
-    initMagOrientation = Vector3(mag.magnetic.v);
+    magSum = magSum + Vector3(mag.magnetic.v);
     delay(10);
+  }
+  Vector3 magAvg = magSum * (1.0f / 10.0f);
+
+  northOffset = captureNorthOffset(fusion.getOrientation(), magAvg);
+}
+
+void calibrateGyroBias() {
+  Vector3 sum(0, 0, 0);
+  const int N = 600;                      // ~3 s at 200 Hz
+  for (int i = 0; i < N; i++) {
+    ICM.getEvent(&accel, &gyro, &temp, &mag);
+    sum = sum + Vector3(gyro.gyro.v).remapImuToBody();
+    delay(5);
+  }
+  calibratedBias = sum * (1.0f / N);
+  fusion.setGyroBias(calibratedBias);
+}
+
+void Calibrate(void *pvParameters) {
+  UpdateStatus(Status::CAL);
+  Halt();
+  SetMotorsEnabled(false);
+  setNorthOffset();
+  calibrateGyroBias();
+  UpdateStatus(Status::IDLE);
+  vTaskDelete(NULL);
+}
+
+void ZeroOrientation() {
+  M_target[0] = 0; M_target[1] = 0;
+  MoveTo(0,0);
+  fusion.init();
+  fusion.setGyroBias(calibratedBias);
+}
+
+void StepperLoop(void *pvParameters) {
+  while (true) {
+    if(M_hold) {
+      AzEl pos = computeRequiredAzEl(fusion.getOrientation(), M_target[0], M_target[1], northOffset);
+      //Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f\n", pos.az, pos.el, RPY.x, RPY.y, RPY.z, M_target[0], M_target[1], northOffset);
+      if(pos != previousPos) {
+        MoveTo(pos.az, pos.el);
+
+        previousPos = pos;
+      }
+    }
+    else if(M_target[0] != previousTarget[0] || M_target[1] != previousTarget[1]) {
+      MoveTo(M_target[0], M_target[1]);
+
+      previousTarget[0] = M_target[0];
+      previousTarget[1] = M_target[1];
+    }
+
+    if(stepperStatus != StepperStatus::HOMING)
+      stepperStatus = stepper_AZ->isRunning() || stepper_EL->isRunning() ? StepperStatus::MOVING : StepperStatus::IDLE;
+
+    vTaskDelay(1);
   }
 }
 
@@ -110,7 +167,7 @@ void SystemMonitor(void *pvParameters) {
       transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
     }
 
-    result = "M " + String((float) ESP.getFreeHeap() / ESP.getHeapSize()) + " " + String(totalTime) + " " + String(ESP.getCpuFreqMHz());
+    result = "M " + String(1.0f - (float)ESP.getFreeHeap() / ESP.getHeapSize()) + " " + String(totalTime) + " " + String(ESP.getCpuFreqMHz());
     transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
 
     delete[] taskArray;    
@@ -135,15 +192,17 @@ void OrientationMonitor(void *pvParameters) {
   char* orientationFormat = "%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %d %.2f %.2f %.2f 0 %.2f %.2f 0";
 
   while(true) {
+    Vector3 orientation = fusion.getEulerYForward_deg();
+
     int size = snprintf(buffer, sizeof(buffer), orientationFormat, 
-      RPY.x, RPY.y, RPY.z, 
+      orientation.x, orientation.y, orientation.z, 
       bias.x, bias.y, bias.z, 
       gyro.gyro.v[0], gyro.gyro.v[1], gyro.gyro.v[2], 
       accel.acceleration.v[0], accel.acceleration.v[1], accel.acceleration.v[2],
       rotationEstimate.dtheta_x, rotationEstimate.dtheta_y, rotationEstimate.dtheta_z, 
       rotationEstimate.dt_seconds, rotationEstimate.inlier_count, rotationEstimate.residual_rms,
       M_target[0], M_target[1],
-      M_position[0], M_position[1]);
+      stepper_AZ->getCurrentPosition() / AZ_MOD, stepper_EL->getCurrentPosition() / -EL_MOD);
 
     transmitOrientation(buffer, size);
     vTaskDelay(pdMS_TO_TICKS(30));
@@ -234,15 +293,17 @@ void SerialMonitor(void *pvParameters) {
       case 'U':
         if (std::regex_search(command.c_str(), matches, camPattern)) {
           rotationEstimate = RotationEstimate {
-            .dtheta_x = stof(matches[1].str()),
-            .dtheta_y = stof(matches[2].str()),
-            .dtheta_z = stof(matches[3].str()),
+            .dtheta_x = stof(matches[3].str()),
+            .dtheta_y = stof(matches[1].str()),
+            .dtheta_z = stof(matches[2].str()),
             .dt_seconds = stof(matches[4].str()),
             .inlier_count = stof(matches[5].str()),
             .residual_rms = stof(matches[6].str()),
           };
-
+          
           xQueueOverwrite(estimateQueue, &rotationEstimate);
+
+          //Serial.printf("%.5f %.5f %.5f %.4f %d %.5f\n", rotationEstimate.dtheta_x, rotationEstimate.dtheta_y, rotationEstimate.dtheta_z, rotationEstimate.dt_seconds, rotationEstimate.inlier_count, rotationEstimate.residual_rms);
         }
         break;
     }
@@ -256,10 +317,6 @@ void ProcessLEDs(void *pvParameters) {
   }
 }
 
-void ZeroOrientation() {
-  fusion.init();
-}
-
 void ProcessICMUpdates(void *pvParameters) {
   fusion.init();
   RotationEstimate estimate;
@@ -269,22 +326,22 @@ void ProcessICMUpdates(void *pvParameters) {
     ICM.getEvent(&accel, &gyro, &temp, &mag);
     double dt = (currentTick - lastICMPoll) / 1e6;
     IMUhz = (int)(1 / dt);
-    lastICMPoll = currentTick;    
+    lastICMPoll = currentTick;
+
+    //Serial.printf("%.5f %.5f %.5f %.5f %.5f\n", gyro.gyro.v[0], gyro.gyro.v[1], gyro.gyro.v[2], bias.z, RPY.z);
 
     if (xQueueReceive(estimateQueue, &estimate, 0) == pdTRUE) {
         fusion.updateVision(estimate);
     }
 
-    fusion.predict(Vector3(gyro.gyro.v), dt);
-    fusion.updateAccel(Vector3(accel.acceleration.v));
+    fusion.predict(Vector3(gyro.gyro.v).remapImuToBody(), dt);
+    fusion.updateAccel(Vector3(accel.acceleration.v).remapImuToBody());
 
     RPY = fusion.getEulerRPY_deg();
     bias = fusion.getGyroBias();
 
     lastGyroStateUpdate = esp_timer_get_time();
     writeToSerialf("G %2.2f %2.2f %2.2f", RPY.x, RPY.y, RPY.z);
-
-    //Serial.printf("RPY: [%.2f, %.2f, %.2f] deg   bias: [%.5f, %.5f, %.5f] rad/s\n", RPY.x, RPY.y, RPY.z, bias.x, bias.y, bias.z);
 
     vTaskDelay(pdMS_TO_TICKS(1));
   }
@@ -308,6 +365,9 @@ void UpdateStatus(Status s) {
       break;
     case Status::IDLE:
       SetLEDs((int[]){ 180, 90, 0 }, 1, 0);
+      break;
+    case Status::CAL:
+      SetLEDs((int[]){ 180, 10, 0 }, 100, 100);
       break;
     default:
       break;

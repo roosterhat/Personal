@@ -33,7 +33,7 @@ class ServerCallbacks: public BLEServerCallbacks {
 };
 
 class CommandCallback : public BLECharacteristicCallbacks {  
-  std::regex coordinatesPattern{R"(C (\d+\.\d+) (\d+\.\d+))"};
+  std::regex coordinatesPattern{R"(\w (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?))"};
   std::regex enablePattern{R"(\w (\d))"};
 
   void onWrite(BLECharacteristic *characteristic) {
@@ -45,7 +45,12 @@ class CommandCallback : public BLECharacteristicCallbacks {
     if (command.length() == 0) return;
 
     switch(command[0]) {
-      case 'C':
+      case 'D':
+        if (std::regex_search(command.c_str(), matches, coordinatesPattern)) {
+          PointTo(M_target[0] + stof(matches[1].str()), M_target[1] + stof(matches[2].str()));
+        }
+        break;
+      case 'T':
         if (std::regex_search(command.c_str(), matches, coordinatesPattern)) {
           PointTo(stof(matches[1].str()), stof(matches[2].str()));
         }
@@ -70,6 +75,12 @@ class CommandCallback : public BLECharacteristicCallbacks {
         if (std::regex_search(command.c_str(), matches, enablePattern)) {
           SetHoldPosition((bool)stoi(matches[1].str()));
         }
+        break;
+      case 'R':
+        ESP.restart();
+        break;
+      case 'C':
+        xTaskCreate(Calibrate, "Calibrate", 4096, NULL, 5, NULL);
         break;
     }
 

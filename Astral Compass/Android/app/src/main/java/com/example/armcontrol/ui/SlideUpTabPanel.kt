@@ -48,6 +48,7 @@ fun SlideUpTabPanel(
 
     Column(modifier = modifier.fillMaxWidth()) {
         AnimatedVisibility(
+            modifier = Modifier.padding(top = 12.dp),
             visible = selectedIndex != null,
             enter = slideInVertically(
                 initialOffsetY = { fullHeight -> fullHeight },
@@ -62,6 +63,7 @@ fun SlideUpTabPanel(
                 modifier = Modifier
                     .fillMaxWidth(),
                 tonalElevation = 6.dp,
+                shadowElevation = 12.dp,
                 shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
             ) {
                 Box(

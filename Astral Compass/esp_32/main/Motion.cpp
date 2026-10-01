@@ -1,11 +1,10 @@
 #include <main.h>
 #include <Motion.h>
-#include <FastAccelStepper.h>
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper_AZ = NULL, *stepper_EL = NULL;
 LimitSwitch switches[2] = { { 0, LM1, 0 }, { 0, LM2, 0 } };
-float M_target[2] = { 0, 0 }, M_position[2] = { 0, 0 }, orientation[3] = { 0, 0, 0 };
+float M_target[2] = { 0, 0 };
 StepperStatus stepperStatus = StepperStatus::INIT;
 bool M_hold = false;
 
@@ -36,8 +35,8 @@ void IRAM_ATTR LimitSwitchEvent(void *arg) {
 
 void InitSteppers() {
   engine.init();
-  stepper_AZ = InitStepper(S1_STEP, S1_DIR, S1_EN, 30, 100000);
-  stepper_EL = InitStepper(S2_STEP, S2_DIR, S2_EN, 10, 100000);
+  stepper_AZ = InitStepper(S1_STEP, S1_DIR, S1_EN, 30, 1000000);
+  stepper_EL = InitStepper(S2_STEP, S2_DIR, S2_EN, 10, 1000000);
 }
 
 void InitInterrupts() {
@@ -48,30 +47,34 @@ void InitInterrupts() {
   switches[1].status = !((bool)digitalRead(LM2));
 }
 
-void StepperLoop(void *pvParameters) {
-  while (true) {
-    //Serial.println("Step");
-    //stepper_EL->move(10000, true);
-    //vTaskDelay(pdMS_TO_TICKS(500));
-    //stepper_EL->move(-10000, true);
-    
-    //stepper_AZ->runForward();
-    vTaskDelay(pdMS_TO_TICKS(500));
-  }
-}
-
 void Home() {
   stepperStatus = StepperStatus::HOMING;
   PointTo(0, 0);
 }
 
 void PointTo(float az, float el) {
-  M_target[0] = ((int)(az * 100) % 360) / 100;
-  M_target[1] = max(min((int)(el * 100), 90), 0) / 100;
+  if(stepperStatus == StepperStatus::HOMING || status == Status::CAL) return;
+
+  M_target[0] = fmod(fmod(round(az * 100) / 100, 360.0f) + 360, 360.0f);
+  M_target[1] = max(min(round(el * 100) / 100, 90.0f), 0.0f);
 }
 
-void UpdateOrientation(float angles[]) {
-  std::copy(angles, angles + 3, orientation);
+void MoveTo(float az, float el) {
+  if(stepperStatus == StepperStatus::HOMING || status == Status::CAL) return;
+
+  int32_t pos = stepper_AZ->getCurrentPosition() / AZ_MOD;
+  int diff = az - (pos % 360);
+  int sign = diff == 0 ? 1 : abs(diff) / diff;
+  int nsign = -1 * sign;
+  az = min(abs(diff) <= 180 ? diff : (360 - abs(diff)) * nsign, 360) + pos;
+
+  stepper_AZ->moveTo(az * AZ_MOD);
+  stepper_EL->moveTo(el * -EL_MOD);
+}
+
+void Halt() {
+  stepper_AZ->forceStop();
+  stepper_EL->forceStop();
 }
 
 void SetMotorsEnabled(bool enabled) {

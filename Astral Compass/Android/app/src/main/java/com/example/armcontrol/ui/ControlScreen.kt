@@ -188,9 +188,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     OrientationIndicator3D(
-                                        roll = orientation?.RPY?.get(1) ?: 0f,
+                                        roll = -(orientation?.RPY?.get(1) ?: 0f),
                                         pitch = -(orientation?.RPY?.get(0) ?: 0f),
-                                        yaw = orientation?.RPY?.get(2) ?: 0f,
+                                        yaw = -(orientation?.RPY?.get(2) ?: 0f),
                                         modifier = Modifier.size(150.dp)
                                     )
 
@@ -220,6 +220,76 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                     BottomTabItem(
                         label = "Threads",
                         content = { TaskMonitorPanel(systemStatues) }
+                    ),
+                    BottomTabItem(
+                        label = "Cal",
+                        content = {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Button(
+                                        onClick = { viewModel.calibrate() },
+                                        modifier = Modifier.weight(1f).height(56.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xff009b14),
+                                            contentColor = Color.White
+                                        )
+                                    ) {
+                                        Text("Calibrate")
+                                    }
+                                    Button(
+                                        onClick = { viewModel.reset() },
+                                        modifier = Modifier.weight(1f).height(56.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xffff0000),
+                                            contentColor = Color.White
+                                        ),
+                                    ) {
+                                        Text("Reset")
+                                    }
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Button(
+                                        onClick = { viewModel.home() },
+                                        modifier = Modifier.weight(1f).height(56.dp)
+                                    ) {
+                                        Text("Home")
+                                    }
+                                    Button(
+                                        onClick = { viewModel.zero() },
+                                        modifier = Modifier.weight(1f).height(56.dp)
+                                    ) {
+                                        Text("Zero")
+                                    }
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Button(
+                                        onClick = { viewModel.setPos(359.99f, 0f) },
+                                        modifier = Modifier.weight(1f).height(56.dp)
+                                    ) {
+                                        Text("AZ 360")
+                                    }
+                                    Button(
+                                        onClick = { viewModel.setPos(0f, 90f) },
+                                        modifier = Modifier.weight(1f).height(56.dp)
+                                    ) {
+                                        Text("EL 90")
+                                    }
+                                }
+                            }
+                        }
                     )
                 ),
                 modifier = Modifier.align(Alignment.BottomCenter)

@@ -1210,9 +1210,9 @@
                     "from": {
                         "startLines": "1",
                         "startColumns": "4",
-                        "startOffsets": "17",
+                        "startOffsets": "16",
                         "endColumns": "51",
-                        "endOffsets": "64"
+                        "endOffsets": "63"
                     },
                     "to": {
                         "startLines": "100",

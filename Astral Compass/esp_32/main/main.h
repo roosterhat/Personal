@@ -22,7 +22,7 @@
 
 
 enum class Status {
-    INIT, HOMING, PAIRING, PAIRED, TRACKING, IDLE
+    INIT, PAIRING, PAIRED, TRACKING, IDLE, CAL
 };
 
 volatile extern Status status;
@@ -30,6 +30,7 @@ volatile extern Status status;
 void UpdateStatus(Status s);
 void BlinkStatusLED();
 void ZeroOrientation();
+void Calibrate(void *pvParameters);
 
 class SharedReader {
 public: 

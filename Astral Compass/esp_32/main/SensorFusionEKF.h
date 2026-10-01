@@ -123,7 +123,7 @@ public:
   // Gyro bias random-walk density, rad/s per sqrt(s). Small — bias drifts
   // slowly. Tune from an Allan variance plot if you have one; otherwise
   // start small and increase if the filter seems slow to trust new bias info.
-  float GYRO_BIAS_WALK = 1.0e-3f;
+  float GYRO_BIAS_WALK = 1.0e-5f;
   // Accelerometer measurement noise, in normalized-gravity-vector units
   // (not m/s^2 — the accel measurement is normalized before use).
   float ACCEL_MEAS_VARIANCE = 0.03f;
@@ -149,6 +149,11 @@ public:
     for (int i = 3; i < 6; i++) P[i][i] = 1.0e-4f;     // bias, (rad/s)^2
     accumRawGyroQuat = Quaternion(1, 0, 0, 0);
     timeSinceVision = 0.0f;
+  }
+
+  void setGyroBias(const Vector3 &b) {
+    bias = b;
+    for (int i = 3; i < 6; i++) P[i][i] = 1.0e-6f;
   }
 
   // Call at gyro sample rate. gyroRadPerSec is the RAW gyro reading
@@ -217,7 +222,7 @@ public:
     if (deviation > ACCEL_MAX_DEVIATION_G) return; // too dynamic to trust as gravity
 
     Vector3 accelDir = accel * (1.0f / aNorm);
-    Vector3 gWorld(0, 0, -1);
+    Vector3 gWorld(0, 0, 1);
     Vector3 predicted = q.rotateWorldToBody(gWorld);
 
     Vector3 y = accelDir - predicted; // innovation
@@ -246,7 +251,7 @@ public:
       return; 
     }
 
-    Vector3 thetaVision(est.dtheta_x, est.dtheta_y, est.dtheta_z);
+    Vector3 thetaVision(est.dtheta_y, -est.dtheta_x, est.dtheta_z);
     Vector3 thetaGyroRaw = accumRawGyroQuat.logMap();
 
     Vector3 hPredicted = thetaGyroRaw - bias * dtInterval;
@@ -288,6 +293,15 @@ public:
 
     const float RAD2DEG = 180.0f / (float)M_PI;
     return Vector3(roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+  }
+
+  Vector3 getEulerYForward_deg() const {
+    float sinEl = 2.0f * (q.y*q.z + q.w*q.x);                       // boresight elevation
+    float el   = asinf(fmaxf(-1.0f, fminf(1.0f, sinEl)));
+    float yaw  = atan2f(2.0f*(q.w*q.z - q.x*q.y), 1.0f - 2.0f*(q.x*q.x + q.z*q.z));
+    float roll = atan2f(2.0f*(q.w*q.y - q.x*q.z), 1.0f - 2.0f*(q.x*q.x + q.y*q.y));
+    const float R2D = 180.0f / (float)M_PI;
+    return Vector3(el * R2D, roll * R2D, yaw * R2D);                   // (elevation, roll, heading)
   }
 
 private:

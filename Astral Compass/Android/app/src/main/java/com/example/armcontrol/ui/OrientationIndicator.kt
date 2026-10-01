@@ -54,8 +54,8 @@ fun OrientationIndicator3D(
         val projected = axes.map { (vecColor, label) ->
             val (vec, color) = vecColor
             val (rx, ry, rz) = rotateXYZ(vec.first, vec.second, vec.third, roll, pitch, yaw)
-            val tip = Offset(center.x + rx * axisLength, center.y - rz * axisLength)
-            Triple(tip, ry, Pair(color, label))   // ry is now the depth component
+            val tip = Offset(center.x + ry * axisLength, center.y - rz * axisLength)
+            Triple(tip, -rx, Pair(color, label))   // -rx: positive X now recedes into the screen
         }.sortedBy { it.second }
 
         projected.forEach { (tip, depth, colorLabel) ->

@@ -26,6 +26,16 @@ struct Vector3 {
   Vector3 operator*(double s) const {
     return { x * s, y * s, z * s };
   }
+  double operator[](int index) const {
+    switch(index) {
+      case 0:
+        return x;
+      case 1:
+        return y;
+      case 2:
+        return z;
+    }
+  }
 
   double normal() const {
     return sqrt(x * x + y * y + z * z);
@@ -34,6 +44,10 @@ struct Vector3 {
   Vector3 normalized() const {
     double n = normal();
     return (n > 1e-12) ? Vector3(x / n, y / n, z / n) : Vector3();
+  }
+
+  Vector3 remapImuToBody() {
+    return Vector3(-y, -x, -z);
   }
 
   void skew3(float out[9]) const {
@@ -50,12 +64,15 @@ struct Vector3 {
 
   Quaternion quatFromAxisAngle(float angle) const;
   Quaternion quatFromSmallAngle() const;
+  Quaternion quatFromEulerRPY() const;
 };
 
 struct Quaternion {
   double w, x, y, z;
   Quaternion(double w_ = 1, double x_ = 0, double y_ = 0, double z_ = 0)
     : w(w_), x(x_), y(y_), z(z_) {}
+  Quaternion(Vector3 vec)
+    : w(1), x(vec.x), y(vec.y), z(vec.z) {}
 
   Quaternion operator*(const Quaternion &q) const {
     return {
@@ -135,6 +152,20 @@ inline Quaternion Vector3::quatFromSmallAngle() const {
   return Quaternion(1.0f, x * 0.5f, y * 0.5f, z * 0.5f);
 }
 
+inline Quaternion Vector3::quatFromEulerRPY() const {
+  const double D2R = M_PI / 180.0;
+  double roll = x * D2R, pitch = y * D2R, yaw = z * D2R;
+  double cr = cos(roll * 0.5),  sr = sin(roll * 0.5);
+  double cp = cos(pitch * 0.5), sp = sin(pitch * 0.5);
+  double cy = cos(yaw * 0.5),   sy = sin(yaw * 0.5);
+  return Quaternion(
+    cr*cp*cy + sr*sp*sy,
+    sr*cp*cy - cr*sp*sy,
+    cr*sp*cy + sr*cp*sy,
+    cr*cp*sy - sr*sp*cy
+  );
+}
+
 static void matMul(const float *A, int ra, int ca, const float *B, int cb, float *C) {
   for (int i = 0; i < ra; i++) {
     for (int j = 0; j < cb; j++) {
@@ -179,4 +210,55 @@ static bool mat3Inverse(const float A[9], float out[9]) {
   out[7] = -(A[0] * A[7] - A[1] * A[6]) * invDet;
   out[8] = (A[0] * A[4] - A[1] * A[3]) * invDet;
   return true;
+}
+
+struct AzEl {
+  double az;
+  double el;
+
+  bool operator==(AzEl ref) {
+    return az == ref.az && el == ref.el;
+  }
+};
+
+inline Vector3 azElToVector(double azDeg, double elDeg) {
+  double az = azDeg * PI / 180.0;
+  double el = elDeg * PI / 180.0;
+  double cosEl = cos(el);
+  return Vector3(cosEl * sin(az), cosEl * cos(az), sin(el)); // (X,Y,Z)
+}
+
+inline AzEl vectorToAzEl(const Vector3 &v) {
+  double az = atan2(v.x, v.y) * 180.0 / PI; // clockwise from +Y
+  if (az < 0.0) az += 360.0;
+  double horizMag = sqrt(v.x * v.x + v.y * v.y);
+  double el = atan2(v.z, horizMag) * 180.0 / PI;
+  return { az, el };
+}
+
+inline double wrapDeg360(double deg) {
+  double r = fmod(deg, 360.0);
+  if (r < 0.0) r += 360.0;
+  return r;
+}
+
+inline double captureNorthOffset(const Quaternion &orientation, const Vector3 &magReadingBody) {
+  Vector3 magWorld = orientation.rotate(magReadingBody);
+  double ekfWorldAzOfNorth = vectorToAzEl(magWorld).az;
+  return wrapDeg360(-ekfWorldAzOfNorth);
+}
+
+inline AzEl computeRequiredAzEl(const Quaternion &orientation, double targetAzDeg, double targetElDeg, double northOffsetDeg) {
+  double ekfWorldAz = wrapDeg360(targetAzDeg - northOffsetDeg);
+
+  Vector3 targetWorld = azElToVector(ekfWorldAz, targetElDeg);
+
+  Vector3 targetBody = orientation.rotateWorldToBody(targetWorld);
+
+  AzEl result = vectorToAzEl(targetBody);
+
+  if (result.el < 0.0) result.el = 0.0;
+  if (result.el > 90.0) result.el = 90.0;
+
+  return result;
 }
