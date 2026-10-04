@@ -121,7 +121,7 @@ fun CelestialSearchContent(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     items(results, key = { it.id }) { obj ->
-                        val isSelected = obj.id == selectedId || (selectedId == null && obj.id == current?.id)
+                        val isSelected = obj.id == selectedId || obj.id == current?.id
                         val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
                         else MaterialTheme.colorScheme.onSurface
 
@@ -152,7 +152,7 @@ fun CelestialSearchContent(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = textColor.copy(alpha = 0.7f)
                             )
-                            if (isSelected) {
+                            if (obj.id == current?.id) {
                                 Icon(
                                     Icons.Default.Check,
                                     contentDescription = "Selected",
@@ -167,7 +167,7 @@ fun CelestialSearchContent(
         }
 
         Button(
-            onClick = { selected?.let(onTrack) },
+            onClick = { (selected ?: current)?.let(onTrack) },
             enabled = selected != null || current != null,
             modifier = Modifier.fillMaxWidth().height(48.dp)
         ) {

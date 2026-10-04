@@ -262,3 +262,8 @@ inline AzEl computeRequiredAzEl(const Quaternion &orientation, double targetAzDe
 
   return result;
 }
+
+inline void boundAZEL(float& az, float& el) {
+  az = fmod(fmod(round(az * 100) / 100, 360.0f) + 360, 360.0f);
+  el = max(min(round(el * 100) / 100, 90.0f), 0.0f);
+}

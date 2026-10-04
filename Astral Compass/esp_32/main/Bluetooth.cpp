@@ -3,13 +3,14 @@
 #include <Motion.h>
 #include <LED.h>
 #include <regex>
+#include <Utils.h>
 
 SemaphoreHandle_t bleMutex = xSemaphoreCreateMutex();
 
 void BlinkOnPaired(void *pvParameters) {
   SetLEDs((int[]){ 0, 0, 100 }, 100, 100);
   vTaskDelay(pdMS_TO_TICKS(500));
-  UpdateStatus(Status::IDLE);
+  UpdateStatus(m_Status::IDLE);
   vTaskDelete(NULL);
 }
 
@@ -22,7 +23,7 @@ class ServerCallbacks: public BLEServerCallbacks {
 
     void onDisconnect(BLEServer* pServer) {
       Serial.println("BLE Disconnected");
-      UpdateStatus(Status::PAIRING);  
+      UpdateStatus(m_Status::PAIRING);  
       BLEConnected = false;
       digitalWrite(LASER, LOW);
       SetHoldPosition(false);
@@ -46,13 +47,19 @@ class CommandCallback : public BLECharacteristicCallbacks {
 
     switch(command[0]) {
       case 'D':
-        if (std::regex_search(command.c_str(), matches, coordinatesPattern)) {
-          PointTo(M_target[0] + stof(matches[1].str()), M_target[1] + stof(matches[2].str()));
+        if (status != m_Status::TRACKING && status != m_Status::CAL &&  std::regex_search(command.c_str(), matches, coordinatesPattern)) {
+          float az = M_target[0] + stof(matches[1].str());
+          float el = M_target[1] + stof(matches[2].str());
+          boundAZEL(az, el);
+          PointTo(az, el);
         }
         break;
       case 'T':
-        if (std::regex_search(command.c_str(), matches, coordinatesPattern)) {
-          PointTo(stof(matches[1].str()), stof(matches[2].str()));
+        if (status != m_Status::CAL && std::regex_search(command.c_str(), matches, coordinatesPattern)) {
+          UpdateStatus(m_Status::TRACKING);
+          float az = stof(matches[1].str()) + northOffset;
+          float el = stof(matches[2].str());
+          PointTo(az, el);
         }
         break;
       case 'L':
@@ -69,7 +76,8 @@ class CommandCallback : public BLECharacteristicCallbacks {
         xTaskCreate(Home, "Home", 4096, NULL, 5, NULL);
         break;
       case 'Z':
-        ZeroOrientation();
+        M_target[0] = 0; M_target[1] = 0;
+        MoveTo(0,0);
         break;
       case 'P':
         if (std::regex_search(command.c_str(), matches, enablePattern)) {
@@ -81,6 +89,9 @@ class CommandCallback : public BLECharacteristicCallbacks {
         break;
       case 'C':
         xTaskCreate(Calibrate, "Calibrate", 4096, NULL, 5, NULL);
+        break;
+      case 'S':
+        UpdateStatus(m_Status::IDLE);
         break;
     }
 
@@ -111,7 +122,7 @@ void BLEInit() {
     service->start();
     server->getAdvertising()->start();
 
-    UpdateStatus(Status::PAIRING);    
+    UpdateStatus(m_Status::PAIRING);    
 }
 
 void safeNotify(BLECharacteristic* handler, char* buffer, int size) {

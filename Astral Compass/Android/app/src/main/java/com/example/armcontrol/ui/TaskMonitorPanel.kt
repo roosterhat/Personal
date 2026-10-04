@@ -54,7 +54,7 @@ private val coreColors = listOf(
 
 @Composable
 fun TaskMonitorPanel(history: List<SystemState>, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth().padding(8.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(8.dp, 8.dp, 8.dp, 0.dp)) {
         SystemGraph(
             history = history,
             modifier = Modifier

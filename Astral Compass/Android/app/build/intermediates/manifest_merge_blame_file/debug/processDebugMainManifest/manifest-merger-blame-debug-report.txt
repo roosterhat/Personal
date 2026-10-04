@@ -67,8 +67,8 @@
 39        android:extractNativeLibs="false"
 40        android:icon="@mipmap/ic_launcher"
 40-->C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:21:9-43
-41        android:label="Arm Control"
-41-->C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:22:9-36
+41        android:label="Astral Compass"
+41-->C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:22:9-39
 42        android:supportsRtl="true"
 42-->C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:23:9-35
 43        android:testOnly="true"

@@ -38,7 +38,7 @@
         android:debuggable="true"
         android:extractNativeLibs="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="Arm Control"
+        android:label="Astral Compass"
         android:supportsRtl="true"
         android:testOnly="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar" >

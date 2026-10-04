@@ -21,15 +21,15 @@
 #define SERIAL_RX 16
 
 
-enum class Status {
+enum class m_Status {
     INIT, PAIRING, PAIRED, TRACKING, IDLE, CAL
 };
 
-volatile extern Status status;
+volatile extern m_Status status;
+extern float northOffset;
 
-void UpdateStatus(Status s);
+void UpdateStatus(m_Status s);
 void BlinkStatusLED();
-void ZeroOrientation();
 void Calibrate(void *pvParameters);
 
 class SharedReader {

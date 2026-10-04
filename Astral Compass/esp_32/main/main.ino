@@ -18,7 +18,7 @@
 
 volatile int64_t lastICMPoll, lastGyroStateUpdate, lastCamMessage;
 volatile bool serialReady = false;
-volatile Status status = Status::INIT;
+volatile m_Status status = m_Status::INIT;
 sensors_event_t accel, gyro, temp, mag;
 Adafruit_ICM20948 ICM;
 HardwareSerial camSerial(2);
@@ -26,13 +26,14 @@ SensorFusionEKF fusion;
 QueueHandle_t estimateQueue = xQueueCreate(1, sizeof(RotationEstimate));
 QueueHandle_t blinkQueue = xQueueCreate(1, sizeof(int));
 Vector3 RPY, bias, targetPosition, magOrientation, calibratedBias;
-double northOffset;
 int laserStatus, camFPS, IMUhz; 
 SharedReader serialReader(camSerial);
 QueueHandle_t serialMutex = xSemaphoreCreateMutex();
 RotationEstimate rotationEstimate;
 AzEl previousPos;
 float previousTarget[] = { 0, 0 };
+float northOffset = 0;
+bool calibrated = false;
 
 bool writeToSerial(const char* str, bool force = false);
 
@@ -46,11 +47,12 @@ void setup() {
   pinMode(LASER, OUTPUT);  
 
   digitalWrite(LASER, LOW);
+  digitalWrite(LED_STATUS, LOW);
 
   Serial.begin(115200);
   Serial.println("\nSerial Connected");
 
-  UpdateStatus(Status::INIT);
+  UpdateStatus(m_Status::INIT);
   UpdateLEDs();
 
   SearchForICM();
@@ -89,12 +91,11 @@ void setNorthOffset() {
   const int N = 10;
   for (int i = 0; i < N; i++) {
     ICM.getEvent(&accel, &gyro, &temp, &mag);
-    magSum = magSum + Vector3(mag.magnetic.v);
+    magSum = magSum + Vector3(mag.magnetic.v).remapImuToBody();
     delay(10);
   }
-  Vector3 magAvg = magSum * (1.0f / N);
 
-  northOffset = captureNorthOffset(fusion.getOrientation(), magAvg);
+  northOffset = vectorToAzEl(magSum * (1.0f / N)).az;
 }
 
 void calibrateGyroBias() {
@@ -105,31 +106,26 @@ void calibrateGyroBias() {
     sum = sum + Vector3(gyro.gyro.v).remapImuToBody();
     delay(5);
   }
-  calibratedBias = sum * (1.0f / N);
-  fusion.setGyroBias(calibratedBias);
+  calibratedBias = sum * (1.0f / N);  
 }
 
 void Calibrate(void *pvParameters) {
-  UpdateStatus(Status::CAL);
+  UpdateStatus(m_Status::CAL);
   Halt();
   SetMotorsEnabled(false);
   setNorthOffset();
   calibrateGyroBias();
-  UpdateStatus(Status::IDLE);
-  vTaskDelete(NULL);
-}
-
-void ZeroOrientation() {
-  M_target[0] = 0; M_target[1] = 0;
-  MoveTo(0,0);
   fusion.init();
   fusion.setGyroBias(calibratedBias);
+  calibrated = true;
+  UpdateStatus(m_Status::IDLE);
+  vTaskDelete(NULL);
 }
 
 void StepperLoop(void *pvParameters) {
   while (true) {
     if(M_hold) {
-      AzEl pos = computeRequiredAzEl(fusion.getOrientation(), M_target[0], M_target[1], northOffset);
+      AzEl pos = computeRequiredAzEl(fusion.getOrientation(), M_target[0], M_target[1], 0);
       if(pos != previousPos) {
         MoveTo(pos.az, pos.el);
 
@@ -176,12 +172,12 @@ void SystemMonitor(void *pvParameters) {
 
 void StateMonitor(void *pvParameters) {
   char buffer[128];
-  char* statusFormat = "%i %i %i %i %i %i %i %i %i";
+  char* statusFormat = "%i %i %i %i %i %i %i %i %i %i %i";
 
   while(true) {
     laserStatus = digitalRead(LASER);
 
-    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS, status);
+    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS, status, (int)northOffset, calibrated);
     transmitStatus(buffer, size);
     vTaskDelay(pdMS_TO_TICKS(200));
   }
@@ -342,26 +338,26 @@ void ProcessICMUpdates(void *pvParameters) {
   }
 }
 
-void UpdateStatus(Status s) {
+void UpdateStatus(m_Status s) {
   status = s;
 
   switch (status) {
-    case Status::INIT:
+    case m_Status::INIT:
       SetLEDs((int[]){ 255, 0, 0 }, 1, 0);
       break;
-    case Status::PAIRING:
+    case m_Status::PAIRING:
       SetLEDs((int[]){ 0, 0, 100 }, 500, 500);
       break;
-    case Status::PAIRED:
+    case m_Status::PAIRED:
       SetLEDs((int[]){ 0, 0, 100 }, 1, 0);
       break;
-    case Status::TRACKING:
+    case m_Status::TRACKING:
       SetLEDs((int[]){ 0, 90, 0 }, 1, 0);
       break;
-    case Status::IDLE:
+    case m_Status::IDLE:
       SetLEDs((int[]){ 180, 90, 0 }, 1, 0);
       break;
-    case Status::CAL:
+    case m_Status::CAL:
       SetLEDs((int[]){ 180, 10, 0 }, 100, 100);
       break;
     default:

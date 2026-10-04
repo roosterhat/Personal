@@ -12,9 +12,13 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.example.armcontrol.models.*
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 import kotlin.math.max
 
@@ -50,6 +54,8 @@ class BleManager(private val context: Context) {
     private var _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
     private val _position = MutableStateFlow<Position>(Position(0f, 0f))
     private val _target = MutableStateFlow<Position>(Position(0f, 0f))
+    private val writeMutex = Mutex()
+    private var pendingWrite: CompletableDeferred<Boolean>? = null
     val status: StateFlow<Status?> = _status.asStateFlow()
     val orientation: StateFlow<Orientation> = _orientation.asStateFlow()
     val systemStatuses: StateFlow<List<SystemState>> = _systemStatuses.asStateFlow()
@@ -193,7 +199,7 @@ class BleManager(private val context: Context) {
             when(characteristic.uuid) {
                 BleConstants.STATE_UUID -> {
                     val matches = statusPattern.findAll(data).toList()
-                    if (matches.size == 9) {
+                    if (matches.size == 11) {
                         _status.value = Status(
                             matches[0].value == "1",
                             MotorStatusEnum.entries.getOrNull(matches[1].value.toInt()) ?: MotorStatusEnum.INIT,
@@ -203,6 +209,8 @@ class BleManager(private val context: Context) {
                             matches[6].value.toInt(),
                             matches[7].value.toInt(),
                             SystemStatusEnum.entries.getOrNull(matches[8].value.toInt()) ?: SystemStatusEnum.INIT,
+                            matches[9].value.toInt(),
+                            matches[10].value == "1",
                         )
                     }
                 }
@@ -254,59 +262,70 @@ class BleManager(private val context: Context) {
                 }
             }
         }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt, c: BluetoothGattCharacteristic, status: Int) {
+            pendingWrite?.complete(status == BluetoothGatt.GATT_SUCCESS)
+            pendingWrite = null
+        }
     }
 
-    fun sendDeltaCoordinates(pan: Float, tilt: Float) {
+    suspend fun sendDeltaCoordinates(pan: Float, tilt: Float) {
         sendCommand(String.format(Locale.US, "D %.2f %.2f", pan, tilt))
     }
 
-    fun sendTargetCoordinates(pan: Float, tilt: Float) {
+    suspend fun sendTargetCoordinates(pan: Float, tilt: Float) {
         sendCommand(String.format(Locale.US, "T %.2f %.2f", pan, tilt))
     }
 
-    fun home() {
+    suspend fun stopTrack() {
+        sendCommand("S")
+    }
+
+    suspend fun home() {
         sendCommand("H")
     }
 
-    fun setLaser(enabled: Boolean) {
+    suspend fun setLaser(enabled: Boolean) {
         sendCommand(String.format(Locale.US, "L %d", if(enabled) 1 else 0))
     }
 
-    fun setMotor(enabled: Boolean) {
+    suspend fun setMotor(enabled: Boolean) {
         sendCommand(String.format(Locale.US, "E %d", if(enabled) 1 else 0))
     }
 
-    fun zero() {
+    suspend fun zero() {
         sendCommand(String.format(Locale.US, "Z"))
     }
 
-    fun resetDevice() {
+    suspend fun resetDevice() {
         sendCommand(String.format(Locale.US, "R"))
         disconnect()
     }
 
-    fun calibrate() {
+    suspend fun calibrate() {
         sendCommand(String.format(Locale.US, "C"))
     }
 
-    fun setHoldPosition(enabled: Boolean) {
+    suspend fun setHoldPosition(enabled: Boolean) {
         sendCommand(String.format(Locale.US, "P %d", if(enabled) 1 else 0))
     }
 
-    private fun sendCommand(command: String) {
-        val characteristic = commandCharacteristic ?: return
-        val g = gatt ?: return
+    suspend private fun sendCommand(command: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        writeMutex.withLock {
+            val characteristic = commandCharacteristic ?: return@withLock
+            val g = gatt ?: return@withLock
 
-        val payload = command.toByteArray(Charsets.UTF_8)
+            val payload = command.toByteArray(Charsets.UTF_8)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            g.writeCharacteristic(characteristic, payload, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
-        } else {
-            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-            @Suppress("DEPRECATION")
-            characteristic.value = payload
-            @Suppress("DEPRECATION")
-            g.writeCharacteristic(characteristic)
+            val done = CompletableDeferred<Boolean>()
+            pendingWrite = done
+            val started = g.writeCharacteristic(
+                characteristic,
+                payload,
+                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+            if (started != BluetoothStatusCodes.SUCCESS) { pendingWrite = null; return@withLock }
+            withTimeoutOrNull(200) { done.await() } ?: false.also { pendingWrite = null }
         }
     }
 }

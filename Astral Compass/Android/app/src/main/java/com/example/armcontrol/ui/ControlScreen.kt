@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.armcontrol.ArmControlViewModel
 import com.example.armcontrol.models.MotorStatusEnum
+import com.example.armcontrol.models.SystemStatusEnum
 import java.util.Locale
 import kotlin.math.*
 
@@ -81,6 +82,12 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                     .align(Alignment.TopCenter),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                viewModel.currentTrack?.let { obj ->
+                    Text(
+                        "Tracking: ${obj.name}: ${obj.type}",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
                 Text(
                     "Target(${(viewModel.target.value?.azimuth ?: 0f)}°, ${(viewModel.target.value?.elevation ?: 0f)}°), Actual(${(viewModel.position.value?.azimuth ?: 0f)}°, ${(viewModel.position.value?.elevation ?: 0f)}°)",
                     style = MaterialTheme.typography.titleMedium
@@ -147,10 +154,10 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Button(
-                            onClick = { viewModel.toggleMotors() },
+                            onClick = { viewModel.stopTracking() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(
-                                    if ((status?.MotorStatus ?: MotorStatusEnum.INIT) != MotorStatusEnum.DISABLED ) 0xff009b14 else 0xffff0000
+                                    if ((status?.SystemStatus ?: SystemStatusEnum.IDLE) == SystemStatusEnum.TRACKING ) 0xff009b14 else 0xffff0000
                                 ),
                                 contentColor = Color.White
                             ),
@@ -158,7 +165,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 .weight(1f)
                                 .height(56.dp)
                         ) {
-                            Text("Motors")
+                            Text("Track")
                         }
                         Button(
                             onClick = { viewModel.toggleHoldPosition() },
@@ -222,7 +229,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                             roll = -(orientation?.RPY?.get(1) ?: 0f),
                                             pitch = -(orientation?.RPY?.get(0) ?: 0f),
                                             yaw = -(orientation?.RPY?.get(2) ?: 0f),
-                                            modifier = Modifier.size(150.dp)
+                                            modifier = Modifier.size(130.dp)
                                         )
                                     }
 
@@ -234,6 +241,8 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                             add("LM" to "(${it.LimitSwitch[0]}, ${it.LimitSwitch[1]})")
                                             add("IMU" to "${it.IMU_hz}hz")
                                             add("CAM" to "${it.CAM_hz}hz")
+                                            add("North" to "${it.NorthOffset}°")
+                                            add("Cal" to "${it.Calibrated}")
                                         }
                                         orientation?.let {
                                             add("RPY" to "(${fmt(it.RPY[0])}, ${fmt(it.RPY[1])}, ${fmt(it.RPY[2])})")
@@ -365,6 +374,15 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                     ),
                 ),
                 modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
+
+        viewModel.pendingTrack?.let { entry ->
+            CalibrationWarningDialog(
+                isCalibrating = viewModel.isCalibrating,
+                onCalibrate = { viewModel.calibrateAndTrack(viewModel.pendingTrack!!) },
+                onTrackAnyway = { viewModel.setTrackObject(viewModel.pendingTrack!!, true) },
+                onCancel = { viewModel.pendingTrack = null }
             )
         }
     }

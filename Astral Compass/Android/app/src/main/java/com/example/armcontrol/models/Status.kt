@@ -16,5 +16,7 @@ data class Status (
     val LimitSwitch: List<Boolean>,
     val IMU_hz: Int,
     val CAM_hz: Int,
-    val SystemStatus: SystemStatusEnum
+    val SystemStatus: SystemStatusEnum,
+    val NorthOffset: Int,
+    val Calibrated: Boolean
 )

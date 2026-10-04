@@ -150,7 +150,7 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\eriko\.gradle\cach
 	android:supportsRtl
 		ADDED from C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:23:9-35
 	android:label
-		ADDED from C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:22:9-36
+		ADDED from C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:22:9-39
 	android:icon
 		ADDED from C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\AndroidManifest.xml:21:9-43
 	android:allowBackup

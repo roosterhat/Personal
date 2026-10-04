@@ -3,6 +3,9 @@ package com.example.armcontrol
 import android.app.Application
 import android.bluetooth.BluetoothDevice
 import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.armcontrol.ble.BleManager
@@ -53,6 +56,9 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     val target: StateFlow<Position?> = bleManager.target
     val objects: StateFlow<List<EphemerisEntry>> = ephemeris.entries
     private val _observer = MutableStateFlow<Observer?>(null)
+
+    var isCalibrating by mutableStateOf(false)
+        private set
     val observer: StateFlow<Observer?> = _observer.asStateFlow()
     val savedCredentials = MutableStateFlow(credentialStore.load())
     val starImport = MutableStateFlow<StarImportState>(StarImportState.Idle)
@@ -60,6 +66,7 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     var az: Float = 0f
     var el: Float = 0f
     var currentTrack: EphemerisEntry? = null
+    var pendingTrack: EphemerisEntry? = null
 
 
     init {
@@ -83,7 +90,6 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
         credentialStore.clear()
         savedCredentials.value = null
     }
-
 
     fun refreshEphemeris() {
         viewModelScope.launch { ephemeris.refresh() }
@@ -137,14 +143,19 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun setTrackObject(obj: EphemerisEntry) {
-        if(obj == currentTrack) {
-            currentTrack = null
-            bleManager.setHoldPosition(false)
+    fun setTrackObject(obj: EphemerisEntry, force: Boolean = false) {
+        if(!(status.value?.Calibrated ?: false) && !force) {
+            pendingTrack = obj
+        }
+        else if(obj == currentTrack) {
+            stopTracking()
         }
         else {
             currentTrack = obj
-            bleManager.setHoldPosition(true)
+            pendingTrack = null
+            sendJob = viewModelScope.launch {
+                bleManager.setHoldPosition(true)
+            }
         }
     }
 
@@ -201,6 +212,28 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
             bleManager.calibrate()
+        }
+    }
+
+    fun calibrateAndTrack(obj: EphemerisEntry) {
+        if (sendJob?.isActive == true) return
+        sendJob = viewModelScope.launch {
+            isCalibrating = true
+            bleManager.calibrate()
+            while (!(status.value?.Calibrated ?: false))
+                delay(100)
+            isCalibrating = false
+            setTrackObject(obj)
+        }
+    }
+
+    fun stopTracking() {
+        if (sendJob?.isActive == true) return
+
+        currentTrack = null
+        sendJob = viewModelScope.launch {
+            bleManager.stopTrack()
+            bleManager.setHoldPosition(false)
         }
     }
 

@@ -1,5 +1,6 @@
 #include <main.h>
 #include <Motion.h>
+#include <Utils.h>
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper_AZ = NULL, *stepper_EL = NULL;
@@ -84,7 +85,7 @@ void HomeAxis_EL(void *pvParameters) {
 }
 
 void Home(void *pvParameters) {
-  if(stepperStatus == StepperStatus::HOMING || status == Status::CAL) return;
+  if(stepperStatus == StepperStatus::HOMING || status == m_Status::CAL) return;
 
   stepperStatus = StepperStatus::HOMING;  
   homingSemaphore = xSemaphoreCreateCounting(2, 0);
@@ -103,14 +104,16 @@ void Home(void *pvParameters) {
 }
 
 void PointTo(float az, float el) {
-  if(stepperStatus == StepperStatus::HOMING || status == Status::CAL) return;
+  if(stepperStatus == StepperStatus::HOMING || status == m_Status::CAL) return;
 
-  M_target[0] = fmod(fmod(round(az * 100) / 100, 360.0f) + 360, 360.0f);
-  M_target[1] = max(min(round(el * 100) / 100, 90.0f), 0.0f);
+  M_target[0] = az;
+  M_target[1] = el;
 }
 
 void MoveTo(float az, float el) {
-  if(stepperStatus == StepperStatus::HOMING || status == Status::CAL) return;
+  if(stepperStatus == StepperStatus::HOMING || status == m_Status::CAL) return;
+
+  boundAZEL(az, el);
 
   int32_t pos = stepper_AZ->getCurrentPosition() / AZ_MOD;
   int diff = az - (pos % 360);
