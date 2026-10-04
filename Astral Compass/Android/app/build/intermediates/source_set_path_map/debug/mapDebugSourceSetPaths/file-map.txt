@@ -1,54 +1,59 @@
-com.example.armcontrol.app-material-icons-core-release-0 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\0fd2c9a20a7a4762893659e130bc0716\transformed\material-icons-core-release\res
-com.example.armcontrol.app-activity-compose-1.9.1-1 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\13253929d6d948d66a849c566f047748\transformed\activity-compose-1.9.1\res
-com.example.armcontrol.app-material-ripple-release-2 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\14d28696071ac6fcc42f4dbc591279f8\transformed\material-ripple-release\res
-com.example.armcontrol.app-ui-util-release-3 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\15891abbb164d33b47378bd011a49f78\transformed\ui-util-release\res
-com.example.armcontrol.app-foundation-layout-release-4 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\1f02e47aa8dcb454dabfdd3fe027c6be\transformed\foundation-layout-release\res
-com.example.armcontrol.app-activity-ktx-1.9.1-5 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\2634124426fbad1b81d58e671a330f23\transformed\activity-ktx-1.9.1\res
-com.example.armcontrol.app-material-icons-extended-release-6 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\3ba52c4490bebbdaf18d97ebf2dc54f0\transformed\material-icons-extended-release\res
-com.example.armcontrol.app-lifecycle-livedata-core-2.8.4-7 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\3cbeca7ecc787972237fd7057a18cb54\transformed\lifecycle-livedata-core-2.8.4\res
-com.example.armcontrol.app-lifecycle-runtime-release-8 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\3f1e5d112f86efa3fe8f0405cf3ad6db\transformed\lifecycle-runtime-release\res
-com.example.armcontrol.app-ui-tooling-data-release-9 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\457953a0d4d85c79c99326fdd4e4d23c\transformed\ui-tooling-data-release\res
-com.example.armcontrol.app-ui-geometry-release-10 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\4f2a387cd013d8b8881d27364854898e\transformed\ui-geometry-release\res
-com.example.armcontrol.app-lifecycle-viewmodel-ktx-2.8.4-11 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\51970929b271d46c2251cf375940fd9e\transformed\lifecycle-viewmodel-ktx-2.8.4\res
-com.example.armcontrol.app-foundation-release-12 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\51dd7c27412a99a3f1db0a28b15ac949\transformed\foundation-release\res
-com.example.armcontrol.app-core-ktx-1.13.1-13 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\5a6ba0dd097520c5aaa28461d3b700d4\transformed\core-ktx-1.13.1\res
-com.example.armcontrol.app-annotation-experimental-1.4.0-14 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\6290bfdf83fdece2d4b5d2a5b8816a92\transformed\annotation-experimental-1.4.0\res
-com.example.armcontrol.app-runtime-saveable-release-15 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\6aed9edf8d6441ea189fad984c2456d9\transformed\runtime-saveable-release\res
-com.example.armcontrol.app-navigation-common-2.7.7-16 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\6bc4f4de4fa463ff0ec19a4044537f6b\transformed\navigation-common-2.7.7\res
-com.example.armcontrol.app-animation-core-release-17 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\785607823cea6c84f8ac7e119510b6dd\transformed\animation-core-release\res
-com.example.armcontrol.app-ui-tooling-preview-release-18 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\79938922a5ac357a07bd7b0f0588a155\transformed\ui-tooling-preview-release\res
-com.example.armcontrol.app-savedstate-ktx-1.2.1-19 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\7c09d1301633c17750c97c29225d9ba4\transformed\savedstate-ktx-1.2.1\res
-com.example.armcontrol.app-lifecycle-runtime-ktx-release-20 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\7c71e5ea416194c87af0a12430492bcc\transformed\lifecycle-runtime-ktx-release\res
-com.example.armcontrol.app-animation-release-21 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\7e30ff6c31f97defc42d659ca81a6cee\transformed\animation-release\res
-com.example.armcontrol.app-ui-tooling-release-22 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\8432e8bcd4902831de1484ae1034ba1f\transformed\ui-tooling-release\res
-com.example.armcontrol.app-emoji2-1.3.0-23 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\8a8c41d81c04ef1221f05c23f2da4c04\transformed\emoji2-1.3.0\res
-com.example.armcontrol.app-customview-poolingcontainer-1.0.0-24 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\a1c367d7eae158732aa51c4cebf82404\transformed\customview-poolingcontainer-1.0.0\res
-com.example.armcontrol.app-activity-1.9.1-25 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\a2cca17327a709c23f4abae3ce27cf7a\transformed\activity-1.9.1\res
-com.example.armcontrol.app-navigation-compose-2.7.7-26 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\aaf9afd08457f9f3c793f9adca0aa399\transformed\navigation-compose-2.7.7\res
-com.example.armcontrol.app-material3-release-27 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\abe05b3521b42f9e03903e560cc29733\transformed\material3-release\res
-com.example.armcontrol.app-core-1.13.1-28 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\ac7e906c28778dcbeadf14871e743a25\transformed\core-1.13.1\res
-com.example.armcontrol.app-lifecycle-viewmodel-savedstate-2.8.4-29 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\adf7962de168f431056a621ae3f1cddd\transformed\lifecycle-viewmodel-savedstate-2.8.4\res
-com.example.armcontrol.app-ui-graphics-release-30 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\af9c862974c54e7c2390507f63ec92a7\transformed\ui-graphics-release\res
-com.example.armcontrol.app-ui-text-release-31 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\b1dc3d9262032de3dedd6e049f827eae\transformed\ui-text-release\res
-com.example.armcontrol.app-core-runtime-2.2.0-32 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\b35d1272e3693239e612b98326a90844\transformed\core-runtime-2.2.0\res
-com.example.armcontrol.app-startup-runtime-1.1.1-33 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\bcfc2516cf2c2a7205fa23b21676c7aa\transformed\startup-runtime-1.1.1\res
-com.example.armcontrol.app-navigation-runtime-ktx-2.7.7-34 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\bffd93077a212cdc741f954af6c52452\transformed\navigation-runtime-ktx-2.7.7\res
-com.example.armcontrol.app-runtime-release-35 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\c20e532d59f3496e87610ad0c912a180\transformed\runtime-release\res
-com.example.armcontrol.app-ui-unit-release-36 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\c852f6607a98e976c398735d94ec847c\transformed\ui-unit-release\res
-com.example.armcontrol.app-ui-release-37 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\c8eba16986dfc11e6648b622564d2df1\transformed\ui-release\res
-com.example.armcontrol.app-lifecycle-viewmodel-release-38 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\cd9ba6f3fcc4998218f36866491986d7\transformed\lifecycle-viewmodel-release\res
-com.example.armcontrol.app-lifecycle-viewmodel-compose-release-39 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\d7c85781319850748bbb48fe3d6ed49b\transformed\lifecycle-viewmodel-compose-release\res
-com.example.armcontrol.app-material-release-40 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\e91d54a8ebac5f3225d7f8c32e315721\transformed\material-release\res
-com.example.armcontrol.app-lifecycle-process-2.8.4-41 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\ec6c7400147082bbbde18c6e45b03b70\transformed\lifecycle-process-2.8.4\res
-com.example.armcontrol.app-navigation-runtime-2.7.7-42 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\efa030985088f3271bf7694c0438118c\transformed\navigation-runtime-2.7.7\res
-com.example.armcontrol.app-profileinstaller-1.3.1-43 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\f1bd075c855e248f4b14c222c13ecae6\transformed\profileinstaller-1.3.1\res
-com.example.armcontrol.app-navigation-common-ktx-2.7.7-44 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\f956c6fc58b02a204402d51c96ae1b70\transformed\navigation-common-ktx-2.7.7\res
-com.example.armcontrol.app-savedstate-1.2.1-45 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\fb75179ca14073efd7d765891677a33e\transformed\savedstate-1.2.1\res
-com.example.armcontrol.app-pngs-46 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\generated\res\pngs\debug
-com.example.armcontrol.app-resValues-47 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\generated\res\resValues\debug
-com.example.armcontrol.app-updated_navigation_xml-48 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\generated\updated_navigation_xml\debug
-com.example.armcontrol.app-packageDebugResources-49 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-com.example.armcontrol.app-packageDebugResources-50 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-com.example.armcontrol.app-debug-51 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\intermediates\merged_res\debug\mergeDebugResources
-com.example.armcontrol.app-debug-52 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\debug\res
-com.example.armcontrol.app-main-53 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\res
+com.example.armcontrol.app-material-release-0 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\026f36714148d12ad823eeb0e9788fea\transformed\material-release\res
+com.example.armcontrol.app-ui-text-release-1 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\0a25c961536e91e45f3166ae3a8835af\transformed\ui-text-release\res
+com.example.armcontrol.app-lifecycle-process-2.8.4-2 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\0d5d2f61da210b0e8d8305dcf0b52450\transformed\lifecycle-process-2.8.4\res
+com.example.armcontrol.app-foundation-release-3 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\0f8163cf9bbcf3b966256fabf1da214c\transformed\foundation-release\res
+com.example.armcontrol.app-lifecycle-runtime-release-4 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\11470b43a12c71206558232257d2c918\transformed\lifecycle-runtime-release\res
+com.example.armcontrol.app-core-runtime-2.2.0-5 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\12dcde5e2b78cf9fc8e64548ae6e27c8\transformed\core-runtime-2.2.0\res
+com.example.armcontrol.app-activity-compose-1.9.1-6 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\18dbc52dd79766ab7f23563d19b722b0\transformed\activity-compose-1.9.1\res
+com.example.armcontrol.app-navigation-runtime-2.7.7-7 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\1c0c1b5858d8fb6818d87127e1e1184d\transformed\navigation-runtime-2.7.7\res
+com.example.armcontrol.app-runtime-saveable-release-8 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\2320b8290ead34d276338133c830cca8\transformed\runtime-saveable-release\res
+com.example.armcontrol.app-activity-ktx-1.9.1-9 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\289675d594631934ff9b51fb61260580\transformed\activity-ktx-1.9.1\res
+com.example.armcontrol.app-ui-tooling-preview-release-10 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\29d9b6559d6ee3c24a1a8e7e888a6e4b\transformed\ui-tooling-preview-release\res
+com.example.armcontrol.app-foundation-layout-release-11 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\35026241b5aa246f5209b95d48b020b6\transformed\foundation-layout-release\res
+com.example.armcontrol.app-lifecycle-viewmodel-compose-release-12 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\369ab403483527e85d93ef45a009510d\transformed\lifecycle-viewmodel-compose-release\res
+com.example.armcontrol.app-lifecycle-livedata-core-ktx-2.8.4-13 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\450bfd546ac350f9964be2239709a94f\transformed\lifecycle-livedata-core-ktx-2.8.4\res
+com.example.armcontrol.app-ui-unit-release-14 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\4b280f454e1ab1c71013a7efb6454979\transformed\ui-unit-release\res
+com.example.armcontrol.app-play-services-basement-18.9.0-15 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\4b9bb6c687c028a25bf3c42577a24623\transformed\play-services-basement-18.9.0\res
+com.example.armcontrol.app-material-icons-core-release-16 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\4bc46120c8c49f73a5cedf4ea2a3b218\transformed\material-icons-core-release\res
+com.example.armcontrol.app-material-icons-extended-release-17 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\4c3ed0d1a100ddb7ed630ce71f914455\transformed\material-icons-extended-release\res
+com.example.armcontrol.app-lifecycle-viewmodel-release-18 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\57878f109125394cd494d5c2a4df81e2\transformed\lifecycle-viewmodel-release\res
+com.example.armcontrol.app-ui-util-release-19 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\588e977712c55ffa8d10ab0a0f402fc1\transformed\ui-util-release\res
+com.example.armcontrol.app-lifecycle-livedata-core-2.8.4-20 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\5f479332661c8fbe4cef24dcd018c643\transformed\lifecycle-livedata-core-2.8.4\res
+com.example.armcontrol.app-lifecycle-viewmodel-savedstate-2.8.4-21 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\6b199d22627d2a39cd94f445ae617279\transformed\lifecycle-viewmodel-savedstate-2.8.4\res
+com.example.armcontrol.app-navigation-common-ktx-2.7.7-22 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\71ae4f3f510ecf15fc4d12a8fd004313\transformed\navigation-common-ktx-2.7.7\res
+com.example.armcontrol.app-navigation-runtime-ktx-2.7.7-23 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\72a522f824b97602ebe7cbd73ff695b7\transformed\navigation-runtime-ktx-2.7.7\res
+com.example.armcontrol.app-navigation-compose-2.7.7-24 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\7c1266052868e70d40730b6e61d16574\transformed\navigation-compose-2.7.7\res
+com.example.armcontrol.app-lifecycle-runtime-ktx-release-25 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\872b4e677872adbf625674c194d2c6a2\transformed\lifecycle-runtime-ktx-release\res
+com.example.armcontrol.app-ui-graphics-release-26 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\8f42d9a1e2188f067e40ada04bb1b4be\transformed\ui-graphics-release\res
+com.example.armcontrol.app-animation-core-release-27 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\946d9af7f05cdbe0fdf4972061afed30\transformed\animation-core-release\res
+com.example.armcontrol.app-lifecycle-livedata-2.8.4-28 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\9add3029de2ece92ae844c533626d4d4\transformed\lifecycle-livedata-2.8.4\res
+com.example.armcontrol.app-startup-runtime-1.1.1-29 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\9cf524c5e2fca5b9377f35853f909d03\transformed\startup-runtime-1.1.1\res
+com.example.armcontrol.app-savedstate-1.2.1-30 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\9d575dfc858366840951b68fc1fb3b19\transformed\savedstate-1.2.1\res
+com.example.armcontrol.app-security-crypto-1.1.0-alpha06-31 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\9ea82e0c7156e6ca10839aabce19898c\transformed\security-crypto-1.1.0-alpha06\res
+com.example.armcontrol.app-ui-tooling-release-32 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\a1efc54fdde78c62928d9152ceb2b7c6\transformed\ui-tooling-release\res
+com.example.armcontrol.app-material-ripple-release-33 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\a5f447f352e719d3bab46897d78f058e\transformed\material-ripple-release\res
+com.example.armcontrol.app-play-services-base-18.9.0-34 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\a7300f1554f8a09d2e736e07af90b0b8\transformed\play-services-base-18.9.0\res
+com.example.armcontrol.app-navigation-common-2.7.7-35 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\a91a2b5783c6137a7aceb69beed4858e\transformed\navigation-common-2.7.7\res
+com.example.armcontrol.app-activity-1.9.1-36 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\b26667546f81556d257e42b1ad2978e5\transformed\activity-1.9.1\res
+com.example.armcontrol.app-ui-geometry-release-37 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\b38dc305bc2373767b54c504f718e604\transformed\ui-geometry-release\res
+com.example.armcontrol.app-emoji2-1.3.0-38 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\b8da223fa6b70a13e0ead5a11d7a7523\transformed\emoji2-1.3.0\res
+com.example.armcontrol.app-material3-release-39 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\b99c0100ecb7126d67925f01ae8de81a\transformed\material3-release\res
+com.example.armcontrol.app-customview-poolingcontainer-1.0.0-40 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\c8b4a31fefdc3425619e6013bc6e4574\transformed\customview-poolingcontainer-1.0.0\res
+com.example.armcontrol.app-lifecycle-viewmodel-ktx-2.8.4-41 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\ca7a0d00895e33557272ff6998b9adb0\transformed\lifecycle-viewmodel-ktx-2.8.4\res
+com.example.armcontrol.app-animation-release-42 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\d21fda317c93c51962e88dbc31a706c3\transformed\animation-release\res
+com.example.armcontrol.app-core-ktx-1.13.1-43 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\dac6dfb299fb2bc9c9fa3e832fa75a66\transformed\core-ktx-1.13.1\res
+com.example.armcontrol.app-core-1.13.1-44 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\def794a081720ab17601c2608e745196\transformed\core-1.13.1\res
+com.example.armcontrol.app-profileinstaller-1.3.1-45 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\e80c1852927c4d843e83ec54a08f9990\transformed\profileinstaller-1.3.1\res
+com.example.armcontrol.app-annotation-experimental-1.4.0-46 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\e8709212b4da50e06cd7a08b4d8221cd\transformed\annotation-experimental-1.4.0\res
+com.example.armcontrol.app-ui-release-47 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\ebd9b74fec80640a776099aecd98befe\transformed\ui-release\res
+com.example.armcontrol.app-ui-tooling-data-release-48 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\efc22cfba942a18e37f7997459ca4ffe\transformed\ui-tooling-data-release\res
+com.example.armcontrol.app-runtime-release-49 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\f661f278f32fa8660864cf6834149df7\transformed\runtime-release\res
+com.example.armcontrol.app-savedstate-ktx-1.2.1-50 C:\Users\eriko\.gradle\caches\9.0-milestone-1\transforms\fc7b92317897c43151eea6b28e814a23\transformed\savedstate-ktx-1.2.1\res
+com.example.armcontrol.app-pngs-51 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\generated\res\pngs\debug
+com.example.armcontrol.app-resValues-52 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\generated\res\resValues\debug
+com.example.armcontrol.app-updated_navigation_xml-53 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\generated\updated_navigation_xml\debug
+com.example.armcontrol.app-packageDebugResources-54 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.example.armcontrol.app-packageDebugResources-55 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.example.armcontrol.app-debug-56 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.example.armcontrol.app-debug-57 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\debug\res
+com.example.armcontrol.app-main-58 C:\Users\eriko\Documents\Projects\Personal\Astral Compass\Android\app\src\main\res

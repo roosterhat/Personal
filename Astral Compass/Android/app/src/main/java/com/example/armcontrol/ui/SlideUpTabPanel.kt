@@ -1,5 +1,6 @@
 package com.example.armcontrol.ui
 
+import android.graphics.drawable.Icon
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -27,6 +28,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -59,18 +62,24 @@ fun SlideUpTabPanel(
                 animationSpec = tween(200)
             ) + fadeOut(tween(150))
         ) {
+            val tab = displayIndex?.let { tabs[it] }
+
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .then(
+                        if (tab?.height != null) Modifier.height(tab.height)
+                        else Modifier.heightIn(max = 320.dp)
+                    ),
                 tonalElevation = 6.dp,
                 shadowElevation = 12.dp,
                 shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .verticalScroll(rememberScrollState())
+                        .then(if (tab?.scrollable != false) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 ) {
-                    displayIndex?.let { i -> tabs[i].content() }
+                    tab?.content?.invoke()
                 }
             }
         }
@@ -80,8 +89,8 @@ fun SlideUpTabPanel(
                 NavigationBarItem(
                     selected = selectedIndex == index,
                     onClick = { selectedIndex = if (selectedIndex == index) null else index },
-                    icon = { },
-                    label = { Text(tab.label) },
+                    icon = { if( tab.icon != null) Icon(tab.icon, contentDescription = tab.label) },
+                    //label = { Text(tab.label) },
                     modifier = Modifier.height(30.dp).padding(0.dp)
                 )
             }
@@ -91,5 +100,8 @@ fun SlideUpTabPanel(
 
 data class BottomTabItem(
     val label: String,
-    val content: @Composable () -> Unit
+    val scrollable: Boolean = true,
+    val height: Dp? = null,
+    val content: @Composable () -> Unit,
+    val icon: ImageVector? = null
 )

@@ -10,6 +10,7 @@ struct LimitSwitch {
  bool status;
  int pin;
  long lastEvent;
+ FastAccelStepper *stepper;
 };
 
 enum class StepperStatus {
@@ -24,7 +25,7 @@ extern FastAccelStepper *stepper_AZ, *stepper_EL;
 
 void InitSteppers();
 void InitInterrupts();
-void Home();
+void Home(void *pvParameters);
 void PointTo(float az, float el);
 void MoveTo(float az, float el);
 void SetMotorsEnabled(bool enabled);

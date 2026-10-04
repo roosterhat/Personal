@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ArmControl"
 include(":app")
+include(":ephemeris")

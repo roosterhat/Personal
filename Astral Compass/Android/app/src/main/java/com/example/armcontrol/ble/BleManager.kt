@@ -193,7 +193,7 @@ class BleManager(private val context: Context) {
             when(characteristic.uuid) {
                 BleConstants.STATE_UUID -> {
                     val matches = statusPattern.findAll(data).toList()
-                    if (matches.size == 8) {
+                    if (matches.size == 9) {
                         _status.value = Status(
                             matches[0].value == "1",
                             MotorStatusEnum.entries.getOrNull(matches[1].value.toInt()) ?: MotorStatusEnum.INIT,
@@ -201,7 +201,8 @@ class BleManager(private val context: Context) {
                             matches[3].value == "1",
                             listOf(matches[4].value == "1", matches[5].value == "1"),
                             matches[6].value.toInt(),
-                            matches[7].value.toInt()
+                            matches[7].value.toInt(),
+                            SystemStatusEnum.entries.getOrNull(matches[8].value.toInt()) ?: SystemStatusEnum.INIT,
                         )
                     }
                 }

@@ -86,19 +86,20 @@ void loop() {
 
 void setNorthOffset() {
   Vector3 magSum(0, 0, 0);
-  for (int i = 0; i < 10; i++) {
+  const int N = 10;
+  for (int i = 0; i < N; i++) {
     ICM.getEvent(&accel, &gyro, &temp, &mag);
     magSum = magSum + Vector3(mag.magnetic.v);
     delay(10);
   }
-  Vector3 magAvg = magSum * (1.0f / 10.0f);
+  Vector3 magAvg = magSum * (1.0f / N);
 
   northOffset = captureNorthOffset(fusion.getOrientation(), magAvg);
 }
 
 void calibrateGyroBias() {
   Vector3 sum(0, 0, 0);
-  const int N = 600;                      // ~3 s at 200 Hz
+  const int N = 600;
   for (int i = 0; i < N; i++) {
     ICM.getEvent(&accel, &gyro, &temp, &mag);
     sum = sum + Vector3(gyro.gyro.v).remapImuToBody();
@@ -129,7 +130,6 @@ void StepperLoop(void *pvParameters) {
   while (true) {
     if(M_hold) {
       AzEl pos = computeRequiredAzEl(fusion.getOrientation(), M_target[0], M_target[1], northOffset);
-      //Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f\n", pos.az, pos.el, RPY.x, RPY.y, RPY.z, M_target[0], M_target[1], northOffset);
       if(pos != previousPos) {
         MoveTo(pos.az, pos.el);
 
@@ -176,12 +176,12 @@ void SystemMonitor(void *pvParameters) {
 
 void StateMonitor(void *pvParameters) {
   char buffer[128];
-  char* statusFormat = "%i %i %i %i %i %i %i %i";
+  char* statusFormat = "%i %i %i %i %i %i %i %i %i";
 
   while(true) {
     laserStatus = digitalRead(LASER);
 
-    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS);
+    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS, status);
     transmitStatus(buffer, size);
     vTaskDelay(pdMS_TO_TICKS(200));
   }
@@ -284,7 +284,6 @@ void SerialMonitor(void *pvParameters) {
     command = serialReader.read(index);
     camFPS = (int)(1 / ((esp_timer_get_time() - lastCamMessage) / 1e6));
     lastCamMessage = esp_timer_get_time();
-    //Serial.println(command);
 
     switch(command[0]) {
       case 'P':
@@ -302,8 +301,6 @@ void SerialMonitor(void *pvParameters) {
           };
           
           xQueueOverwrite(estimateQueue, &rotationEstimate);
-
-          //Serial.printf("%.5f %.5f %.5f %.4f %d %.5f\n", rotationEstimate.dtheta_x, rotationEstimate.dtheta_y, rotationEstimate.dtheta_z, rotationEstimate.dt_seconds, rotationEstimate.inlier_count, rotationEstimate.residual_rms);
         }
         break;
     }
@@ -327,8 +324,6 @@ void ProcessICMUpdates(void *pvParameters) {
     double dt = (currentTick - lastICMPoll) / 1e6;
     IMUhz = (int)(1 / dt);
     lastICMPoll = currentTick;
-
-    //Serial.printf("%.5f %.5f %.5f %.5f %.5f\n", gyro.gyro.v[0], gyro.gyro.v[1], gyro.gyro.v[2], bias.z, RPY.z);
 
     if (xQueueReceive(estimateQueue, &estimate, 0) == pdTRUE) {
         fusion.updateVision(estimate);

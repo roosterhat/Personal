@@ -34,7 +34,7 @@ void Calibrate(void *pvParameters);
 
 class SharedReader {
 public: 
-     SharedReader(HardwareSerial& s)
+    SharedReader(HardwareSerial& s)
         : serial(s), index(0), length(10), serialMutex(xSemaphoreCreateMutex())
     {
         buffer = new String[length]();

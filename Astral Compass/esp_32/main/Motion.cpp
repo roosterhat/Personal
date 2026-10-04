@@ -3,10 +3,11 @@
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper_AZ = NULL, *stepper_EL = NULL;
-LimitSwitch switches[2] = { { 0, LM1, 0 }, { 0, LM2, 0 } };
+LimitSwitch switches[2] = { { 0, LM1, 0, stepper_AZ }, { 0, LM2, 0, stepper_EL } };
 float M_target[2] = { 0, 0 };
 StepperStatus stepperStatus = StepperStatus::INIT;
 bool M_hold = false;
+SemaphoreHandle_t homingSemaphore = NULL;
 
 FastAccelStepper *InitStepper(int step, int dir, int enable, int steps, int accel) {
   auto *stepper = engine.stepperConnectToPin(step);
@@ -23,12 +24,15 @@ FastAccelStepper *InitStepper(int step, int dir, int enable, int steps, int acce
 }
 
 void IRAM_ATTR LimitSwitchEvent(void *arg) {
-  LimitSwitch &lswitch = switches[(int)(intptr_t)arg];
+  int index = (int)(intptr_t)arg;
+  LimitSwitch &lswitch = switches[index];
   TickType_t now = xTaskGetTickCountFromISR();
 
   if (now - lswitch.lastEvent > pdMS_TO_TICKS(50)) {
     lswitch.lastEvent = now;
     lswitch.status = !((bool)digitalRead(lswitch.pin));
+    if(stepperStatus == StepperStatus::HOMING && lswitch.status)
+      lswitch.stepper->forceStop();
     Serial.printf("limit swtich %i\n", (int)(intptr_t)arg);
   }
 }
@@ -36,7 +40,7 @@ void IRAM_ATTR LimitSwitchEvent(void *arg) {
 void InitSteppers() {
   engine.init();
   stepper_AZ = InitStepper(S1_STEP, S1_DIR, S1_EN, 30, 1000000);
-  stepper_EL = InitStepper(S2_STEP, S2_DIR, S2_EN, 10, 1000000);
+  stepper_EL = InitStepper(S2_STEP, S2_DIR, S2_EN, 10, 100000);
 }
 
 void InitInterrupts() {
@@ -47,9 +51,55 @@ void InitInterrupts() {
   switches[1].status = !((bool)digitalRead(LM2));
 }
 
-void Home() {
-  stepperStatus = StepperStatus::HOMING;
-  PointTo(0, 0);
+void HomeAxis_AZ(void *pvParameters) {
+  if(!switches[0].status) {
+    uint32_t speed = stepper_AZ->getSpeedInUs();
+    stepper_AZ->setSpeedInHz(10000);
+    stepper_AZ->runForward();
+
+    while(stepper_AZ->isRunning())
+      vTaskDelay(1);
+
+    stepper_AZ->setSpeedInUs(speed);
+  }
+
+  xSemaphoreGive(homingSemaphore);
+  vTaskDelete(NULL);
+}
+
+void HomeAxis_EL(void *pvParameters) {
+  if(!switches[1].status) {
+    uint32_t speed = stepper_EL->getSpeedInUs();  
+    stepper_EL->setSpeedInHz(2000);
+    stepper_EL->runForward();
+
+    while(stepper_EL->isRunning())
+      vTaskDelay(1);
+
+    stepper_EL->setSpeedInUs(speed);
+  }
+
+  xSemaphoreGive(homingSemaphore);
+  vTaskDelete(NULL);
+}
+
+void Home(void *pvParameters) {
+  if(stepperStatus == StepperStatus::HOMING || status == Status::CAL) return;
+
+  stepperStatus = StepperStatus::HOMING;  
+  homingSemaphore = xSemaphoreCreateCounting(2, 0);
+  xTaskCreate(HomeAxis_AZ, "HomeAxis_AZ", 1024, NULL, 1, NULL);
+  xTaskCreate(HomeAxis_EL, "HomeAxis_EL", 1024, NULL, 1, NULL);
+
+  for(int i = 0; i < 2; i++)
+    xSemaphoreTake(homingSemaphore, portMAX_DELAY);
+
+  M_target[0] = 0; M_target[1] = 0;
+  stepper_AZ->setCurrentPosition(0);
+  stepper_EL->setCurrentPosition(0);
+
+  stepperStatus = StepperStatus::IDLE;
+  vTaskDelete(NULL);
 }
 
 void PointTo(float az, float el) {

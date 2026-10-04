@@ -66,7 +66,7 @@ class CommandCallback : public BLECharacteristicCallbacks {
         }
         break;
       case 'H':
-        Home();
+        xTaskCreate(Home, "Home", 4096, NULL, 5, NULL);
         break;
       case 'Z':
         ZeroOrientation();

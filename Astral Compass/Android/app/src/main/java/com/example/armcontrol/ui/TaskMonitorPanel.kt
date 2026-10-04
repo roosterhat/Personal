@@ -2,6 +2,7 @@ package com.example.armcontrol.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +59,7 @@ fun TaskMonitorPanel(history: List<SystemState>, modifier: Modifier = Modifier) 
             history = history,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
+                .height(240.dp)
         )
         Spacer(Modifier.height(12.dp))
         TaskList(
@@ -175,8 +177,16 @@ private fun TraceGraph(trace: Trace, modifier: Modifier = Modifier) {
             Text(trace.format(current), style = MaterialTheme.typography.labelSmall)
         }
 
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .border(width = 1.dp, color = Color.Black, shape = RoundedCornerShape(4.dp))
+                .padding(3.dp)
+        ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(Color.White)
+
                 drawLine(
                     color = Color.Gray.copy(alpha = 0.25f),
                     start = Offset(0f, size.height / 2f),

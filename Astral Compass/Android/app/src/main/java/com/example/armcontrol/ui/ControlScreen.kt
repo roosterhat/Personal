@@ -12,11 +12,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.GpsFixed
+import androidx.compose.material.icons.outlined.LocationSearching
+import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.MonitorHeart
+import androidx.compose.material.icons.outlined.ScreenRotation
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,6 +55,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
     val status by viewModel.status.collectAsState()
     val orientation by viewModel.orientation.collectAsState()
     val systemStatues by viewModel.systemStatuses.collectAsState()
+    val objects by viewModel.objects.collectAsState()
+    val credentials by viewModel.savedCredentials.collectAsState()
+    val starImportState by viewModel.starImport.collectAsState()
 
     var handleX by remember { mutableFloatStateOf(0.5f) }
     var handleY by remember { mutableFloatStateOf(0.5f) }
@@ -112,13 +127,17 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                     ) {
                         Button(
                             onClick = { viewModel.home() },
-                            modifier = Modifier.weight(1f).height(56.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
                             Text("Home")
                         }
                         Button(
                             onClick = { viewModel.zero() },
-                            modifier = Modifier.weight(1f).height(56.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
                             Text("Zero")
                         }
@@ -135,13 +154,17 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ),
                                 contentColor = Color.White
                             ),
-                            modifier = Modifier.weight(1f).height(56.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
                             Text("Motors")
                         }
                         Button(
                             onClick = { viewModel.toggleHoldPosition() },
-                            modifier = Modifier.weight(1f).height(56.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(
                                     if (status?.HoldPosition ?: false) 0xff009b14 else 0xffff0000
@@ -164,7 +187,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ),
                                 contentColor = Color.White
                             ),
-                            modifier = Modifier.weight(1f).height(56.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
                             Text("Laser")
                         }
@@ -175,6 +200,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                 tabs = listOf(
                     BottomTabItem(
                         label = "Telemetry",
+                        icon = Icons.Outlined.ScreenRotation,
                         content = {
                             Column(modifier = Modifier.align(Alignment.BottomCenter),
                                 horizontalAlignment = Alignment.CenterHorizontally)
@@ -187,17 +213,24 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    OrientationIndicator3D(
-                                        roll = -(orientation?.RPY?.get(1) ?: 0f),
-                                        pitch = -(orientation?.RPY?.get(0) ?: 0f),
-                                        yaw = -(orientation?.RPY?.get(2) ?: 0f),
-                                        modifier = Modifier.size(150.dp)
-                                    )
+                                    Surface (
+                                        color = Color.White,
+                                        modifier = Modifier.padding(8.dp),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        OrientationIndicator3D(
+                                            roll = -(orientation?.RPY?.get(1) ?: 0f),
+                                            pitch = -(orientation?.RPY?.get(0) ?: 0f),
+                                            yaw = -(orientation?.RPY?.get(2) ?: 0f),
+                                            modifier = Modifier.size(150.dp)
+                                        )
+                                    }
 
                                     val rows = buildList {
                                         status?.let {
+                                            add("Status" to "${it.SystemStatus}")
                                             add("Motors" to "${it.MotorStatus}")
-                                            add("Serial" to "${it.SerialReady}")
+                                            add("Serial" to if(it.SerialReady) "CONNECTED" else "ERROR")
                                             add("LM" to "(${it.LimitSwitch[0]}, ${it.LimitSwitch[1]})")
                                             add("IMU" to "${it.IMU_hz}hz")
                                             add("CAM" to "${it.CAM_hz}hz")
@@ -208,7 +241,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                             add("Gyro" to "(${fmt(it.gyro[0])}, ${fmt(it.gyro[1])}, ${fmt(it.gyro[2])})")
                                             add("Acc" to "(${fmt(it.acceleration[0])}, ${fmt(it.acceleration[1])}, ${fmt(it.acceleration[2])})")
                                             add("Rot" to "(${fmt(it.rotationEstimate[0])}, ${fmt(it.rotationEstimate[1])}, ${fmt(it.rotationEstimate[2])})")
-                                            add("Fit" to "${it.rotationInlinerCount}, ${String.format(Locale.US, "%.3f", it.rotationResidualRMS)}, ${String.format(Locale.US, "%.3f", it.rotation_dt)}s")
+                                            add("Track" to "${it.rotationInlinerCount}, ${String.format(Locale.US, "%.3f", it.rotationResidualRMS)}, ${String.format(Locale.US, "%.3f", it.rotation_dt)}s")
                                         }
                                     }
 
@@ -219,15 +252,28 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                     ),
                     BottomTabItem(
                         label = "Threads",
+                        icon = Icons.Outlined.Memory,
+                        scrollable = false,
+                        height = 460.dp,
                         content = { TaskMonitorPanel(systemStatues) }
                     ),
                     BottomTabItem(
+                        label = "Track",
+                        icon = Icons.Outlined.GpsFixed,
+                        scrollable = false,
+                        height = 460.dp,
+                        content = { CelestialSearchContent(objects, { viewModel.setTrackObject(it) }, viewModel.currentTrack) }
+                    ),
+                    BottomTabItem(
                         label = "Cal",
+                        icon = Icons.Outlined.Build,
                         content = {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -235,7 +281,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ) {
                                     Button(
                                         onClick = { viewModel.calibrate() },
-                                        modifier = Modifier.weight(1f).height(56.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color(0xff009b14),
                                             contentColor = Color.White
@@ -245,7 +293,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                     }
                                     Button(
                                         onClick = { viewModel.reset() },
-                                        modifier = Modifier.weight(1f).height(56.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color(0xffff0000),
                                             contentColor = Color.White
@@ -260,13 +310,17 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ) {
                                     Button(
                                         onClick = { viewModel.home() },
-                                        modifier = Modifier.weight(1f).height(56.dp)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp)
                                     ) {
                                         Text("Home")
                                     }
                                     Button(
                                         onClick = { viewModel.zero() },
-                                        modifier = Modifier.weight(1f).height(56.dp)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp)
                                     ) {
                                         Text("Zero")
                                     }
@@ -277,20 +331,38 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ) {
                                     Button(
                                         onClick = { viewModel.setPos(359.99f, 0f) },
-                                        modifier = Modifier.weight(1f).height(56.dp)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp)
                                     ) {
                                         Text("AZ 360")
                                     }
                                     Button(
                                         onClick = { viewModel.setPos(0f, 90f) },
-                                        modifier = Modifier.weight(1f).height(56.dp)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp)
                                     ) {
                                         Text("EL 90")
                                     }
                                 }
                             }
                         }
-                    )
+                    ),
+                    BottomTabItem(
+                        label = "Settings",
+                        icon = Icons.Outlined.Settings,
+                        scrollable = false,
+                        height = 700.dp,
+                        content = { SettingsContent(
+                            credentials,
+                            { viewModel.saveCredentials(it) },
+                            { viewModel.removeCredentials() },
+                            starImportState,
+                            { viewModel.importStarFile(it) },
+                            { viewModel.clearCacheAndReload() }
+                        )}
+                    ),
                 ),
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
