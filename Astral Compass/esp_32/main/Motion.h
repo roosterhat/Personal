@@ -3,7 +3,7 @@
 #include <FastAccelStepper.h>
 
 #define AZ_MOD 616.0
-#define EL_MOD 87.0
+#define EL_MOD 92.0
 
 
 struct LimitSwitch {

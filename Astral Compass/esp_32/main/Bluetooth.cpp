@@ -35,6 +35,7 @@ class ServerCallbacks: public BLEServerCallbacks {
 
 class CommandCallback : public BLECharacteristicCallbacks {  
   std::regex coordinatesPattern{R"(\w (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?))"};
+  std::regex valuePattern{R"(\w (-?\d+(?:\.\d+)?))"};
   std::regex enablePattern{R"(\w (\d))"};
 
   void onWrite(BLECharacteristic *characteristic) {
@@ -54,9 +55,17 @@ class CommandCallback : public BLECharacteristicCallbacks {
           PointTo(az, el);
         }
         break;
+      case 'F':
+        if (status != m_Status::TRACKING && status != m_Status::CAL && std::regex_search(command.c_str(), matches, coordinatesPattern)) {
+          float az = stof(matches[1].str());
+          float el = stof(matches[2].str());
+          PointTo(az, el);
+        }
+        break;
       case 'T':
         if (status != m_Status::CAL && std::regex_search(command.c_str(), matches, coordinatesPattern)) {
-          UpdateStatus(m_Status::TRACKING);
+          if(status != m_Status::TRACKING)
+            UpdateStatus(m_Status::TRACKING);
           float az = stof(matches[1].str()) + northOffset;
           float el = stof(matches[2].str());
           PointTo(az, el);
@@ -92,6 +101,11 @@ class CommandCallback : public BLECharacteristicCallbacks {
         break;
       case 'S':
         UpdateStatus(m_Status::IDLE);
+        break;
+      case 'B':
+        if (std::regex_search(command.c_str(), matches, valuePattern)) {
+          SetBrightness(stof(matches[1].str()));
+        }
         break;
     }
 

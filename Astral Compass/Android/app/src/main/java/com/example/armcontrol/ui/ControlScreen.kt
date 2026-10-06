@@ -14,18 +14,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.GpsFixed
-import androidx.compose.material.icons.outlined.LocationSearching
 import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.ScreenRotation
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -43,10 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.armcontrol.ArmControlViewModel
-import com.example.armcontrol.models.MotorStatusEnum
 import com.example.armcontrol.models.SystemStatusEnum
 import java.util.Locale
-import kotlin.math.*
+import kotlin.math.hypot
+import kotlin.math.min
 
 
 private fun fmt(v: Float): String = String.format(Locale.US, "%+6.2f", v)
@@ -136,12 +134,23 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                             onClick = { viewModel.home() },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(56.dp)
+                                .height(56.dp),
+                            enabled = !viewModel.isHoming,
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Home")
+                            if (viewModel.isHoming) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = LocalContentColor.current
+                                )
+                            } else {
+                                Text("Home")
+                            }
                         }
                         Button(
                             onClick = { viewModel.zero() },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)
@@ -161,6 +170,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ),
                                 contentColor = Color.White
                             ),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)
@@ -169,6 +179,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                         }
                         Button(
                             onClick = { viewModel.toggleHoldPosition() },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp),
@@ -188,6 +199,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                     ) {
                         Button(
                             onClick = { viewModel.toggleLaser() },
+                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(
                                     if (status?.LaserEnabled ?: false ) 0xff009b14 else 0xffff0000
@@ -290,18 +302,29 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ) {
                                     Button(
                                         onClick = { viewModel.calibrate() },
+                                        shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(56.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color(0xff009b14),
                                             contentColor = Color.White
-                                        )
+                                        ),
+                                        enabled = !viewModel.isCalibrating
                                     ) {
-                                        Text("Calibrate")
+                                        if (viewModel.isCalibrating) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(18.dp),
+                                                strokeWidth = 2.dp,
+                                                color = LocalContentColor.current
+                                            )
+                                        } else {
+                                            Text("Calibrate")
+                                        }
                                     }
                                     Button(
                                         onClick = { viewModel.reset() },
+                                        shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(56.dp),
@@ -319,14 +342,25 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ) {
                                     Button(
                                         onClick = { viewModel.home() },
+                                        shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(56.dp)
+                                            .height(56.dp),
+                                        enabled = !viewModel.isHoming
                                     ) {
-                                        Text("Home")
+                                        if (viewModel.isHoming) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(18.dp),
+                                                strokeWidth = 2.dp,
+                                                color = LocalContentColor.current
+                                            )
+                                        } else {
+                                            Text("Home")
+                                        }
                                     }
                                     Button(
                                         onClick = { viewModel.zero() },
+                                        shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(56.dp)
@@ -340,6 +374,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 ) {
                                     Button(
                                         onClick = { viewModel.setPos(359.99f, 0f) },
+                                        shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(56.dp)
@@ -348,6 +383,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                     }
                                     Button(
                                         onClick = { viewModel.setPos(0f, 90f) },
+                                        shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(56.dp)
@@ -369,7 +405,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                             { viewModel.removeCredentials() },
                             starImportState,
                             { viewModel.importStarFile(it) },
-                            { viewModel.clearCacheAndReload() }
+                            { viewModel.clearCacheAndReload() },
+                            viewModel.brightness,
+                            { viewModel.setBrightnessValue(it) }
                         )}
                     ),
                 ),

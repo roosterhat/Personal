@@ -236,6 +236,17 @@ class BleManager(private val context: Context) {
                                 _systemStatus.totalTime = matches.groups[9]?.value?.toLong() ?: 0
                                 _systemStatus.clockSpeed = matches.groups[10]?.value?.toInt() ?: 0
 
+                                val previousSystemStatus = if (_systemStatuses.value.isNotEmpty()) null else _systemStatuses.value.last()
+                                val dt = _systemStatus.totalTime - (previousSystemStatus?.totalTime ?: 0)
+                                for (core in _systemStatus.coreUtil) {
+                                    val previous = previousSystemStatus?.coreUtil[core.key]
+                                    core.value.utilization = 1f - (core.value.cpuTime - (previous?.cpuTime ?: 0)).toFloat() / dt
+                                }
+                                for (task in _systemStatus.taskStates) {
+                                    val previous = previousSystemStatus?.taskStates[task.key]
+                                    task.value.utilization = (task.value.cpuTime - (previous?.cpuTime ?: 0)).toFloat() / dt
+                                }
+
                                 _systemStatuses.value = _systemStatuses.value.drop(max(_systemStatuses.value.size - 59, 0)) + _systemStatus
 
                                 _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
@@ -245,15 +256,23 @@ class BleManager(private val context: Context) {
                                 val name = matches.groups[2]?.value ?: ""
                                 if(name.contains("IDLE")) {
                                     val coreNum = name.last().digitToInt()
-                                    _systemStatus.coreIDLE[coreNum] = matches.groups[3]?.value?.toFloat() ?: 0f
+                                    _systemStatus.coreUtil[coreNum] = TaskState(
+                                        name,
+                                        matches.groups[3]?.value?.toLong() ?: 0,
+                                        matches.groups[4]?.value?.toInt() ?: 0,
+                                        matches.groups[5]?.value?.toInt() ?: 0,
+                                        matches.groups[6]?.value?.toInt() ?: 0,
+                                        0f
+                                    )
                                 }
                                 else if(name != "") {
                                     _systemStatus.taskStates[name] = TaskState(
                                         name,
-                                        matches.groups[3]?.value?.toFloat() ?: 0f,
+                                        matches.groups[3]?.value?.toLong() ?: 0,
                                         matches.groups[4]?.value?.toInt() ?: 0,
                                         matches.groups[5]?.value?.toInt() ?: 0,
-                                        matches.groups[6]?.value?.toInt() ?: 0
+                                        matches.groups[6]?.value?.toInt() ?: 0,
+                                        0f
                                     )
                                 }
                             }
@@ -274,6 +293,10 @@ class BleManager(private val context: Context) {
     }
 
     suspend fun sendTargetCoordinates(pan: Float, tilt: Float) {
+        sendCommand(String.format(Locale.US, "F %.2f %.2f", pan, tilt))
+    }
+
+    suspend fun sendTrackingCoordinates(pan: Float, tilt: Float) {
         sendCommand(String.format(Locale.US, "T %.2f %.2f", pan, tilt))
     }
 
@@ -308,6 +331,10 @@ class BleManager(private val context: Context) {
 
     suspend fun setHoldPosition(enabled: Boolean) {
         sendCommand(String.format(Locale.US, "P %d", if(enabled) 1 else 0))
+    }
+
+    suspend fun setBrightness(brightness: Float) {
+        sendCommand(String.format(Locale.US, "B %.2f", brightness))
     }
 
     suspend private fun sendCommand(command: String) {

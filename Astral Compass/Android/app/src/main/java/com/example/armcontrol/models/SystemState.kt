@@ -5,5 +5,5 @@ data class SystemState(
     var totalTime: Long,
     var clockSpeed: Int,
     var taskStates: MutableMap<String, TaskState>,
-    var coreIDLE: MutableMap<Int, Float>
+    var coreUtil: MutableMap<Int, TaskState>
 )

@@ -56,15 +56,19 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     val target: StateFlow<Position?> = bleManager.target
     val objects: StateFlow<List<EphemerisEntry>> = ephemeris.entries
     private val _observer = MutableStateFlow<Observer?>(null)
+    val observer: StateFlow<Observer?> = _observer.asStateFlow()
 
     var isCalibrating by mutableStateOf(false)
         private set
-    val observer: StateFlow<Observer?> = _observer.asStateFlow()
+    var isHoming by mutableStateOf(false)
+        private set
+
     val savedCredentials = MutableStateFlow(credentialStore.load())
     val starImport = MutableStateFlow<StarImportState>(StarImportState.Idle)
 
     var az: Float = 0f
     var el: Float = 0f
+    var brightness: Float = 0.5f
     var currentTrack: EphemerisEntry? = null
     var pendingTrack: EphemerisEntry? = null
 
@@ -80,6 +84,23 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
         refreshEphemeris()
+    }
+
+    private suspend fun runControlLoops() = coroutineScope {
+        launch {
+            delay(50)
+            while (isActive) {
+                setPosition()
+                delay(50)
+            }
+        }
+        launch {
+            delay(200)
+            while (isActive) {
+                trackObject()
+                delay(200)
+            }
+        }
     }
 
     fun saveCredentials(c: Credentials) {
@@ -106,25 +127,21 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun startScan() = bleManager.startScan()
     fun stopScan() = bleManager.stopScan()
 
-    fun connect(device: BluetoothDevice) = bleManager.connect(device)
+    fun connect(device: BluetoothDevice) {
+        bleManager.connect(device)
+        resetValues()
+    }
 
     fun disconnect() {
         bleManager.disconnect()
+        resetValues()
+    }
+
+    fun resetValues() {
         currentTrack = null
         _observer.value = null
         az = 0f
         el = 0f
-    }
-
-    private suspend fun runControlLoops() = coroutineScope {
-        launch {
-            delay(50)
-            while (isActive) { setPosition(); delay(50) }
-        }
-        launch {
-            delay(200)
-            while (isActive) { trackObject(); delay(200) }
-        }
     }
 
     fun setPosition() {
@@ -139,7 +156,7 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
 
         sendJob = viewModelScope.launch {
             val azEl = Pointing.azEl(currentTrack!!, observer.value!!)
-            bleManager.sendTargetCoordinates(azEl.azimuthDeg.toFloat(), azEl.elevationDeg.toFloat())
+            bleManager.sendTrackingCoordinates(azEl.azimuthDeg.toFloat(), azEl.elevationDeg.toFloat())
         }
     }
 
@@ -162,7 +179,12 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun home() {
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
+            isHoming = true
             bleManager.home()
+            delay(500)
+            while (status.value?.MotorStatus == MotorStatusEnum.HOMING)
+                delay(100)
+            isHoming = false
         }
     }
 
@@ -202,7 +224,6 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun reset() {
-        if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
             bleManager.resetDevice()
         }
@@ -211,18 +232,21 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun calibrate() {
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
+            isCalibrating = true
             bleManager.calibrate()
+            delay(500)
+            while (!(status.value?.Calibrated ?: false))
+                delay(100)
+            isCalibrating = false
         }
     }
 
     fun calibrateAndTrack(obj: EphemerisEntry) {
-        if (sendJob?.isActive == true) return
-        sendJob = viewModelScope.launch {
+        viewModelScope.launch {
+            calibrate()
             isCalibrating = true
-            bleManager.calibrate()
-            while (!(status.value?.Calibrated ?: false))
+            while (isCalibrating)
                 delay(100)
-            isCalibrating = false
             setTrackObject(obj)
         }
     }
@@ -234,6 +258,15 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
         sendJob = viewModelScope.launch {
             bleManager.stopTrack()
             bleManager.setHoldPosition(false)
+        }
+    }
+
+    fun setBrightnessValue(value: Float) {
+        if (sendJob?.isActive == true) return
+
+        brightness = value
+        sendJob = viewModelScope.launch {
+            bleManager.setBrightness(brightness)
         }
     }
 

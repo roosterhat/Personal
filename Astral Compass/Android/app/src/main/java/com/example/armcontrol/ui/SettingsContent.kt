@@ -2,15 +2,18 @@ package com.example.armcontrol.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -20,13 +23,19 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,6 +44,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.armcontrol.ephemeris.Credentials
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.sample
 
 /** State of the "choose a star catalog" field. */
 sealed interface StarImportState {
@@ -61,6 +73,8 @@ fun SettingsContent(
     starImport: StarImportState,
     onImportStarFile: (android.net.Uri) -> Unit,
     onClearCache: () -> Unit,
+    brightness: Float,
+    onBrightnessSet: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -70,12 +84,35 @@ fun SettingsContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        BrightnessControl(brightness, onBrightnessSet)
         SpaceTrackSection(savedCredentials, onSaveCredentials, onRemoveCredentials)
         HorizontalDivider()
         StarCatalogSection(starImport, onImportStarFile)
         HorizontalDivider()
         CacheSection(onClearCache)
     }
+}
+@OptIn(FlowPreview::class)
+@Composable
+fun BrightnessControl(brightness: Float, onBrightnessSet: (Float) -> Unit, modifier: Modifier = Modifier) {
+    val currentOnChange by rememberUpdatedState(onBrightnessSet)
+    var local by remember { mutableFloatStateOf(brightness) }
+    var dragging by remember { mutableStateOf(false) }
+
+    LaunchedEffect(brightness) { if (!dragging) local = brightness }
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { local }.drop(1).sample(50).collect { currentOnChange(it) }
+    }
+
+    Text("LED Brightness", style = MaterialTheme.typography.titleMedium)
+    Slider(
+        value = local,
+        onValueChange = { dragging = true; local = it },
+        onValueChangeFinished = { dragging = false; currentOnChange(local) },
+        modifier = modifier
+    )
+
 }
 
 @Composable
@@ -123,11 +160,12 @@ private fun SpaceTrackSection(
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Button(
             onClick = { onSave(Credentials(identity.trim(), password)) },
-            enabled = identity.isNotBlank() && password.isNotEmpty() && dirty
+            enabled = identity.isNotBlank() && password.isNotEmpty() && dirty,
+            shape = RoundedCornerShape(12.dp)
         ) { Text("Save") }
 
         if (saved != null) {
-            OutlinedButton(onClick = onRemove) { Text("Remove") }
+            OutlinedButton(onClick = onRemove, shape = RoundedCornerShape(12.dp)) { Text("Remove") }
             if (!dirty) {
                 Text(
                     "Saved",
@@ -172,7 +210,7 @@ private fun StarCatalogSection(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Bottom
     ) {
         OutlinedTextField(
             value = fieldText,
@@ -183,7 +221,14 @@ private fun StarCatalogSection(
             label = { Text("File") },
             isError = state is StarImportState.Failed
         )
-        Button(onClick = { picker.launch(arrayOf("*/*")) }, enabled = !importing) { Text("Choose") }
+        Button(
+            onClick = { picker.launch(arrayOf("*/*")) },
+            enabled = !importing,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.height(OutlinedTextFieldDefaults.MinHeight)
+        ){
+            Text("Choose")
+        }
     }
 
     // Small progress bar directly under the field
@@ -227,7 +272,7 @@ private fun CacheSection(onClearCache: () -> Unit) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    OutlinedButton(onClick = { confirming = true }, modifier = Modifier.fillMaxWidth()) {
+    OutlinedButton(onClick = { confirming = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Text("Clear data cache")
     }
     Spacer(Modifier.height(8.dp))

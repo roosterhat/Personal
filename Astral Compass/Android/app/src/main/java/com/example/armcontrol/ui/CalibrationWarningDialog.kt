@@ -46,10 +46,10 @@ fun CalibrationWarningDialog(
         ) {
             Box {
                 Column(Modifier.padding(24.dp)) {
-                    Text("Not calibrated", style = MaterialTheme.typography.headlineSmall)
+                    Text("Device not calibrated", style = MaterialTheme.typography.headlineSmall)
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        "The device is not calibrated.",
+                        "The device needs to be calibrated for accurate tracking.",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(Modifier.height(24.dp))

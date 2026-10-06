@@ -110,6 +110,7 @@ void calibrateGyroBias() {
 }
 
 void Calibrate(void *pvParameters) {
+  calibrated = false;
   UpdateStatus(m_Status::CAL);
   Halt();
   SetMotorsEnabled(false);
@@ -159,7 +160,7 @@ void SystemMonitor(void *pvParameters) {
 
     for(int i = 0; i < tasks; i++) {
       TaskStatus_t task = taskArray[i];
-      result = "T " + String(task.pcTaskName) + " " + String((float) task.ulRunTimeCounter / totalTime) + " " + String(task.uxCurrentPriority) + " " + String(task.eCurrentState) + " " + String(task.usStackHighWaterMark);
+      result = "T " + String(task.pcTaskName) + " " + String(task.ulRunTimeCounter) + " " + String(task.uxCurrentPriority) + " " + String(task.eCurrentState) + " " + String(task.usStackHighWaterMark);
       transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
     }
 

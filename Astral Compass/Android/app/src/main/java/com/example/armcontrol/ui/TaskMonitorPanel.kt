@@ -84,14 +84,14 @@ fun SystemGraph(history: List<SystemState>, modifier: Modifier = Modifier) {
     }
 
     val coreIds = remember(history) {
-        history.flatMap { it.coreIDLE.keys }.distinct().sorted()
+        history.flatMap { it.coreUtil.keys }.distinct().sorted()
     }
 
     val coreTraces = remember(history, coreIds) {
         coreIds.mapIndexed { index, coreId ->
             val usageValues = history.map { state ->
-                val idle = state.coreIDLE[coreId] ?: 1f
-                ((1f - idle) * 100f).coerceIn(0f, 100f)
+                val core = state.coreUtil[coreId]
+                ((core?.utilization ?: 0f) * 100f).coerceIn(0f, 100f)
             }
             Trace("Core $coreId", coreColors[index % coreColors.size], usageValues) {
                 String.format(Locale.US, "%.1f%%", it)
@@ -187,13 +187,17 @@ private fun TraceGraph(trace: Trace, modifier: Modifier = Modifier) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 drawRect(Color.White)
 
-                drawLine(
-                    color = Color.Gray.copy(alpha = 0.25f),
-                    start = Offset(0f, size.height / 2f),
-                    end = Offset(size.width, size.height / 2f),
-                    strokeWidth = 1.5f
-                )
-                drawTrace(trace.values, trace.color, maxValue = 100f)
+                val N = 10
+                for(i in 1..N) {
+                    val y = size.height * (i / N.toFloat())
+                    drawLine(
+                        color = Color.Gray.copy(alpha = 0.25f),
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 1.5f
+                    )
+                }
+                drawTrace(trace.values, trace.color)
             }
             Text("100%", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = Color.Gray, modifier = Modifier.align(Alignment.TopStart))
             Text("0%", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = Color.Gray, modifier = Modifier.align(Alignment.BottomStart))
@@ -201,15 +205,15 @@ private fun TraceGraph(trace: Trace, modifier: Modifier = Modifier) {
     }
 }
 
-private fun DrawScope.drawTrace(values: List<Float>, color: Color, maxValue: Float = 100f) {
+private fun DrawScope.drawTrace(values: List<Float>, color: Color) {
     if (values.size < 2) return
 
-    val stepX = size.width / (values.size - 1)
+    val stepX = size.width / 60
     val path = Path()
 
-    values.forEachIndexed { index, v ->
-        val x = index * stepX
-        val normalized = (v / maxValue).coerceIn(0f, 1f)
+    values.reversed().forEachIndexed { index, v ->
+        val x = size.width - index * stepX
+        val normalized = (v / 100f).coerceIn(0f, 1f)
         val y = size.height - (normalized * size.height * 0.85f) - size.height * 0.075f
         if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
     }
