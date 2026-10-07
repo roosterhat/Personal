@@ -1,3 +1,5 @@
+//Partition Scheme: No FS 4MB
+
 #include <main.h>
 #include <LED.h>
 #include <Motion.h>
@@ -7,10 +9,7 @@
 #include <math.h>
 #include <SensorFusionEKF.h>
 #include <regex>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
+#include <esp_core_dump.h>
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
@@ -25,15 +24,18 @@ HardwareSerial camSerial(2);
 SensorFusionEKF fusion;
 QueueHandle_t estimateQueue = xQueueCreate(1, sizeof(RotationEstimate));
 QueueHandle_t blinkQueue = xQueueCreate(1, sizeof(int));
+QueueHandle_t bleSerialCommQueue = xQueueCreate(128, sizeof(char *));
+QueueHandle_t serialMutex = xSemaphoreCreateMutex();
 Vector3 RPY, bias, targetPosition, magOrientation, calibratedBias;
 int laserStatus, camFPS, IMUhz; 
 SharedReader serialReader(camSerial);
-QueueHandle_t serialMutex = xSemaphoreCreateMutex();
 RotationEstimate rotationEstimate;
 AzEl previousPos;
 float previousTarget[] = { 0, 0 };
 float northOffset = 0;
 bool calibrated = false;
+const char* const ESPResetCodes[] = {"ESP_RST_UNKNOWN", "ESP_RST_POWERON", "ESP_RST_EXT", "ESP_RST_SW", "ESP_RST_PANIC", "ESP_RST_INT_WDT", "ESP_RST_TASK_WDT", "ESP_RST_WDT", "ESP_RST_DEEPSLEEP", "ESP_RST_BROWNOUT", "ESP_RST_SDIO", "ESP_RST_USB", "ESP_RST_JTAG", "ESP_RST_EFUSE", "ESP_RST_PWR_GLITCH", "ESP_RST_CPU_LOCKUP"};
+const char* const exceptionCauseCodes[] = {"IllegalInstruction", "SYSCALL", "InstructionFetchError", "LoadStoreError", "Level1Interrupt", "Alloca", "IntegerDivideByZero", "reserved", "Privileged", "LoadStoreAlignment", "reserved", "reserved", "InstrPIFDataError", "LoadStorePIFDataError", "InstrPIFAddrError", "LoadStorePIFAddrError", "InstTLBMiss", "InstTLBMultiHit", "InstFetchPrivilege", "reserved", "InstFetchProhibited", "reserved", "reserved", "reserved", "LoadStoreTLBMiss", "LoadStoreTLBMultiHit", "LoadStorePrivilege", "reserved", "LoadProhibited", "StoreProhibited"};
 
 bool writeToSerial(const char* str, bool force = false);
 
@@ -50,25 +52,27 @@ void setup() {
   digitalWrite(LED_STATUS, LOW);
 
   Serial.begin(115200);
-  Serial.println("\nSerial Connected");
+  checkCrash();
+  serialPrintln("\nSerial Connected");
 
-  UpdateStatus(m_Status::INIT);
+  UpdateStatus(m_Status::INIT);  
+
   UpdateLEDs();
 
   SearchForICM();
   ICM.setAccelRange(ICM20948_ACCEL_RANGE_2_G);
   ICM.setGyroRange(ICM20948_GYRO_RANGE_2000_DPS);
   ICM.setMagDataRate(AK09916_MAG_DATARATE_100_HZ);
-  Serial.println("ICM Initialized");
+  serialPrintln("ICM Initialized");
 
   InitInterrupts();
-  Serial.println("Interrupts Initialized");
+  serialPrintln("Interrupts Initialized");
 
   InitSteppers();
-  Serial.println("Steppers Initialized");    
+  serialPrintln("Steppers Initialized");    
 
   BLEInit();
-  Serial.println("BLE Initialized");
+  serialPrintln("BLE Initialized");
   
   xTaskCreate(ProcessICMUpdates, "ProcessICMUpdates", 4096, NULL, 10, NULL);
   xTaskCreate(StepperLoop, "StepperLoop", 8192, NULL, 9, NULL);
@@ -79,11 +83,30 @@ void setup() {
   xTaskCreate(SystemMonitor, "SystemMonitor", 2048, NULL, 5, NULL);
   xTaskCreate(SerialConnectionMonitor, "SerialConnectionMonitor", 4096, NULL, 7, NULL);  
   xTaskCreate(SerialMonitor, "SerialMonitor", 8192, NULL, 7, NULL);      
-  Serial.println("Threads Initialized");  
+  serialPrintln("Threads Initialized");  
 }
 
 void loop() {
   delay(1000);
+}
+
+void checkCrash() {
+  if (esp_core_dump_image_check() != ESP_OK) return;
+
+  esp_core_dump_summary_t* s = (esp_core_dump_summary_t*)malloc(sizeof(*s));
+  if (s && esp_core_dump_get_summary(s) == ESP_OK) {
+    char buffer[256];
+    esp_reset_reason_t r = esp_reset_reason();
+    snprintf(buffer, 256, "%s(%i)\nCrashed in task: %s, PC: 0x%08x\ncause: %s(%u), vaddr: 0x%08x", ESPResetCodes[r], r, s->exc_task, s->exc_pc, exceptionCauseCodes[s->ex_info.exc_cause], s->ex_info.exc_cause, s->ex_info.exc_vaddr);
+    serialPrintln(buffer);
+    serialPrintln("Backtrace:");
+    for (int i = 0; i < s->exc_bt_info.depth; i++) {
+      snprintf(buffer, 256, " 0x%08x", s->exc_bt_info.bt[i]);
+      serialPrintln(buffer);
+    }
+  }
+  free(s);
+  esp_core_dump_image_erase();
 }
 
 void setNorthOffset() {
@@ -151,7 +174,7 @@ void SystemMonitor(void *pvParameters) {
   while (true) {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    String result;
+    String result, temp;
     uint32_t totalTime;
     int taskCount = uxTaskGetNumberOfTasks();
     TaskStatus_t* taskArray = new TaskStatus_t[taskCount]();
@@ -160,14 +183,15 @@ void SystemMonitor(void *pvParameters) {
 
     for(int i = 0; i < tasks; i++) {
       TaskStatus_t task = taskArray[i];
-      result = "T " + String(task.pcTaskName) + " " + String(task.ulRunTimeCounter) + " " + String(task.uxCurrentPriority) + " " + String(task.eCurrentState) + " " + String(task.usStackHighWaterMark);
-      transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
+      result += "T " + String(task.pcTaskName) + " " + String(task.ulRunTimeCounter) + " " + String(task.uxCurrentPriority) + " " + String(task.eCurrentState) + " " + String(task.usStackHighWaterMark)+"\n";
     }
+    transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
+    
 
     result = "M " + String(1.0f - (float)ESP.getFreeHeap() / ESP.getHeapSize()) + " " + String(totalTime) + " " + String(ESP.getCpuFreqMHz());
     transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
 
-    delete[] taskArray;    
+    delete[] taskArray;
   }
 }
 
@@ -232,15 +256,15 @@ void SerialConnectionMonitor(void *pvParameters) {
   vTaskDelay(pdMS_TO_TICKS(200));
   camSerial.begin(115200, SERIAL_8N1, SERIAL_RX, SERIAL_TX, false, 1000);
   camSerial.setTimeout(100);
-  Serial.println("CamSerial: Connection opened");  
-  Serial.print("CamSerial: Waiting for client");
+  serialPrintln("CamSerial: Connection opened");  
+  serialPrint("CamSerial: Waiting for client");
 
   while(true) {
     if(!serialReady || esp_timer_get_time() > lastCamMessage + 1e6) {
       int index = -1;
       writeToSerial(serialReady ? "P" : "I", true);
       if(!serialReady)
-        Serial.print("...");
+        serialPrint("...");
       
       acknowledged = false;
       for(int i = 0; i < 1000; i++) {      
@@ -249,7 +273,7 @@ void SerialConnectionMonitor(void *pvParameters) {
           
           if(command.startsWith("ACK")) {
             if(!serialReady)
-              Serial.println("\nCamSerial: Connection established");
+              serialPrintln("\nCamSerial: Connection established");
             serialReady = true;
             acknowledged = true;
             lastCamMessage = esp_timer_get_time();
@@ -262,8 +286,8 @@ void SerialConnectionMonitor(void *pvParameters) {
 
       if(serialReady && !acknowledged) {
         serialReady = false;
-        Serial.println("CamSerial: Connection lost");
-        Serial.print("CamSerial: Waiting for client");
+        serialPrintln("CamSerial: Connection lost");
+        serialPrint("CamSerial: Waiting for client");
       }
     }
     vTaskDelay(pdMS_TO_TICKS(serialReady ? 100 : 1)); 
@@ -367,7 +391,7 @@ void UpdateStatus(m_Status s) {
 }
 
 void SearchForICM() {
-  Serial.println("Searching for ICM...");
+  serialPrintln("Searching for ICM...");
 
   Wire.begin(ACC_SDA, ACC_SCL);
   byte error, address;
@@ -375,16 +399,17 @@ void SearchForICM() {
     Wire.beginTransmission(address);
     error = Wire.endTransmission();
     if (error == 0) {
-      Serial.print("I2C device found at address 0x");
-      Serial.println(address, 16);
+      char buffer[64];
+      snprintf(buffer, 64, "I2C device found at address 0x%x", address);
+      serialPrintln(buffer);
 
       if(ICM.begin_I2C(address)) {
-        Serial.println("Paired ICM");
+        serialPrintln("Paired ICM");
         return;
       }
     }
   }
-  Serial.print("Unable to find ICM, Halting");
+  serialPrint("Unable to find ICM, Halting");
   while(1) delay(10);
 }
 
@@ -415,4 +440,38 @@ bool writeToSerialf(const char * format, ...) {
   va_end(args);
   xSemaphoreGive(serialMutex);
   return true;
+}
+
+void serialPrint(char* data) {
+  Serial.print(data);
+  char * heapRef = new char[strlen(data) + 1];
+  strcpy(heapRef, data);
+  if(xQueueSendToBack(bleSerialCommQueue, &heapRef, 10) != pdTRUE)
+    delete[] heapRef;
+}
+
+void serialPrint(String data) {
+  Serial.print(data);
+  char * heapRef = new char[data.length() + 1];
+  strcpy(heapRef, data.c_str());
+  if(xQueueSendToBack(bleSerialCommQueue, &heapRef, 10) != pdTRUE)
+    delete[] heapRef;
+}
+
+void serialPrintln(char* data) {
+  Serial.println(data);
+  String d = String(data) + "\n";
+  char * heapRef = new char[d.length() + 1];
+  strcpy(heapRef, d.c_str());
+  if(xQueueSendToBack(bleSerialCommQueue, &heapRef, 10) != pdTRUE)
+    delete[] heapRef;
+}
+
+void serialPrintln(String data) {
+  Serial.println(data);
+  String d = data + "\n";
+  char * heapRef = new char[d.length() + 1];
+  strcpy(heapRef, d.c_str());
+  if(xQueueSendToBack(bleSerialCommQueue, &heapRef, 10) != pdTRUE)
+    delete[] heapRef;
 }

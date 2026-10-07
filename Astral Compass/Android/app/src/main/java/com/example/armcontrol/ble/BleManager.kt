@@ -54,6 +54,7 @@ class BleManager(private val context: Context) {
     private var _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
     private val _position = MutableStateFlow<Position>(Position(0f, 0f))
     private val _target = MutableStateFlow<Position>(Position(0f, 0f))
+    private val _serialComm = MutableStateFlow<String>("")
     private val writeMutex = Mutex()
     private var pendingWrite: CompletableDeferred<Boolean>? = null
     val status: StateFlow<Status?> = _status.asStateFlow()
@@ -61,10 +62,12 @@ class BleManager(private val context: Context) {
     val systemStatuses: StateFlow<List<SystemState>> = _systemStatuses.asStateFlow()
     val position: StateFlow<Position> = _position.asStateFlow()
     val target: StateFlow<Position> = _target.asStateFlow()
+    val serialComm: StateFlow<String> = _serialComm.asStateFlow()
 
     private val statusPattern = Regex("""(\d+)""")
     private val orientationPattern = Regex("""(-?\d+(?:\.\d+)?)""")
     private val systemStatusPattern = Regex("""(T) ([\w\s\-\.]+) (-?\d+(?:\.\d+)?) (\d+) (\d+) (\d+)|(M) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)""")
+    private var rawTaskData: String = ""
     fun isBluetoothEnabled(): Boolean = adapter?.isEnabled ?: false
 
     private val scanCallback = object : ScanCallback() {
@@ -116,6 +119,14 @@ class BleManager(private val context: Context) {
         _connectionState.value = ConnectionState.Connecting(device.name ?: device.address)
         gatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
         _systemStatuses.value = emptyList()
+
+        _status.value = null
+        _orientation.value = Orientation(listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), listOf(0f, 0f, 0f), 0f, 0, 0f)
+        _systemStatuses.value = emptyList()
+        _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
+        _position.value = Position(0f, 0f)
+        _target.value = Position(0f, 0f)
+        _serialComm.value = ""
     }
 
     fun disconnect() {
@@ -188,6 +199,7 @@ class BleManager(private val context: Context) {
             service.getCharacteristic(BleConstants.STATE_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
             service.getCharacteristic(BleConstants.ORIENTATION_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
             service.getCharacteristic(BleConstants.SYSTEM_STATUS_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
+            service.getCharacteristic(BleConstants.SERIAL_COMM_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
 
             _connectionState.value = ConnectionState.Connected(g.device.name ?: g.device.address)
         }
@@ -228,56 +240,65 @@ class BleManager(private val context: Context) {
 
                 BleConstants.SYSTEM_STATUS_UUID -> {
                     val matches = systemStatusPattern.find(data)
-                    if (matches != null) {
-                        val id = matches.groups[1]?.value ?: matches.groups[7]?.value
-                        when(id) {
-                            "M" -> {
-                                _systemStatus.heapUsage = matches.groups[8]?.value?.toFloat() ?: 0f
-                                _systemStatus.totalTime = matches.groups[9]?.value?.toLong() ?: 0
-                                _systemStatus.clockSpeed = matches.groups[10]?.value?.toInt() ?: 0
 
-                                val previousSystemStatus = if (_systemStatuses.value.isNotEmpty()) null else _systemStatuses.value.last()
-                                val dt = _systemStatus.totalTime - (previousSystemStatus?.totalTime ?: 0)
-                                for (core in _systemStatus.coreUtil) {
-                                    val previous = previousSystemStatus?.coreUtil[core.key]
-                                    core.value.utilization = 1f - (core.value.cpuTime - (previous?.cpuTime ?: 0)).toFloat() / dt
-                                }
-                                for (task in _systemStatus.taskStates) {
-                                    val previous = previousSystemStatus?.taskStates[task.key]
-                                    task.value.utilization = (task.value.cpuTime - (previous?.cpuTime ?: 0)).toFloat() / dt
-                                }
+                    if(matches != null && matches.groups[7]?.value == "M") {
+                        for(line in rawTaskData.split('\n')) {
+                            val lineMatch = systemStatusPattern.find(line)
 
-                                _systemStatuses.value = _systemStatuses.value.drop(max(_systemStatuses.value.size - 59, 0)) + _systemStatus
+                            if(lineMatch != null) {
+                                val name = lineMatch.groups[2]?.value ?: ""
 
-                                _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
-                            }
-
-                            "T" -> {
-                                val name = matches.groups[2]?.value ?: ""
-                                if(name.contains("IDLE")) {
+                                if (name.contains("IDLE")) {
                                     val coreNum = name.last().digitToInt()
                                     _systemStatus.coreUtil[coreNum] = TaskState(
                                         name,
-                                        matches.groups[3]?.value?.toLong() ?: 0,
-                                        matches.groups[4]?.value?.toInt() ?: 0,
-                                        matches.groups[5]?.value?.toInt() ?: 0,
-                                        matches.groups[6]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[3]?.value?.toLong() ?: 0,
+                                        lineMatch.groups[4]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[5]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[6]?.value?.toInt() ?: 0,
                                         0f
                                     )
-                                }
-                                else if(name != "") {
+                                } else if (name != "") {
                                     _systemStatus.taskStates[name] = TaskState(
                                         name,
-                                        matches.groups[3]?.value?.toLong() ?: 0,
-                                        matches.groups[4]?.value?.toInt() ?: 0,
-                                        matches.groups[5]?.value?.toInt() ?: 0,
-                                        matches.groups[6]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[3]?.value?.toLong() ?: 0,
+                                        lineMatch.groups[4]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[5]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[6]?.value?.toInt() ?: 0,
                                         0f
                                     )
                                 }
                             }
                         }
+                        rawTaskData = ""
+
+                        _systemStatus.heapUsage = matches.groups[8]?.value?.toFloat() ?: 0f
+                        _systemStatus.totalTime = matches.groups[9]?.value?.toLong() ?: 0
+                        _systemStatus.clockSpeed = matches.groups[10]?.value?.toInt() ?: 0
+
+                        val previousSystemStatus =
+                            if (_systemStatuses.value.isNotEmpty()) _systemStatuses.value.last() else null
+                        val dt = _systemStatus.totalTime - (previousSystemStatus?.totalTime ?: 0)
+                        for (core in _systemStatus.coreUtil) {
+                            val previous = previousSystemStatus?.coreUtil[core.key]
+                            core.value.utilization = 1f - (core.value.cpuTime - (previous?.cpuTime ?: 0)).toFloat() / dt
+                        }
+                        for (task in _systemStatus.taskStates) {
+                            val previous = previousSystemStatus?.taskStates[task.key]
+                            task.value.utilization = (task.value.cpuTime - (previous?.cpuTime ?: 0)).toFloat() / dt
+                        }
+
+                        _systemStatuses.value = _systemStatuses.value.drop(max(_systemStatuses.value.size - 60, 0)) + _systemStatus
+
+                        _systemStatus = SystemState(0f, 0, 0, mutableMapOf(), mutableMapOf())
                     }
+                    else {
+                        rawTaskData += data
+                    }
+                }
+
+                BleConstants.SERIAL_COMM_UUID -> {
+                    _serialComm.value = _serialComm.value + data
                 }
             }
         }

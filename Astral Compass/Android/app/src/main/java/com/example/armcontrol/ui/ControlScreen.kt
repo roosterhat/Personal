@@ -57,6 +57,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
     val objects by viewModel.objects.collectAsState()
     val credentials by viewModel.savedCredentials.collectAsState()
     val starImportState by viewModel.starImport.collectAsState()
+    val serialComm by viewModel.serialComm.collectAsState()
 
     var handleX by remember { mutableFloatStateOf(0.5f) }
     var handleY by remember { mutableFloatStateOf(0.5f) }
@@ -407,7 +408,8 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                             { viewModel.importStarFile(it) },
                             { viewModel.clearCacheAndReload() },
                             viewModel.brightness,
-                            { viewModel.setBrightnessValue(it) }
+                            { viewModel.setBrightnessValue(it) },
+                            serialComm
                         )}
                     ),
                 ),

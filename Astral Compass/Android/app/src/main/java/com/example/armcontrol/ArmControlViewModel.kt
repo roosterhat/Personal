@@ -3,6 +3,7 @@ package com.example.armcontrol
 import android.app.Application
 import android.bluetooth.BluetoothDevice
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -57,6 +58,7 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     val objects: StateFlow<List<EphemerisEntry>> = ephemeris.entries
     private val _observer = MutableStateFlow<Observer?>(null)
     val observer: StateFlow<Observer?> = _observer.asStateFlow()
+    val serialComm: StateFlow<String> = bleManager.serialComm
 
     var isCalibrating by mutableStateOf(false)
         private set
@@ -139,7 +141,6 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
 
     fun resetValues() {
         currentTrack = null
-        _observer.value = null
         az = 0f
         el = 0f
     }

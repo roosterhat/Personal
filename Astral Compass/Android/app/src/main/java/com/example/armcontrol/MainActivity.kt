@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -77,11 +78,11 @@ class MainActivity : ComponentActivity() {
                 permissionLauncher.launch(requiredPermissions())
             }
 
-            // Ask to enable Bluetooth once permissions are granted and it's still off
             LaunchedEffect(permissionsGranted) {
                 if (permissionsGranted && !btEnabled) {
                     enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                 }
+                
                 if (hasLocationPermission()) viewModel.refreshLocation()
             }
 

@@ -27,10 +27,13 @@ enum class m_Status {
 
 volatile extern m_Status status;
 extern float northOffset;
+extern QueueHandle_t bleSerialCommQueue;
 
 void UpdateStatus(m_Status s);
 void BlinkStatusLED();
 void Calibrate(void *pvParameters);
+void serialPrint(char* data);
+void serialPrintln(char* data);
 
 class SharedReader {
 public: 

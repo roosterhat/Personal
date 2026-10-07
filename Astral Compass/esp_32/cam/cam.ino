@@ -1,3 +1,5 @@
+//PSRAM: OPI PSRAM
+
 #include <Arduino.h>
 #include <esp_camera.h>
 #include <cam.h>

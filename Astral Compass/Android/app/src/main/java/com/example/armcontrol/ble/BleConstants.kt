@@ -14,6 +14,7 @@ object BleConstants {
     val STATE_UUID: UUID = UUID.fromString("37dc8fa3-f61d-4861-8845-59c3dba144c5")
     val ORIENTATION_UUID: UUID = UUID.fromString("c29ba4df-2240-4c86-96e5-fa24472a6b19")
     val SYSTEM_STATUS_UUID: UUID = UUID.fromString("c6d117fb-bc44-494b-afac-35fa40341e52")
+    val SERIAL_COMM_UUID: UUID = UUID.fromString("f2dfe67b-99bf-4cd7-8fd6-60c122694db9")
     val CLIENT_CHARACTERISTIC_CONFIG_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
     const val DEVICE_NAME_PREFIX: String = "Astral Compass"

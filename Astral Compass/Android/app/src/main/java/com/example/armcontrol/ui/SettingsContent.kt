@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,11 +39,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.armcontrol.ephemeris.Credentials
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.drop
@@ -75,6 +79,7 @@ fun SettingsContent(
     onClearCache: () -> Unit,
     brightness: Float,
     onBrightnessSet: (Float) -> Unit,
+    serialComm: String,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -85,11 +90,21 @@ fun SettingsContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         BrightnessControl(brightness, onBrightnessSet)
+        HorizontalDivider()
         SpaceTrackSection(savedCredentials, onSaveCredentials, onRemoveCredentials)
         HorizontalDivider()
         StarCatalogSection(starImport, onImportStarFile)
         HorizontalDivider()
         CacheSection(onClearCache)
+        HorizontalDivider()
+        Text("Logs", style = MaterialTheme.typography.titleMedium)
+        Surface (
+            color = Color.White,
+            modifier = Modifier.height(200.dp).fillMaxWidth().verticalScroll(rememberScrollState()),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(serialComm, modifier = Modifier.padding(8.dp), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+        }
     }
 }
 @OptIn(FlowPreview::class)
