@@ -1,25 +1,31 @@
 package com.example.armcontrol.ui
 
+import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -39,11 +45,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,6 +64,7 @@ import com.example.armcontrol.ephemeris.Credentials
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.sample
+import kotlin.math.roundToInt
 
 /** State of the "choose a star catalog" field. */
 sealed interface StarImportState {
@@ -80,6 +94,10 @@ fun SettingsContent(
     brightness: Float,
     onBrightnessSet: (Float) -> Unit,
     serialComm: String,
+    frame: ImageBitmap?,
+    frameSize: Int,
+    currentFrameSize: Int,
+    requestFrame: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -100,13 +118,73 @@ fun SettingsContent(
         Text("Logs", style = MaterialTheme.typography.titleMedium)
         Surface (
             color = Color.White,
-            modifier = Modifier.height(200.dp).fillMaxWidth().verticalScroll(rememberScrollState()),
+            modifier = Modifier.height(200.dp).fillMaxWidth(),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(serialComm, modifier = Modifier.padding(8.dp), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            Text(serialComm, modifier = Modifier.padding(8.dp).verticalScroll(rememberScrollState()), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+        }
+        HorizontalDivider()
+        FrameDisplay(frame, frameSize, currentFrameSize, requestFrame)
+    }
+}
+
+@Composable
+fun FrameDisplay(frame: ImageBitmap?, frameSize: Int, currentFrameSize: Int, requestFrame: () -> Unit) {
+    Surface(
+        color = Color.White,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        if(frame == null && frameSize > 0) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp).height(100.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                LinearProgressIndicator(
+                    progress = { currentFrameSize / frameSize.toFloat() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "${currentFrameSize}/${frameSize}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        else if(frame != null) {
+            Image(
+                bitmap = frame,
+                contentDescription = "",
+                filterQuality = FilterQuality.None,
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth().graphicsLayer {  scaleY = -1f; rotationZ = 90f}
+            )
+        }
+    }
+    Column (horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { requestFrame() },
+            enabled = frame == null || currentFrameSize == frameSize,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.height(OutlinedTextFieldDefaults.MinHeight)
+        ) {
+            if (frame == null || currentFrameSize == frameSize) {
+                Text("Request frame")
+            } else {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = LocalContentColor.current
+                )
+            }
         }
     }
 }
+
 @OptIn(FlowPreview::class)
 @Composable
 fun BrightnessControl(brightness: Float, onBrightnessSet: (Float) -> Unit, modifier: Modifier = Modifier) {
@@ -127,7 +205,6 @@ fun BrightnessControl(brightness: Float, onBrightnessSet: (Float) -> Unit, modif
         onValueChangeFinished = { dragging = false; currentOnChange(local) },
         modifier = modifier
     )
-
 }
 
 @Composable

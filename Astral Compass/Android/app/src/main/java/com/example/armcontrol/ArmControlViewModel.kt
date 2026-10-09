@@ -2,11 +2,12 @@ package com.example.armcontrol
 
 import android.app.Application
 import android.bluetooth.BluetoothDevice
+import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.armcontrol.ble.BleManager
@@ -59,6 +60,9 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     private val _observer = MutableStateFlow<Observer?>(null)
     val observer: StateFlow<Observer?> = _observer.asStateFlow()
     val serialComm: StateFlow<String> = bleManager.serialComm
+    var frameSize: StateFlow<Int> = bleManager.frameProcessor.frameSize.asStateFlow()
+    var currentFrameSize: StateFlow<Int> = bleManager.frameProcessor.currentSize.asStateFlow()
+    var frame: StateFlow<ImageBitmap?> = bleManager.frameProcessor.frame.asStateFlow()
 
     var isCalibrating by mutableStateOf(false)
         private set
@@ -101,6 +105,13 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
             while (isActive) {
                 trackObject()
                 delay(200)
+            }
+        }
+        launch {
+            currentFrameSize.collect { state ->
+                if (frameSize.value != 0 && state == frameSize.value && frame.value == null) {
+                    bleManager.frameProcessor.compile()
+                }
             }
         }
     }
@@ -220,13 +231,19 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun setPos(az: Float, el: Float) {
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
-            bleManager.sendTargetCoordinates(az, el)
+            bleManager.sendAbsoluteCoordinates(az, el)
         }
     }
 
     fun reset() {
         sendJob = viewModelScope.launch {
             bleManager.resetDevice()
+        }
+    }
+
+    fun requestFrame() {
+        sendJob = viewModelScope.launch {
+            bleManager.getFrame()
         }
     }
 

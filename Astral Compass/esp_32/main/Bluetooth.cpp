@@ -72,7 +72,7 @@ class CommandCallback : public BLECharacteristicCallbacks {
           PointTo(az, el);
         }
         break;
-      case 'F':
+      case 'A':
         if (status != m_Status::TRACKING && status != m_Status::CAL && std::regex_search(command.c_str(), matches, coordinatesPattern)) {
           float az = stof(matches[1].str());
           float el = stof(matches[2].str());
@@ -124,6 +124,9 @@ class CommandCallback : public BLECharacteristicCallbacks {
           SetBrightness(stof(matches[1].str()));
         }
         break;
+      case 'F':
+        startFrameProcessing();
+        break;
     }
 
     Serial.println(command.c_str());
@@ -136,7 +139,6 @@ void BLEInit() {
 
   server = NimBLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
-  //server->updateConnParams(connHandle, minInterval, maxInterval, latency, timeout)
 
   service = server->createService(SERVICE_UUID);
 
@@ -146,6 +148,7 @@ void BLEInit() {
   statusHandler       = service->createCharacteristic(STATUS_UUID,       NIMBLE_PROPERTY::NOTIFY);
   orientationHandler  = service->createCharacteristic(ORIENTATION_UUID,  NIMBLE_PROPERTY::NOTIFY);
   systemStatusHandler = service->createCharacteristic(SYSTEMSTATUS_UUID, NIMBLE_PROPERTY::NOTIFY);
+  frameHandler        = service->createCharacteristic(FRAME_UUID,        NIMBLE_PROPERTY::NOTIFY);
   serialCommHandler   = service->createCharacteristic(SERIALCOMM_UUID,   NIMBLE_PROPERTY::NOTIFY);
 
   serialCommHandler->setCallbacks(new SerialCharCallbacks());
@@ -211,5 +214,21 @@ void serialCommMonitor(void *pvParameters) {
     }    
 
     vTaskDelay(1);
+  }
+}
+
+void transmitFrame(char* buffer, int size) { 
+  safeNotify(frameHandler, buffer, size);
+}
+
+void transmitFrameChunk(char* buffer, int index, int size) {
+  const int payload = max(1, (int)BLEMtu - 4);
+  uint8_t pkt[payload + 1];
+  for (int i = 0; i * payload < size; i++) {
+    int s = min(payload, size - i * payload);
+    pkt[0] = (i << 6) | index;
+    memcpy(pkt + 1, buffer + i * payload, s);
+    while (!safeNotifyWorker(frameHandler, (char *)pkt, s + 1)) vTaskDelay(1);
+    vTaskDelay(10);
   }
 }

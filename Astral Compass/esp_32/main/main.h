@@ -34,11 +34,12 @@ void BlinkStatusLED();
 void Calibrate(void *pvParameters);
 void serialPrint(char* data);
 void serialPrintln(char* data);
+void startFrameProcessing();
 
 class SharedReader {
 public: 
     SharedReader(HardwareSerial& s)
-        : serial(s), index(0), length(10), serialMutex(xSemaphoreCreateMutex())
+        : serial(s), index(0), length(32), serialMutex(xSemaphoreCreateMutex())
     {
         buffer = new String[length]();
     }

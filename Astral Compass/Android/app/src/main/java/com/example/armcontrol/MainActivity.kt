@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                 if (permissionsGranted && !btEnabled) {
                     enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                 }
-                
+
                 if (hasLocationPermission()) viewModel.refreshLocation()
             }
 

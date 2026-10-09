@@ -58,6 +58,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
     val credentials by viewModel.savedCredentials.collectAsState()
     val starImportState by viewModel.starImport.collectAsState()
     val serialComm by viewModel.serialComm.collectAsState()
+    val frameSize by viewModel.frameSize.collectAsState()
+    val currentFrameSize by viewModel.currentFrameSize.collectAsState()
+    val frame by viewModel.frame.collectAsState()
 
     var handleX by remember { mutableFloatStateOf(0.5f) }
     var handleY by remember { mutableFloatStateOf(0.5f) }
@@ -409,7 +412,11 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                             { viewModel.clearCacheAndReload() },
                             viewModel.brightness,
                             { viewModel.setBrightnessValue(it) },
-                            serialComm
+                            serialComm,
+                            frame,
+                            frameSize,
+                            currentFrameSize,
+                            { viewModel.requestFrame() }
                         )}
                     ),
                 ),

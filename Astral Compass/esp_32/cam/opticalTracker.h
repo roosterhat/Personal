@@ -40,6 +40,9 @@ struct FeaturePoint
 class OpticalRotationTracker
 {
 public:
+    uint8_t prevFrame[FRAME_W * FRAME_H];
+    uint8_t currFrame[FRAME_W * FRAME_H];
+    
     bool init()
     {
         haveInitialFrame = false;
@@ -107,9 +110,7 @@ public:
         return result;
     }
 
-private:
-    uint8_t prevFrame[FRAME_W * FRAME_H];
-    uint8_t currFrame[FRAME_W * FRAME_H];
+private:    
     bool haveInitialFrame;
     uint32_t prevTimestampUs;
 

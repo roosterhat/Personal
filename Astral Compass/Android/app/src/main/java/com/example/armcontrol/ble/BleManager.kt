@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.example.armcontrol.FrameProcessor
 import com.example.armcontrol.models.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,11 +64,14 @@ class BleManager(private val context: Context) {
     val position: StateFlow<Position> = _position.asStateFlow()
     val target: StateFlow<Position> = _target.asStateFlow()
     val serialComm: StateFlow<String> = _serialComm.asStateFlow()
+    var frameProcessor: FrameProcessor = FrameProcessor()
 
     private val statusPattern = Regex("""(\d+)""")
     private val orientationPattern = Regex("""(-?\d+(?:\.\d+)?)""")
     private val systemStatusPattern = Regex("""(T) ([\w\s\-\.]+) (-?\d+(?:\.\d+)?) (\d+) (\d+) (\d+)|(M) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)""")
+    private val framePattern = Regex("""F (\d+) (\d+)""")
     private var rawTaskData: String = ""
+    private var MTU: Int = 0
     fun isBluetoothEnabled(): Boolean = adapter?.isEnabled ?: false
 
     private val scanCallback = object : ScanCallback() {
@@ -127,6 +131,7 @@ class BleManager(private val context: Context) {
         _position.value = Position(0f, 0f)
         _target.value = Position(0f, 0f)
         _serialComm.value = ""
+        frameProcessor.init(0, MTU)
     }
 
     fun disconnect() {
@@ -152,6 +157,7 @@ class BleManager(private val context: Context) {
 
         override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+                MTU = mtu
                 g.discoverServices()
             }
         }
@@ -200,6 +206,7 @@ class BleManager(private val context: Context) {
             service.getCharacteristic(BleConstants.ORIENTATION_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
             service.getCharacteristic(BleConstants.SYSTEM_STATUS_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
             service.getCharacteristic(BleConstants.SERIAL_COMM_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
+            service.getCharacteristic(BleConstants.FRAME_UUID)?.let { c -> initNotificationCharacteristic(g, c) }
 
             _connectionState.value = ConnectionState.Connected(g.device.name ?: g.device.address)
         }
@@ -300,6 +307,16 @@ class BleManager(private val context: Context) {
                 BleConstants.SERIAL_COMM_UUID -> {
                     _serialComm.value = _serialComm.value + data
                 }
+
+                BleConstants.FRAME_UUID -> {
+                    val matches = framePattern.find(data)
+                    if(matches != null) {
+                        frameProcessor.init(matches.groups[2]?.value?.toInt() ?: 0, MTU)
+                    }
+                    else {
+                        frameProcessor.ingest(value)
+                    }
+                }
             }
         }
 
@@ -313,8 +330,8 @@ class BleManager(private val context: Context) {
         sendCommand(String.format(Locale.US, "D %.2f %.2f", pan, tilt))
     }
 
-    suspend fun sendTargetCoordinates(pan: Float, tilt: Float) {
-        sendCommand(String.format(Locale.US, "F %.2f %.2f", pan, tilt))
+    suspend fun sendAbsoluteCoordinates(pan: Float, tilt: Float) {
+        sendCommand(String.format(Locale.US, "A %.2f %.2f", pan, tilt))
     }
 
     suspend fun sendTrackingCoordinates(pan: Float, tilt: Float) {
@@ -356,6 +373,10 @@ class BleManager(private val context: Context) {
 
     suspend fun setBrightness(brightness: Float) {
         sendCommand(String.format(Locale.US, "B %.2f", brightness))
+    }
+
+    suspend fun getFrame() {
+        sendCommand("F")
     }
 
     suspend private fun sendCommand(command: String) {

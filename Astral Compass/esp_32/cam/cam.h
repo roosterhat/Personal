@@ -7,7 +7,7 @@
 class SharedReader {
 public: 
      SharedReader(HardwareSerial& s)
-        : serial(s), index(0), length(10), serialMutex(xSemaphoreCreateMutex())
+        : serial(s), index(0), length(32), serialMutex(xSemaphoreCreateMutex())
     {
         buffer = new String[length]();
     }
@@ -16,7 +16,7 @@ public:
         delete[] buffer;
     }
 
-    String read(int &i) {
+    String read(int &i) {        
         if (xSemaphoreTake(serialMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
             return "";
         }
@@ -27,6 +27,12 @@ public:
 
         if(i == index) {
             value = serial.readStringUntil('\n');
+            if(value.length() == 0) {
+                xSemaphoreGive(serialMutex);
+                return value;
+            }
+
+
             buffer[index] = value;
             index = ++index % length;
         }

@@ -34,8 +34,12 @@ AzEl previousPos;
 float previousTarget[] = { 0, 0 };
 float northOffset = 0;
 bool calibrated = false;
-const char* const ESPResetCodes[] = {"ESP_RST_UNKNOWN", "ESP_RST_POWERON", "ESP_RST_EXT", "ESP_RST_SW", "ESP_RST_PANIC", "ESP_RST_INT_WDT", "ESP_RST_TASK_WDT", "ESP_RST_WDT", "ESP_RST_DEEPSLEEP", "ESP_RST_BROWNOUT", "ESP_RST_SDIO", "ESP_RST_USB", "ESP_RST_JTAG", "ESP_RST_EFUSE", "ESP_RST_PWR_GLITCH", "ESP_RST_CPU_LOCKUP"};
-const char* const exceptionCauseCodes[] = {"IllegalInstruction", "SYSCALL", "InstructionFetchError", "LoadStoreError", "Level1Interrupt", "Alloca", "IntegerDivideByZero", "reserved", "Privileged", "LoadStoreAlignment", "reserved", "reserved", "InstrPIFDataError", "LoadStorePIFDataError", "InstrPIFAddrError", "LoadStorePIFAddrError", "InstTLBMiss", "InstTLBMultiHit", "InstFetchPrivilege", "reserved", "InstFetchProhibited", "reserved", "reserved", "reserved", "LoadStoreTLBMiss", "LoadStoreTLBMultiHit", "LoadStorePrivilege", "reserved", "LoadProhibited", "StoreProhibited"};
+int currentChunk = 0, chunkCount = 0, frameSize = 0, totalSent = 0;
+static const int chunkSize = (128 - 4) * 4;
+TaskHandle_t currentFrameProcessor;
+int64_t lastFrame;
+static const char* const ESPResetCodes[] = {"ESP_RST_UNKNOWN", "ESP_RST_POWERON", "ESP_RST_EXT", "ESP_RST_SW", "ESP_RST_PANIC", "ESP_RST_INT_WDT", "ESP_RST_TASK_WDT", "ESP_RST_WDT", "ESP_RST_DEEPSLEEP", "ESP_RST_BROWNOUT", "ESP_RST_SDIO", "ESP_RST_USB", "ESP_RST_JTAG", "ESP_RST_EFUSE", "ESP_RST_PWR_GLITCH", "ESP_RST_CPU_LOCKUP"};
+static const char* const exceptionCauseCodes[] = {"IllegalInstruction", "SYSCALL", "InstructionFetchError", "LoadStoreError", "Level1Interrupt", "Alloca", "IntegerDivideByZero", "reserved", "Privileged", "LoadStoreAlignment", "reserved", "reserved", "InstrPIFDataError", "LoadStorePIFDataError", "InstrPIFAddrError", "LoadStorePIFAddrError", "InstTLBMiss", "InstTLBMultiHit", "InstFetchPrivilege", "reserved", "InstFetchProhibited", "reserved", "reserved", "reserved", "LoadStoreTLBMiss", "LoadStoreTLBMultiHit", "LoadStorePrivilege", "reserved", "LoadProhibited", "StoreProhibited"};
 
 bool writeToSerial(const char* str, bool force = false);
 
@@ -82,7 +86,7 @@ void setup() {
   xTaskCreate(OrientationMonitor, "OrientationMonitor", 4096, NULL, 5, NULL);
   xTaskCreate(SystemMonitor, "SystemMonitor", 2048, NULL, 5, NULL);
   xTaskCreate(SerialConnectionMonitor, "SerialConnectionMonitor", 4096, NULL, 7, NULL);  
-  xTaskCreate(SerialMonitor, "SerialMonitor", 8192, NULL, 7, NULL);      
+  xTaskCreate(SerialMonitor, "SerialMonitor", 10240, NULL, 7, NULL);      
   serialPrintln("Threads Initialized");  
 }
 
@@ -107,6 +111,44 @@ void checkCrash() {
   }
   free(s);
   esp_core_dump_image_erase();
+}
+
+int decodeValue(char c) {
+  if (c >= 'A' && c <= 'Z') return c - 'A';
+  if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+  if (c >= '0' && c <= '9') return c - '0' + 52;
+  if (c == '+' || c == '-') return 62;    // '-' and '_' accepted for URL-safe input
+  if (c == '/' || c == '_') return 63;
+  return -1;
+}
+
+bool decode(const char *in, size_t n, uint8_t *out, size_t &outLen) {
+  uint32_t acc = 0;
+  int bits = 0;
+  size_t o = 0;
+  for (size_t i = 0; i < n; i++) {
+    char c = in[i];
+    if (c == '=') break;
+    if (c == ' ' || c == '\r' || c == '\n' || c == '\t') continue;
+    int v = decodeValue(c);
+    if (v < 0) { outLen = o; return false; }
+    acc = (acc << 6) | (uint32_t)v;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[o++] = (uint8_t)((acc >> bits) & 0xFF);
+    }
+  }
+  outLen = o;
+  return true;
+}
+
+bool decode(const String &s, String &out) {
+  out = String(s.length() / 4 * 3 + 3, '\0');
+  size_t len;
+  bool ok = decode(s.c_str(), s.length(), (uint8_t *)&out[0], len);
+  out.trim();
+  return ok;
 }
 
 void setNorthOffset() {
@@ -299,12 +341,14 @@ void SerialMonitor(void *pvParameters) {
   String command;
   std::cmatch matches;
   std::regex camPattern{R"(U (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (\d+\.\d+) (\d+) (\d+\.\d+))"};
+  std::regex chunkPattern{R"(C (\d+) (\d+))"};
 
   while (true) {
     while (!(serialReady && camSerial.available())) vTaskDelay(pdMS_TO_TICKS(1));
+    int64_t time = esp_timer_get_time();
     command = serialReader.read(index);
-    camFPS = (int)(1 / ((esp_timer_get_time() - lastCamMessage) / 1e6));
-    lastCamMessage = esp_timer_get_time();
+    camFPS = (int)(1 / ((time - lastCamMessage) / 1e6));
+    lastCamMessage = time;
 
     switch(command[0]) {
       case 'P':
@@ -324,8 +368,85 @@ void SerialMonitor(void *pvParameters) {
           xQueueOverwrite(estimateQueue, &rotationEstimate);
         }
         break;
+      case 'C':
+        if (std::regex_search(command.c_str(), matches, chunkPattern)) {
+          chunkCount = stoi(matches[1].str());
+          frameSize = stoi(matches[2].str());
+          currentChunk = 0;
+          totalSent = 0;
+          xTaskCreate(ProcessFrameMonitor, "ProcessFrameMonitor", 8192, NULL, 5, NULL);
+        }
+        break;
+      case 'F':
+        String *copy = new String(command);
+        xTaskCreate(ProcessFrame, "ProcessFrame", 8192, copy, 5, &currentFrameProcessor);        
+        break;
     }
   }
+}
+
+void startFrameProcessing() {
+  if(BLEMtu < 100)
+    serialPrintln("ProcessFrame Failed: MTU too small");
+
+  if(currentFrameProcessor == 0)
+    writeToSerial("F");
+}
+
+void ProcessFrame(void *pvParameters) {
+  try {
+    String *arg = (String *) pvParameters;
+    String command = *arg;
+    delete arg;
+
+    size_t size;
+    uint8_t data[command.length() / 4 * 3 + 3];
+
+    decode(command.c_str() + 1, command.length() - 1, data, size);
+    if(size != chunkSize) {
+      vTaskDelay(1);
+      writeToSerialf("F %i", currentChunk);
+      serialPrintln("ProcessFrame Failed: Invalid chunk size");
+    }
+    else {
+      lastFrame = esp_timer_get_time();
+
+      int transmitSize = min((int)size, frameSize - totalSent);
+      transmitFrameChunk((char *)data, currentChunk, transmitSize);
+      totalSent += transmitSize;
+
+      currentChunk++;
+      if(currentChunk < chunkCount)
+        writeToSerialf("F %i", currentChunk);
+    }
+  }
+  catch(const std::exception& e) {
+    char buffer[128];
+    snprintf("ProcessFrame Failed: %s", 128, e.what());
+    serialPrintln(buffer);
+  }
+
+  vTaskDelete(NULL);
+}
+
+void ProcessFrameMonitor(void *pvParameters) {
+  char buffer[16];
+  snprintf(buffer, 16, "F %i %i", chunkCount, frameSize);
+  transmitFrame(buffer, 16);
+
+  while(currentChunk < chunkCount) {
+    if (currentFrameProcessor == 0) {
+      Serial.printf("Request Frame: %i, %i\n", currentChunk, chunkCount);
+      writeToSerialf("F %i", currentChunk);
+    }
+    // else if((esp_timer_get_time() - lastFrame) > 5e6) {
+    //   vTaskDelete(currentFrameProcessor);
+    // }
+    vTaskDelay(100);
+  }
+
+  currentFrameProcessor = NULL;
+  vTaskDelete(NULL);
 }
 
 void ProcessLEDs(void *pvParameters) {

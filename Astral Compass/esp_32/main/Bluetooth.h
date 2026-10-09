@@ -8,10 +8,11 @@
 #define ORIENTATION_UUID  "c29ba4df-2240-4c86-96e5-fa24472a6b19"
 #define SYSTEMSTATUS_UUID "c6d117fb-bc44-494b-afac-35fa40341e52"
 #define SERIALCOMM_UUID   "f2dfe67b-99bf-4cd7-8fd6-60c122694db9"
+#define FRAME_UUID        "749e6775-455d-4a94-9ea9-722ee0668dbf"
 #define MTU 128
 #define DEVICE_NAME "Astral Compass"
 
-inline NimBLECharacteristic *commandHandler, *statusHandler, *orientationHandler, *systemStatusHandler, *serialCommHandler;
+inline NimBLECharacteristic *commandHandler, *statusHandler, *orientationHandler, *systemStatusHandler, *serialCommHandler, *frameHandler;
 inline NimBLEServer *server;
 inline NimBLEService *service;
 volatile inline bool BLEConnected;
@@ -23,3 +24,5 @@ void transmitStatus(char* buffer, int size);
 void transmitOrientation(char* buffer, int size);
 void transmitSystemStatus(char* buffer, int size);
 void transmitSerialComm(char* buffer, int size);
+void transmitFrame(char* buffer, int size);
+void transmitFrameChunk(char* buffer, int index, int size);
