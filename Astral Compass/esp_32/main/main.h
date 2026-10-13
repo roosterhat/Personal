@@ -20,14 +20,31 @@
 #define SERIAL_TX 17
 #define SERIAL_RX 16
 
-
 enum class m_Status {
     INIT, PAIRING, PAIRED, TRACKING, IDLE, CAL
 };
+enum class m_CalStatus {
+    INIT, RUNNING, CALIBRATED
+};
 
 volatile extern m_Status status;
-extern float northOffset;
+extern float northOffset, bz, declination;
 extern QueueHandle_t bleSerialCommQueue;
+
+inline std::unordered_map<TaskHandle_t, uint32_t> taskStackMap;
+inline SemaphoreHandle_t taskMapMutex = xSemaphoreCreateMutex();
+
+inline BaseType_t taskCreateTracked(TaskFunction_t fn, const char* name, uint32_t stack, void* arg, UBaseType_t prio, TaskHandle_t* out = nullptr) {
+  TaskHandle_t h = nullptr;
+  BaseType_t r = xTaskCreate(fn, name, stack, arg, prio, &h);
+  if (r == pdPASS) {
+    xSemaphoreTake(taskMapMutex, portMAX_DELAY);
+    taskStackMap[h] = stack;
+    xSemaphoreGive(taskMapMutex);
+    if (out) *out = h;
+  }
+  return r;
+}
 
 void UpdateStatus(m_Status s);
 void BlinkStatusLED();
@@ -35,6 +52,7 @@ void Calibrate(void *pvParameters);
 void serialPrint(char* data);
 void serialPrintln(char* data);
 void startFrameProcessing();
+void cancelMagCalibration();
 
 class SharedReader {
 public: 

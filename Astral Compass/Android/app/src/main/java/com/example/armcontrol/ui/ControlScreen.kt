@@ -170,7 +170,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                             onClick = { viewModel.stopTracking() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(
-                                    if ((status?.SystemStatus ?: SystemStatusEnum.IDLE) == SystemStatusEnum.TRACKING ) 0xff009b14 else 0xffff0000
+                                    if ((status?.systemStatus ?: SystemStatusEnum.IDLE) == SystemStatusEnum.TRACKING ) 0xff009b14 else 0xffff0000
                                 ),
                                 contentColor = Color.White
                             ),
@@ -189,7 +189,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                 .height(56.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(
-                                    if (status?.HoldPosition ?: false) 0xff009b14 else 0xffff0000
+                                    if (status?.holdPosition ?: false) 0xff009b14 else 0xffff0000
                                 ),
                                 contentColor = Color.White
                             ),
@@ -206,7 +206,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(
-                                    if (status?.LaserEnabled ?: false ) 0xff009b14 else 0xffff0000
+                                    if (status?.laserEnabled ?: false ) 0xff009b14 else 0xffff0000
                                 ),
                                 contentColor = Color.White
                             ),
@@ -251,14 +251,15 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
 
                                     val rows = buildList {
                                         status?.let {
-                                            add("Status" to "${it.SystemStatus}")
-                                            add("Motors" to "${it.MotorStatus}")
-                                            add("Serial" to if(it.SerialReady) "CONNECTED" else "ERROR")
-                                            add("LM" to "(${it.LimitSwitch[0]}, ${it.LimitSwitch[1]})")
+                                            add("Status" to "${it.systemStatus}")
+                                            add("Motors" to "${it.motorStatus}")
+                                            add("Serial" to if(it.serialReady) "CONNECTED" else "ERROR")
+                                            add("LM" to "(${it.limitSwitch[0]}, ${it.limitSwitch[1]})")
                                             add("IMU" to "${it.IMU_hz}hz")
                                             add("CAM" to "${it.CAM_hz}hz")
-                                            add("North" to "${it.NorthOffset}°")
-                                            add("Cal" to "${it.Calibrated}")
+                                            add("Gyro" to "${it.gyroCalStatus}")
+                                            add("Mag" to "${it.magCalStatus}")
+                                            add("North" to "${it.northOffset}°")
                                         }
                                         orientation?.let {
                                             add("RPY" to "(${fmt(it.RPY[0])}, ${fmt(it.RPY[1])}, ${fmt(it.RPY[2])})")
@@ -305,7 +306,7 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Button(
-                                        onClick = { viewModel.calibrate() },
+                                        onClick = { viewModel.showCal = true },
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .weight(1f)
@@ -313,18 +314,9 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color(0xff009b14),
                                             contentColor = Color.White
-                                        ),
-                                        enabled = !viewModel.isCalibrating
+                                        )
                                     ) {
-                                        if (viewModel.isCalibrating) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(18.dp),
-                                                strokeWidth = 2.dp,
-                                                color = LocalContentColor.current
-                                            )
-                                        } else {
-                                            Text("Calibrate")
-                                        }
+                                        Text("Calibrate")
                                     }
                                     Button(
                                         onClick = { viewModel.reset() },
@@ -424,13 +416,28 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
             )
         }
 
-        viewModel.pendingTrack?.let { entry ->
-            CalibrationWarningDialog(
-                isCalibrating = viewModel.isCalibrating,
-                onCalibrate = { viewModel.calibrateAndTrack(viewModel.pendingTrack!!) },
-                onTrackAnyway = { viewModel.setTrackObject(viewModel.pendingTrack!!, true) },
-                onCancel = { viewModel.pendingTrack = null }
-            )
+        viewModel.showCalWarning.let { state ->
+            if(state && viewModel.pendingTrack != null) {
+                CalibrationWarningDialog(
+                    onCalibrate = { viewModel.calibrateAndTrack(viewModel.pendingTrack!!) },
+                    onTrackAnyway = { viewModel.setTrackObject(viewModel.pendingTrack!!, true) },
+                    onCancel = { viewModel.showCalWarning = false }
+                )
+            }
+        }
+
+        viewModel.showCal.let { state ->
+            if(state && status != null && orientation != null) {
+                CalibrationDialog(
+                    status!!,
+                    orientation!!,
+                    { viewModel.calibrateGyro() },
+                    { viewModel.calibrateMag() },
+                    { viewModel.cancelMagCalibration() },
+                    { viewModel.cancelMagCalibration() },
+                    { viewModel.showCal = false }
+                )
+            }
         }
     }
 }

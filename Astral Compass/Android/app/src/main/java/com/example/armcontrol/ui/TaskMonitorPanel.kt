@@ -254,7 +254,7 @@ private fun TaskList(tasks: List<TaskState>, modifier: Modifier = Modifier) {
                     )
                     Text("${task.priority}", style = mono, modifier = Modifier.weight(0.5f))
                     Text(taskStateLabel(task.state), style = mono, modifier = Modifier.weight(0.4f))
-                    Text("${task.stackHighWaterMark}", style = mono, modifier = Modifier.weight(0.9f))
+                    Text(if (task.stackSize > 0) "${task.stackUsed}/${task.stackSize}" else "-", style = mono, modifier = Modifier.weight(0.9f))
                 }
             }
         }

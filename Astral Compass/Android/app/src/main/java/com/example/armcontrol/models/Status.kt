@@ -8,15 +8,21 @@ enum class SystemStatusEnum {
     INIT, PAIRING, PAIRED, TRACKING, IDLE, CAL
 }
 
+enum class CalStatusEnum {
+    INIT, RUNNING, CALIBRATED
+}
+
 data class Status (
-    val LaserEnabled: Boolean,
-    val MotorStatus: MotorStatusEnum,
-    val HoldPosition: Boolean,
-    val SerialReady: Boolean,
-    val LimitSwitch: List<Boolean>,
+    val laserEnabled: Boolean,
+    val motorStatus: MotorStatusEnum,
+    val holdPosition: Boolean,
+    val serialReady: Boolean,
+    val limitSwitch: List<Boolean>,
     val IMU_hz: Int,
     val CAM_hz: Int,
-    val SystemStatus: SystemStatusEnum,
-    val NorthOffset: Int,
-    val Calibrated: Boolean
+    val systemStatus: SystemStatusEnum,
+    val northOffset: Int,
+    val gyroCalStatus: CalStatusEnum,
+    val magCalStatus: CalStatusEnum,
+    val magCalSteps: List<Boolean>
 )

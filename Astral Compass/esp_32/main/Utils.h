@@ -1,5 +1,6 @@
 #pragma once
 #include <math.h>
+#include <regex>
 
 inline double deg(double rad) {
   return rad * 180.0 / PI;
@@ -266,4 +267,53 @@ inline AzEl computeRequiredAzEl(const Quaternion &orientation, double targetAzDe
 inline void boundAZEL(float& az, float& el) {
   az = fmod(fmod(round(az * 100) / 100, 360.0f) + 360, 360.0f);
   el = max(min(round(el * 100) / 100, 90.0f), 0.0f);
+}
+
+inline int decodeValue(char c) {
+  if (c >= 'A' && c <= 'Z') return c - 'A';
+  if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+  if (c >= '0' && c <= '9') return c - '0' + 52;
+  if (c == '+' || c == '-') return 62;    // '-' and '_' accepted for URL-safe input
+  if (c == '/' || c == '_') return 63;
+  return -1;
+}
+
+inline bool decode(const char *in, size_t n, uint8_t *out, size_t &outLen) {
+  uint32_t acc = 0;
+  int bits = 0;
+  size_t o = 0;
+  for (size_t i = 0; i < n; i++) {
+    char c = in[i];
+    if (c == '=') break;
+    if (c == ' ' || c == '\r' || c == '\n' || c == '\t') continue;
+    int v = decodeValue(c);
+    if (v < 0) { outLen = o; return false; }
+    acc = (acc << 6) | (uint32_t)v;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[o++] = (uint8_t)((acc >> bits) & 0xFF);
+    }
+  }
+  outLen = o;
+  return true;
+}
+
+inline bool decode(const String &s, String &out) {
+  out = String(s.length() / 4 * 3 + 3, '\0');
+  size_t len;
+  bool ok = decode(s.c_str(), s.length(), (uint8_t *)&out[0], len);
+  out.trim();
+  return ok;
+}
+
+inline int regex_searchAll(const char* text, std::cmatch* matches, int maxMatches, const std::regex& pattern) {
+  const char* p = text;
+  const char* end = text + strlen(text);
+  int n = 0;
+  while (n < maxMatches && p < end && std::regex_search(p, end, matches[n], pattern)) {
+    p = matches[n][0].second > matches[n][0].first ? matches[n][0].second : matches[n][0].second + 1;
+    n++;
+  }
+  return n;
 }

@@ -1,14 +1,13 @@
 package com.example.armcontrol
 
 import android.graphics.BitmapFactory
-import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.util.Dictionary
 
 class FrameProcessor() {
     var frameSize: MutableStateFlow<Int> = MutableStateFlow(0)
+    var chunkSize: Int = 0
     var buffer: ByteArray = ByteArray(frameSize.value)
     var complete: Boolean = false
     var currentSize: MutableStateFlow<Int> = MutableStateFlow(0)
@@ -16,8 +15,9 @@ class FrameProcessor() {
     var seen: MutableMap<Int, Boolean> = mutableMapOf()
     var MTU: Int = 0
 
-    fun init(size: Int, mtu: Int) {
-        frameSize.value = size
+    fun init(_chunkSize: Int, _frameSize: Int, mtu: Int) {
+        frameSize.value = _frameSize
+        chunkSize = _chunkSize
         buffer = ByteArray(frameSize.value)
         complete = false
         currentSize.value = 0
@@ -31,9 +31,9 @@ class FrameProcessor() {
 
         val b = data[0].toInt() and 0xFF
 
-        val chunkIndex = b and 0x3F
-        val subChunkIndex = (b and 0xC0) shr 6
-        val offset = (chunkIndex * (128 - 4) * 4) + (subChunkIndex * (MTU - 4))
+        val chunkIndex = b and 0x1F
+        val subChunkIndex = (b and 0xE0) shr 5
+        val offset = (chunkIndex * chunkSize) + (subChunkIndex * (MTU - 4))
 
         data.copyInto(buffer, offset, 1)
 

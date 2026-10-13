@@ -5,6 +5,7 @@ data class TaskState (
     val cpuTime: Long,
     val priority: Int,
     val state: Int,
-    val stackHighWaterMark: Int,
+    val stackSize: Int,
+    val stackUsed: Int,
     var utilization: Float
 )

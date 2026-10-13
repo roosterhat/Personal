@@ -68,8 +68,9 @@ class BleManager(private val context: Context) {
 
     private val statusPattern = Regex("""(\d+)""")
     private val orientationPattern = Regex("""(-?\d+(?:\.\d+)?)""")
-    private val systemStatusPattern = Regex("""(T) ([\w\s\-\.]+) (-?\d+(?:\.\d+)?) (\d+) (\d+) (\d+)|(M) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)""")
+    private val systemStatusPattern = Regex("""(T) ([\w\s\-\.]+) (\d+) (\d+) (\d+) (\d+) (\d+)|(#) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)""")
     private val framePattern = Regex("""F (\d+) (\d+)""")
+    private val idleTaskPattern = Regex("""IDLE(\d+)""")
     private var rawTaskData: String = ""
     private var MTU: Int = 0
     fun isBluetoothEnabled(): Boolean = adapter?.isEnabled ?: false
@@ -131,7 +132,7 @@ class BleManager(private val context: Context) {
         _position.value = Position(0f, 0f)
         _target.value = Position(0f, 0f)
         _serialComm.value = ""
-        frameProcessor.init(0, MTU)
+        frameProcessor.init(0, 0, MTU)
     }
 
     fun disconnect() {
@@ -218,7 +219,7 @@ class BleManager(private val context: Context) {
             when(characteristic.uuid) {
                 BleConstants.STATE_UUID -> {
                     val matches = statusPattern.findAll(data).toList()
-                    if (matches.size == 11) {
+                    if (matches.size == 13) {
                         _status.value = Status(
                             matches[0].value == "1",
                             MotorStatusEnum.entries.getOrNull(matches[1].value.toInt()) ?: MotorStatusEnum.INIT,
@@ -229,7 +230,9 @@ class BleManager(private val context: Context) {
                             matches[7].value.toInt(),
                             SystemStatusEnum.entries.getOrNull(matches[8].value.toInt()) ?: SystemStatusEnum.INIT,
                             matches[9].value.toInt(),
-                            matches[10].value == "1",
+                            CalStatusEnum.entries.getOrNull(matches[10].value.toInt()) ?: CalStatusEnum.INIT,
+                            CalStatusEnum.entries.getOrNull(matches[11].value.toInt()) ?: CalStatusEnum.INIT,
+                            getFlags(matches[12].value.toInt())
                         )
                     }
                 }
@@ -246,23 +249,26 @@ class BleManager(private val context: Context) {
                 }
 
                 BleConstants.SYSTEM_STATUS_UUID -> {
-                    val matches = systemStatusPattern.find(data)
+                    val match = systemStatusPattern.find(data)
 
-                    if(matches != null && matches.groups[7]?.value == "M") {
+                    if(match != null && match.groups[8]?.value == "#") {
                         for(line in rawTaskData.split('\n')) {
+                            //Log.d("BleManager", line)
                             val lineMatch = systemStatusPattern.find(line)
 
                             if(lineMatch != null) {
                                 val name = lineMatch.groups[2]?.value ?: ""
 
-                                if (name.contains("IDLE")) {
-                                    val coreNum = name.last().digitToInt()
+                                val nameMatch = idleTaskPattern.find(name)
+                                if (nameMatch != null && nameMatch.groups[1]?.value != null) {
+                                    val coreNum = nameMatch.groups[1]!!.value.toInt()
                                     _systemStatus.coreUtil[coreNum] = TaskState(
                                         name,
                                         lineMatch.groups[3]?.value?.toLong() ?: 0,
                                         lineMatch.groups[4]?.value?.toInt() ?: 0,
                                         lineMatch.groups[5]?.value?.toInt() ?: 0,
                                         lineMatch.groups[6]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[7]?.value?.toInt() ?: 0,
                                         0f
                                     )
                                 } else if (name != "") {
@@ -272,6 +278,7 @@ class BleManager(private val context: Context) {
                                         lineMatch.groups[4]?.value?.toInt() ?: 0,
                                         lineMatch.groups[5]?.value?.toInt() ?: 0,
                                         lineMatch.groups[6]?.value?.toInt() ?: 0,
+                                        lineMatch.groups[7]?.value?.toInt() ?: 0,
                                         0f
                                     )
                                 }
@@ -279,9 +286,9 @@ class BleManager(private val context: Context) {
                         }
                         rawTaskData = ""
 
-                        _systemStatus.heapUsage = matches.groups[8]?.value?.toFloat() ?: 0f
-                        _systemStatus.totalTime = matches.groups[9]?.value?.toLong() ?: 0
-                        _systemStatus.clockSpeed = matches.groups[10]?.value?.toInt() ?: 0
+                        _systemStatus.heapUsage = match.groups[9]?.value?.toFloat() ?: 0f
+                        _systemStatus.totalTime = match.groups[10]?.value?.toLong() ?: 0
+                        _systemStatus.clockSpeed = match.groups[11]?.value?.toInt() ?: 0
 
                         val previousSystemStatus =
                             if (_systemStatuses.value.isNotEmpty()) _systemStatuses.value.last() else null
@@ -311,7 +318,7 @@ class BleManager(private val context: Context) {
                 BleConstants.FRAME_UUID -> {
                     val matches = framePattern.find(data)
                     if(matches != null) {
-                        frameProcessor.init(matches.groups[2]?.value?.toInt() ?: 0, MTU)
+                        frameProcessor.init(matches.groups[1]?.value?.toInt() ?: 0, matches.groups[2]?.value?.toInt() ?: 0, MTU)
                     }
                     else {
                         frameProcessor.ingest(value)
@@ -323,6 +330,14 @@ class BleManager(private val context: Context) {
         override fun onCharacteristicWrite(gatt: BluetoothGatt, c: BluetoothGattCharacteristic, status: Int) {
             pendingWrite?.complete(status == BluetoothGatt.GATT_SUCCESS)
             pendingWrite = null
+        }
+
+        private fun getFlags(data: Int): List<Boolean> {
+            val flags: MutableList<Boolean> = mutableListOf()
+            for(i in 0..31)
+                flags.add(((data shr i) and 1) == 1)
+
+            return flags
         }
     }
 
@@ -363,8 +378,16 @@ class BleManager(private val context: Context) {
         disconnect()
     }
 
-    suspend fun calibrate() {
-        sendCommand(String.format(Locale.US, "C"))
+    suspend fun calibrateGyro() {
+        sendCommand(String.format(Locale.US, "C 0"))
+    }
+
+    suspend fun calibrateMag(bz: Float, declination: Float) {
+        sendCommand(String.format(Locale.US, "C 1 0 %.2f %.2f", bz, declination))
+    }
+
+    suspend fun cancelMagCalibration() {
+        sendCommand(String.format(Locale.US, "C 1 1"))
     }
 
     suspend fun setHoldPosition(enabled: Boolean) {

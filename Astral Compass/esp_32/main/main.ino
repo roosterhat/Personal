@@ -10,6 +10,8 @@
 #include <SensorFusionEKF.h>
 #include <regex>
 #include <esp_core_dump.h>
+#include <MagCalibrator.h>
+
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
@@ -32,12 +34,14 @@ SharedReader serialReader(camSerial);
 RotationEstimate rotationEstimate;
 AzEl previousPos;
 float previousTarget[] = { 0, 0 };
-float northOffset = 0;
-bool calibrated = false;
+float northOffset = 0, bz = 0, declination = 0;
+m_CalStatus gyroCalStatus = m_CalStatus::INIT, magCalStatus = m_CalStatus::INIT;
+int magCalSteps = 0;
 int currentChunk = 0, chunkCount = 0, frameSize = 0, totalSent = 0;
 static const int chunkSize = (128 - 4) * 4;
 TaskHandle_t currentFrameProcessor;
 int64_t lastFrame;
+NorthEstimator northEstimator(12, 10);
 static const char* const ESPResetCodes[] = {"ESP_RST_UNKNOWN", "ESP_RST_POWERON", "ESP_RST_EXT", "ESP_RST_SW", "ESP_RST_PANIC", "ESP_RST_INT_WDT", "ESP_RST_TASK_WDT", "ESP_RST_WDT", "ESP_RST_DEEPSLEEP", "ESP_RST_BROWNOUT", "ESP_RST_SDIO", "ESP_RST_USB", "ESP_RST_JTAG", "ESP_RST_EFUSE", "ESP_RST_PWR_GLITCH", "ESP_RST_CPU_LOCKUP"};
 static const char* const exceptionCauseCodes[] = {"IllegalInstruction", "SYSCALL", "InstructionFetchError", "LoadStoreError", "Level1Interrupt", "Alloca", "IntegerDivideByZero", "reserved", "Privileged", "LoadStoreAlignment", "reserved", "reserved", "InstrPIFDataError", "LoadStorePIFDataError", "InstrPIFAddrError", "LoadStorePIFAddrError", "InstTLBMiss", "InstTLBMultiHit", "InstFetchPrivilege", "reserved", "InstFetchProhibited", "reserved", "reserved", "reserved", "LoadStoreTLBMiss", "LoadStoreTLBMultiHit", "LoadStorePrivilege", "reserved", "LoadProhibited", "StoreProhibited"};
 
@@ -78,15 +82,15 @@ void setup() {
   BLEInit();
   serialPrintln("BLE Initialized");
   
-  xTaskCreate(ProcessICMUpdates, "ProcessICMUpdates", 4096, NULL, 10, NULL);
-  xTaskCreate(StepperLoop, "StepperLoop", 8192, NULL, 9, NULL);
-  xTaskCreate(ProcessLEDs, "ProcessLEDs", 1024, NULL, 1, NULL);
-  xTaskCreate(ProcessStatusLED, "ProcessStatusLED", 1024, NULL, 1, NULL);
-  xTaskCreate(StateMonitor, "StateMonitor", 2048, NULL, 5, NULL);
-  xTaskCreate(OrientationMonitor, "OrientationMonitor", 4096, NULL, 5, NULL);
-  xTaskCreate(SystemMonitor, "SystemMonitor", 2048, NULL, 5, NULL);
-  xTaskCreate(SerialConnectionMonitor, "SerialConnectionMonitor", 4096, NULL, 7, NULL);  
-  xTaskCreate(SerialMonitor, "SerialMonitor", 10240, NULL, 7, NULL);      
+  taskCreateTracked(ProcessICMUpdates, "ProcessICMUpdates", 4096, NULL, 10, NULL);
+  taskCreateTracked(StepperLoop, "StepperLoop", 8192, NULL, 9, NULL);
+  taskCreateTracked(ProcessLEDs, "ProcessLEDs", 1024, NULL, 1, NULL);
+  taskCreateTracked(ProcessStatusLED, "ProcessStatusLED", 1024, NULL, 1, NULL);
+  taskCreateTracked(StateMonitor, "StateMonitor", 2048, NULL, 5, NULL);
+  taskCreateTracked(OrientationMonitor, "OrientationMonitor", 4096, NULL, 5, NULL);
+  taskCreateTracked(SystemMonitor, "SystemMonitor", 2048, NULL, 5, NULL);
+  taskCreateTracked(SerialConnectionMonitor, "SerialConnectionMonitor", 4096, NULL, 7, NULL);  
+  taskCreateTracked(SerialMonitor, "SerialMonitor", 10240, NULL, 7, NULL);      
   serialPrintln("Threads Initialized");  
 }
 
@@ -113,78 +117,77 @@ void checkCrash() {
   esp_core_dump_image_erase();
 }
 
-int decodeValue(char c) {
-  if (c >= 'A' && c <= 'Z') return c - 'A';
-  if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-  if (c >= '0' && c <= '9') return c - '0' + 52;
-  if (c == '+' || c == '-') return 62;    // '-' and '_' accepted for URL-safe input
-  if (c == '/' || c == '_') return 63;
-  return -1;
+void cancelMagCalibration() {
+  magCalStatus = m_CalStatus::INIT;
 }
 
-bool decode(const char *in, size_t n, uint8_t *out, size_t &outLen) {
-  uint32_t acc = 0;
-  int bits = 0;
-  size_t o = 0;
-  for (size_t i = 0; i < n; i++) {
-    char c = in[i];
-    if (c == '=') break;
-    if (c == ' ' || c == '\r' || c == '\n' || c == '\t') continue;
-    int v = decodeValue(c);
-    if (v < 0) { outLen = o; return false; }
-    acc = (acc << 6) | (uint32_t)v;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      out[o++] = (uint8_t)((acc >> bits) & 0xFF);
+void calibrateMagOffset(void *pvParameters) {
+  magCalSteps = 0;
+  int magCalStepsMask = (1ull << 12) - 1;
+  northEstimator.begin(12, 10);
+  northEstimator.setVerticalField(bz);
+
+  while(magCalStatus == m_CalStatus::RUNNING && magCalSteps != magCalStepsMask) {
+    int index = northEstimator.addSample(Vector3(-mag.magnetic.v[0], -mag.magnetic.v[1], mag.magnetic.v[2]), RPY);
+
+    if(index >= 0) {
+      int mask = 1 << index;
+      if(!(magCalSteps & mask) && northEstimator.sliceComplete(index))
+        magCalSteps |= mask;
+    }
+
+    vTaskDelay(20);
+  }
+
+  magCalStatus = m_CalStatus::INIT;
+  if(northEstimator.complete()) {
+    auto r = northEstimator.estimate();
+    if (r.valid) {
+      northOffset  = NorthEstimator::trueNorthYaw(r.northYawDeg, declination);
+      magCalStatus = m_CalStatus::CALIBRATED;
     }
   }
-  outLen = o;
-  return true;
+  
+  UpdateStatus(m_Status::IDLE);
+  vTaskDelete(NULL);
 }
 
-bool decode(const String &s, String &out) {
-  out = String(s.length() / 4 * 3 + 3, '\0');
-  size_t len;
-  bool ok = decode(s.c_str(), s.length(), (uint8_t *)&out[0], len);
-  out.trim();
-  return ok;
-}
-
-void setNorthOffset() {
-  Vector3 magSum(0, 0, 0);
-  const int N = 10;
-  for (int i = 0; i < N; i++) {
-    ICM.getEvent(&accel, &gyro, &temp, &mag);
-    magSum = magSum + Vector3(mag.magnetic.v).remapImuToBody();
-    delay(10);
-  }
-
-  northOffset = vectorToAzEl(magSum * (1.0f / N)).az;
-}
-
-void calibrateGyroBias() {
+void calibrateGyroBias(void *pvParameters) {
   Vector3 sum(0, 0, 0);
   const int N = 600;
   for (int i = 0; i < N; i++) {
     ICM.getEvent(&accel, &gyro, &temp, &mag);
     sum = sum + Vector3(gyro.gyro.v).remapImuToBody();
-    delay(5);
+    vTaskDelay(5);
   }
   calibratedBias = sum * (1.0f / N);  
+
+  fusion.init();
+  fusion.setGyroBias(calibratedBias);
+  gyroCalStatus = m_CalStatus::CALIBRATED;
+  UpdateStatus(m_Status::IDLE);
+  vTaskDelete(NULL);
 }
 
 void Calibrate(void *pvParameters) {
-  calibrated = false;
   UpdateStatus(m_Status::CAL);
   Halt();
   SetMotorsEnabled(false);
-  setNorthOffset();
-  calibrateGyroBias();
-  fusion.init();
-  fusion.setGyroBias(calibratedBias);
-  calibrated = true;
-  UpdateStatus(m_Status::IDLE);
+  
+  int calType = (int)(intptr_t)pvParameters;
+  switch(calType){
+    case 0:
+      gyroCalStatus = m_CalStatus::RUNNING;
+      magCalStatus = m_CalStatus::INIT;
+      northOffset = 0;
+      taskCreateTracked(calibrateGyroBias, "calibrateGyroBias", 2048, NULL, 5, NULL);      
+      break;
+    case 1:
+      magCalStatus = m_CalStatus::RUNNING;
+      taskCreateTracked(calibrateMagOffset, "calibrateMagOffset", 3072, NULL, 5, NULL);
+      break;
+  }  
+  
   vTaskDelete(NULL);
 }
 
@@ -221,16 +224,30 @@ void SystemMonitor(void *pvParameters) {
     int taskCount = uxTaskGetNumberOfTasks();
     TaskStatus_t* taskArray = new TaskStatus_t[taskCount]();
 
+    TaskStatus_t task;
     int tasks = uxTaskGetSystemState(taskArray, taskCount, &totalTime);    
 
+    xSemaphoreTake(taskMapMutex, portMAX_DELAY);
     for(int i = 0; i < tasks; i++) {
-      TaskStatus_t task = taskArray[i];
-      result += "T " + String(task.pcTaskName) + " " + String(task.ulRunTimeCounter) + " " + String(task.uxCurrentPriority) + " " + String(task.eCurrentState) + " " + String(task.usStackHighWaterMark)+"\n";
+      task = taskArray[i];
+      auto it = taskStackMap.find(task.xHandle);
+      uint32_t size = (it != taskStackMap.end()) ? it->second : 0;
+      uint32_t used = size ? size - task.usStackHighWaterMark : 0;
+      result += "T " + String(task.pcTaskName) + " " + String(task.ulRunTimeCounter) + " " + String(task.uxCurrentPriority) + " " + String(task.eCurrentState) + " " + String(size) + " " + String(used) +"\n";
     }
-    transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
-    
 
-    result = "M " + String(1.0f - (float)ESP.getFreeHeap() / ESP.getHeapSize()) + " " + String(totalTime) + " " + String(ESP.getCpuFreqMHz());
+    if(tasks > 0)
+      for (auto it = taskStackMap.begin(); it != taskStackMap.end();) {
+        bool alive = false;
+        for (int i = 0; i < tasks; i++) 
+          if (taskArray[i].xHandle == it->first) { alive = true; break; }
+        it = alive ? std::next(it) : taskStackMap.erase(it);
+      }
+    xSemaphoreGive(taskMapMutex);
+
+    transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());    
+
+    result = "# " + String(1.0f - (float)ESP.getFreeHeap() / ESP.getHeapSize()) + " " + String(totalTime) + " " + String(ESP.getCpuFreqMHz());
     transmitSystemStatus(const_cast<char*>(result.c_str()), result.length());
 
     delete[] taskArray;
@@ -239,12 +256,12 @@ void SystemMonitor(void *pvParameters) {
 
 void StateMonitor(void *pvParameters) {
   char buffer[128];
-  char* statusFormat = "%i %i %i %i %i %i %i %i %i %i %i";
+  char* statusFormat = "%i %i %i %i %i %i %i %i %i %i %i %i %i";
 
   while(true) {
     laserStatus = digitalRead(LASER);
 
-    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS, status, (int)northOffset, calibrated);
+    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS, status, (int)northOffset, gyroCalStatus, magCalStatus, magCalSteps);
     transmitStatus(buffer, size);
     vTaskDelay(pdMS_TO_TICKS(200));
   }
@@ -374,19 +391,20 @@ void SerialMonitor(void *pvParameters) {
           frameSize = stoi(matches[2].str());
           currentChunk = 0;
           totalSent = 0;
-          xTaskCreate(ProcessFrameMonitor, "ProcessFrameMonitor", 8192, NULL, 5, NULL);
+          taskCreateTracked(ProcessFrameMonitor, "ProcessFrameMonitor", 8192, NULL, 5, NULL);
         }
         break;
       case 'F':
         String *copy = new String(command);
-        xTaskCreate(ProcessFrame, "ProcessFrame", 8192, copy, 5, &currentFrameProcessor);        
+        if(taskCreateTracked(ProcessFrame, "ProcessFrame", 8192, copy, 5, &currentFrameProcessor) != pdPASS) 
+         delete copy;
         break;
     }
   }
 }
 
 void startFrameProcessing() {
-  if(BLEMtu < 100)
+  if(BLEMtu < 70)
     serialPrintln("ProcessFrame Failed: MTU too small");
 
   if(currentFrameProcessor == 0)
@@ -422,7 +440,7 @@ void ProcessFrame(void *pvParameters) {
   }
   catch(const std::exception& e) {
     char buffer[128];
-    snprintf("ProcessFrame Failed: %s", 128, e.what());
+    snprintf(buffer, 128, "ProcessFrame Failed: %s", e.what());
     serialPrintln(buffer);
   }
 
@@ -431,12 +449,11 @@ void ProcessFrame(void *pvParameters) {
 
 void ProcessFrameMonitor(void *pvParameters) {
   char buffer[16];
-  snprintf(buffer, 16, "F %i %i", chunkCount, frameSize);
+  snprintf(buffer, 16, "F %i %i", chunkSize, frameSize);
   transmitFrame(buffer, 16);
 
   while(currentChunk < chunkCount) {
     if (currentFrameProcessor == 0) {
-      Serial.printf("Request Frame: %i, %i\n", currentChunk, chunkCount);
       writeToSerialf("F %i", currentChunk);
     }
     // else if((esp_timer_get_time() - lastFrame) > 5e6) {

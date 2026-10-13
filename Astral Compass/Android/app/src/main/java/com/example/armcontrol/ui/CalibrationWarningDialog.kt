@@ -27,17 +27,12 @@ import androidx.compose.ui.window.DialogProperties
 
 @Composable
 fun CalibrationWarningDialog(
-    isCalibrating: Boolean,
     onCalibrate: () -> Unit,
     onTrackAnyway: () -> Unit,
     onCancel: () -> Unit
 ) {
     Dialog(
-        onDismissRequest = onCancel,
-        properties = DialogProperties(
-            dismissOnBackPress = !isCalibrating,
-            dismissOnClickOutside = !isCalibrating
-        )
+        onDismissRequest = onCancel
     ) {
         Surface(
             shape = AlertDialogDefaults.shape,
@@ -57,26 +52,9 @@ fun CalibrationWarningDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = onCancel, enabled = !isCalibrating) { Text("Cancel") }
-                        TextButton(onClick = onTrackAnyway, enabled = !isCalibrating) { Text("Track anyway") }
-                        TextButton(onClick = onCalibrate, enabled = !isCalibrating) { Text("Calibrate") }
-                    }
-                }
-
-                // Foreground overlay: dims everything above and swallows touches
-                if (isCalibrating) {
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f))
-                            .pointerInput(Unit) { detectTapGestures { } },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(Modifier.height(12.dp))
-                            Text("Calibrating…", style = MaterialTheme.typography.bodyMedium)
-                        }
+                        TextButton(onClick = onCancel) { Text("Cancel") }
+                        TextButton(onClick = onTrackAnyway) { Text("Track anyway") }
+                        TextButton(onClick = onCalibrate) { Text("Calibrate") }
                     }
                 }
             }

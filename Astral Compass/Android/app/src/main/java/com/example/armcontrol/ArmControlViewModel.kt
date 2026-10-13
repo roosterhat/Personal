@@ -2,7 +2,6 @@ package com.example.armcontrol
 
 import android.app.Application
 import android.bluetooth.BluetoothDevice
-import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +19,7 @@ import com.example.armcontrol.ephemeris.InitProgress
 import com.example.armcontrol.ephemeris.LocationSource
 import com.example.armcontrol.ephemeris.Observer
 import com.example.armcontrol.ephemeris.Pointing
+import com.example.armcontrol.models.CalStatusEnum
 import com.example.armcontrol.models.MotorStatusEnum
 import com.example.armcontrol.models.Orientation
 import com.example.armcontrol.models.Position
@@ -37,6 +37,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.round
+import android.hardware.GeomagneticField
 
 class ArmControlViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -65,9 +66,9 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     var frame: StateFlow<ImageBitmap?> = bleManager.frameProcessor.frame.asStateFlow()
 
     var isCalibrating by mutableStateOf(false)
-        private set
     var isHoming by mutableStateOf(false)
-        private set
+    var showCal by mutableStateOf(false)
+    var showCalWarning by mutableStateOf(false)
 
     val savedCredentials = MutableStateFlow(credentialStore.load())
     val starImport = MutableStateFlow<StarImportState>(StarImportState.Idle)
@@ -152,6 +153,10 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
 
     fun resetValues() {
         currentTrack = null
+        isCalibrating = false
+        isHoming = false
+        showCal = false
+        showCalWarning = false
         az = 0f
         el = 0f
     }
@@ -173,13 +178,15 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun setTrackObject(obj: EphemerisEntry, force: Boolean = false) {
-        if(!(status.value?.Calibrated ?: false) && !force) {
+        if(!isCalibrated() && !force) {
+            showCalWarning = true
             pendingTrack = obj
         }
         else if(obj == currentTrack) {
             stopTracking()
         }
         else {
+            showCalWarning = false
             currentTrack = obj
             pendingTrack = null
             sendJob = viewModelScope.launch {
@@ -194,7 +201,7 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
             isHoming = true
             bleManager.home()
             delay(500)
-            while (status.value?.MotorStatus == MotorStatusEnum.HOMING)
+            while (status.value?.motorStatus == MotorStatusEnum.HOMING)
                 delay(100)
             isHoming = false
         }
@@ -203,14 +210,14 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun toggleLaser() {
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
-            bleManager.setLaser(!(status.value?.LaserEnabled ?: false))
+            bleManager.setLaser(!(status.value?.laserEnabled ?: false))
         }
     }
 
     fun toggleMotors() {
-        if (sendJob?.isActive == true || (status.value?.MotorStatus ?: 0) != MotorStatusEnum.IDLE) return
+        if (sendJob?.isActive == true || (status.value?.motorStatus ?: 0) != MotorStatusEnum.IDLE) return
         sendJob = viewModelScope.launch {
-            bleManager.setMotor((status.value?.MotorStatus) == MotorStatusEnum.DISABLED)
+            bleManager.setMotor((status.value?.motorStatus) == MotorStatusEnum.DISABLED)
         }
     }
 
@@ -224,7 +231,7 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun toggleHoldPosition() {
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
-            bleManager.setHoldPosition(!(status.value?.HoldPosition ?: false))
+            bleManager.setHoldPosition(!(status.value?.holdPosition ?: false))
         }
     }
 
@@ -247,25 +254,46 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun calibrate() {
+    fun calibrateGyro() {
         if (sendJob?.isActive == true) return
         sendJob = viewModelScope.launch {
             isCalibrating = true
-            bleManager.calibrate()
+            bleManager.calibrateGyro()
             delay(500)
-            while (!(status.value?.Calibrated ?: false))
+            while (status.value?.gyroCalStatus == CalStatusEnum.RUNNING)
                 delay(100)
             isCalibrating = false
         }
     }
 
+    fun calibrateMag() {
+        if (sendJob?.isActive == true) return
+        sendJob = viewModelScope.launch {
+            isCalibrating = true
+            val geoData = getGeomagneticData(observer.value!!.latitudeDeg, observer.value!!.longitudeDeg, observer.value!!.altitudeM)
+            bleManager.calibrateMag(geoData.first, geoData.second)
+            delay(500)
+            while (status.value?.magCalStatus == CalStatusEnum.RUNNING)
+                delay(100)
+            isCalibrating = false
+        }
+    }
+
+    fun cancelMagCalibration() {
+        sendJob = viewModelScope.launch {
+            bleManager.cancelMagCalibration()
+        }
+    }
+
     fun calibrateAndTrack(obj: EphemerisEntry) {
         viewModelScope.launch {
-            calibrate()
-            isCalibrating = true
-            while (isCalibrating)
+            showCal = true
+            showCalWarning = false
+            while (showCal && !isCalibrated())
                 delay(100)
-            setTrackObject(obj)
+
+            if(isCalibrated())
+                setTrackObject(obj)
         }
     }
 
@@ -305,6 +333,18 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     fun clearCacheAndReload() = viewModelScope.launch {
         ephemeris.clearCache()
         ephemeris.refresh(force = true)
+    }
+
+    fun isCalibrated(): Boolean {
+        return status.value?.gyroCalStatus == CalStatusEnum.CALIBRATED &&
+                status.value?.magCalStatus == CalStatusEnum.CALIBRATED
+    }
+
+    fun getGeomagneticData(lat: Double, lon: Double, altM: Double = 0.0): Pair<Float, Float> {
+        val g = GeomagneticField(lat.toFloat(), lon.toFloat(), altM.toFloat(), System.currentTimeMillis())
+        val bzUt = -g.z / 1000f          // g.z is nT, positive DOWN; your body/ref frame is z-up
+        val declinationDeg = g.declination // east positive, degrees
+        return bzUt to declinationDeg
     }
 
     override fun onCleared() {

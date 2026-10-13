@@ -62,7 +62,7 @@ void InitSteppers() {
   switches[0].stepper = stepper_AZ;
   switches[1].stepper = stepper_EL;
 
-  xTaskCreate(limitTask, "limitTask", 4096, NULL, 10, NULL);
+  taskCreateTracked(limitTask, "limitTask", 4096, NULL, 10, NULL);
 }
 
 void InitInterrupts() {
@@ -115,8 +115,12 @@ void Home(void *pvParameters) {
 
   stepperStatus = StepperStatus::HOMING;  
   homingSemaphore = xSemaphoreCreateCounting(2, 0);
-  xTaskCreate(HomeAxis_AZ, "HomeAxis_AZ", 4096, NULL, 1, NULL);
-  xTaskCreate(HomeAxis_EL, "HomeAxis_EL", 4096, NULL, 1, NULL);
+
+  switches[0].status = !((bool)digitalRead(LM1));
+  switches[1].status = !((bool)digitalRead(LM2));
+
+  taskCreateTracked(HomeAxis_AZ, "HomeAxis_AZ", 4096, NULL, 1, NULL);
+  taskCreateTracked(HomeAxis_EL, "HomeAxis_EL", 4096, NULL, 1, NULL);
 
   for(int i = 0; i < 2; i++)
     xSemaphoreTake(homingSemaphore, portMAX_DELAY);

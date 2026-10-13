@@ -1,16 +1,12 @@
 package com.example.armcontrol.ui
 
-import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,7 +42,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -56,7 +51,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,7 +58,6 @@ import com.example.armcontrol.ephemeris.Credentials
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.sample
-import kotlin.math.roundToInt
 
 /** State of the "choose a star catalog" field. */
 sealed interface StarImportState {
@@ -130,6 +123,7 @@ fun SettingsContent(
 
 @Composable
 fun FrameDisplay(frame: ImageBitmap?, frameSize: Int, currentFrameSize: Int, requestFrame: () -> Unit) {
+    Text("Camera", style = MaterialTheme.typography.titleMedium)
     Surface(
         color = Color.White,
         shape = RoundedCornerShape(8.dp)
