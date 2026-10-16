@@ -1,5 +1,6 @@
 package com.example.armcontrol.ui
 
+import android.media.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,14 +16,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Adjust
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +35,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,10 +48,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.armcontrol.models.CalStatusEnum
@@ -65,23 +78,43 @@ private val SliceCount = 12
 fun CalibrationDialog(
     state: Status,
     orientation: Orientation,
+    serialData: String,
     onStartGyro: () -> Unit,
     onStartMag: () -> Unit,
-    onResetMag: () -> Unit,
+    onStartFocal: () -> Unit,
     onCancelMag: () -> Unit,
-    onClose: () -> Unit,
+    onCancelFocal: () -> Unit,
+    onClose: () -> Unit
 ) {
+    var focalCalOpen by remember { mutableStateOf(false) }
+    var focalCancelling by remember { mutableStateOf(false) }
     val magActive = state.magCalStatus == CalStatusEnum.RUNNING
+    val focalActive = state.focalCalStatus == CalStatusEnum.RUNNING
+
+    LaunchedEffect(focalActive) {
+        if (focalActive && !focalCancelling) focalCalOpen = true
+        if (!focalActive) focalCancelling = false
+    }
+
     val close: () -> Unit = {
         if (magActive) onCancelMag()
+        if (focalCalOpen) onCancelFocal()
         onClose()
+    }
+
+    val closeFocalContent: () -> Unit = {
+        if (focalActive) {
+            focalCancelling = true
+            onCancelFocal()
+        }
+        focalCalOpen = false
     }
 
     Dialog(
         onDismissRequest = close,
         properties = DialogProperties(
             dismissOnBackPress = true,
-            dismissOnClickOutside = !magActive,
+            dismissOnClickOutside = !magActive && !focalActive,
             usePlatformDefaultWidth = false
         )
     ) {
@@ -95,7 +128,7 @@ fun CalibrationDialog(
             Column(Modifier.padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = if (magActive) "Magnetometer calibration" else "Calibration",
+                        text = if (magActive) "Magnetometer calibration" else if(focalCalOpen) "Focal calibration" else "Calibration",
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f)
                     )
@@ -104,12 +137,15 @@ fun CalibrationDialog(
                     }
                 }
 
-                // Right padding on the content to balance the smaller end padding of the header.
                 Box(Modifier.padding(end = 12.dp)) {
                     if (magActive) {
-                        MagCalContent(state, orientation, onResetMag, onCancelMag)
-                    } else {
-                        StepList(state, onStartGyro, onStartMag)
+                        MagCalContent(state, orientation, onCancelMag)
+                    }
+                    else if(focalCalOpen) {
+                        FocalCalContent(state, serialData, onStartFocal, closeFocalContent)
+                    }
+                    else {
+                        StepList(state, onStartGyro, onStartMag, onStartFocal)
                     }
                 }
             }
@@ -122,6 +158,7 @@ private fun StepList(
     state: Status,
     onStartGyro: () -> Unit,
     onStartMag: () -> Unit,
+    onStartFocal: () -> Unit,
 ) {
     val busy = state.gyroCalStatus == CalStatusEnum.RUNNING || state.magCalStatus == CalStatusEnum.RUNNING
 
@@ -141,6 +178,15 @@ private fun StepList(
             enabled = !busy && state.gyroCalStatus == CalStatusEnum.CALIBRATED,
             onClick = onStartMag
         )
+        HorizontalDivider()
+        CalStepButton(
+            label = "Focal calibration",
+            status = state.focalCalStatus,
+            enabled = !busy && state.gyroCalStatus == CalStatusEnum.CALIBRATED,
+            onClick = onStartFocal,
+            activeColorContainer = Color(0xFF7188FD),
+            activeIcon = Icons.Default.Adjust
+        )
     }
 }
 
@@ -150,13 +196,15 @@ private fun CalStepButton(
     status: CalStatusEnum,
     enabled: Boolean,
     onClick: () -> Unit,
+    activeColorContainer: Color = CalGreen,
+    activeColorContent: Color = Color.White,
+    activeIcon: ImageVector? = null
 ) {
     val done = status == CalStatusEnum.CALIBRATED
     val running = status == CalStatusEnum.RUNNING
 
-    val container = if (done) CalGreen else MaterialTheme.colorScheme.surfaceVariant
-    val content = if (done) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-    // A running button is disabled (it can't be pressed) but should still look fully "on".
+    val container = if (done) activeColorContainer else MaterialTheme.colorScheme.surfaceVariant
+    val content = if (done) activeColorContent else MaterialTheme.colorScheme.onSurfaceVariant
     val dim = if (enabled || running) 1f else 0.5f
 
     Button(
@@ -173,7 +221,7 @@ private fun CalStepButton(
             .fillMaxWidth()
             .height(56.dp)
     ) {
-        StatusBadge(status = status, tint = content.copy(alpha = dim))
+        StatusBadge(status = status, tint = content.copy(alpha = dim), activeIcon ?: Icons.Default.Check)
         Spacer(Modifier.width(12.dp))
         Text(
             text = label,
@@ -185,7 +233,11 @@ private fun CalStepButton(
 }
 
 @Composable
-private fun StatusBadge(status: CalStatusEnum, tint: Color) {
+private fun StatusBadge(
+    status: CalStatusEnum,
+    tint: Color,
+    activeIcon: ImageVector = Icons.Default.Check
+){
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -205,7 +257,7 @@ private fun StatusBadge(status: CalStatusEnum, tint: Color) {
                 color = tint
             )
             CalStatusEnum.CALIBRATED -> Icon(
-                Icons.Default.Check,
+                activeIcon,
                 contentDescription = "Done",
                 tint = tint,
                 modifier = Modifier.size(20.dp)
@@ -218,7 +270,6 @@ private fun StatusBadge(status: CalStatusEnum, tint: Color) {
 private fun MagCalContent(
     state: Status,
     orientation: Orientation,
-    onReset: () -> Unit,
     onCancel: () -> Unit,
 ) {
     Column(
@@ -264,6 +315,58 @@ private fun MagCalContent(
                 ),
                 modifier = Modifier.weight(1f)
             ) { Text("Cancel") }
+        }
+    }
+}
+
+@Composable
+private fun FocalCalContent(
+    state: Status,
+    serialData: String,
+    onRetry: () -> Unit,
+    onClose: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(serialData) {
+        scrollState.animateScrollTo(scrollState.maxValue)
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+    ) {
+        Surface (
+            color = Color.White,
+            modifier = Modifier.height(200.dp).fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(serialData, modifier = Modifier.padding(8.dp).verticalScroll(scrollState), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = onRetry,
+                enabled = state.focalCalStatus == CalStatusEnum.CALIBRATED,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                modifier = Modifier.weight(1f)
+            ) { Text("Retry") }
+            Button(
+                onClick = onClose,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                ),
+                modifier = Modifier.weight(1f)
+            ) { Text("Close") }
         }
     }
 }

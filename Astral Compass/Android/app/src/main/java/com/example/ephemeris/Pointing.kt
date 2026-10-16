@@ -158,7 +158,7 @@ object Pointing {
         val up = cosLat * cosLon * d.x + cosLat * sinLon * d.y + sinLat * d.z
 
         val range = d.norm
-        val azimuth = (Math.toDegrees(atan2(east, north)) + 360.0) % 360.0 + observer.declination
+        val azimuth = (Math.toDegrees(atan2(east, north)) + 360.0) % 360.0
         val elevation = Math.toDegrees(asin((up / range).coerceIn(-1.0, 1.0)))
         return AzEl(azimuth, elevation, range)
     }

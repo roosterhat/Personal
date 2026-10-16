@@ -49,7 +49,7 @@ void limitTask(void *pvParameters) {
       LimitSwitch &lswitch = switches[index];
       if (stepperStatus == StepperStatus::HOMING && lswitch.status)
         lswitch.stepper->forceStop();
-      Serial.printf("limit switch: %i\n", index);
+      Serial.printf("limit switch: %i %i\n", index, lswitch.status);
     }
     vTaskDelay(1);
   }
@@ -62,7 +62,7 @@ void InitSteppers() {
   switches[0].stepper = stepper_AZ;
   switches[1].stepper = stepper_EL;
 
-  taskCreateTracked(limitTask, "limitTask", 4096, NULL, 10, NULL);
+  taskCreateTracked(limitTask, "limitTask", 2048, NULL, 10, NULL);
 }
 
 void InitInterrupts() {

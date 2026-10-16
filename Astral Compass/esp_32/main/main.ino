@@ -11,7 +11,7 @@
 #include <regex>
 #include <esp_core_dump.h>
 #include <MagCalibrator.h>
-
+#include <FocalCalibration.h>
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
@@ -35,13 +35,15 @@ RotationEstimate rotationEstimate;
 AzEl previousPos;
 float previousTarget[] = { 0, 0 };
 float northOffset = 0, bz = 0, declination = 0;
-m_CalStatus gyroCalStatus = m_CalStatus::INIT, magCalStatus = m_CalStatus::INIT;
+m_CalStatus gyroCalStatus = m_CalStatus::INIT, magCalStatus = m_CalStatus::INIT, focalCalStatus = m_CalStatus::CALIBRATED;
 int magCalSteps = 0;
 int currentChunk = 0, chunkCount = 0, frameSize = 0, totalSent = 0;
 static const int chunkSize = (128 - 4) * 4;
 TaskHandle_t currentFrameProcessor;
 int64_t lastFrame;
+opticalTrackerConfig trackerConfig;
 NorthEstimator northEstimator(12, 10);
+FocalCalibrator focalCalibrator(trackerConfig.FOCAL_PX);
 static const char* const ESPResetCodes[] = {"ESP_RST_UNKNOWN", "ESP_RST_POWERON", "ESP_RST_EXT", "ESP_RST_SW", "ESP_RST_PANIC", "ESP_RST_INT_WDT", "ESP_RST_TASK_WDT", "ESP_RST_WDT", "ESP_RST_DEEPSLEEP", "ESP_RST_BROWNOUT", "ESP_RST_SDIO", "ESP_RST_USB", "ESP_RST_JTAG", "ESP_RST_EFUSE", "ESP_RST_PWR_GLITCH", "ESP_RST_CPU_LOCKUP"};
 static const char* const exceptionCauseCodes[] = {"IllegalInstruction", "SYSCALL", "InstructionFetchError", "LoadStoreError", "Level1Interrupt", "Alloca", "IntegerDivideByZero", "reserved", "Privileged", "LoadStoreAlignment", "reserved", "reserved", "InstrPIFDataError", "LoadStorePIFDataError", "InstrPIFAddrError", "LoadStorePIFAddrError", "InstTLBMiss", "InstTLBMultiHit", "InstFetchPrivilege", "reserved", "InstFetchProhibited", "reserved", "reserved", "reserved", "LoadStoreTLBMiss", "LoadStoreTLBMultiHit", "LoadStorePrivilege", "reserved", "LoadProhibited", "StoreProhibited"};
 
@@ -83,7 +85,7 @@ void setup() {
   serialPrintln("BLE Initialized");
   
   taskCreateTracked(ProcessICMUpdates, "ProcessICMUpdates", 4096, NULL, 10, NULL);
-  taskCreateTracked(StepperLoop, "StepperLoop", 8192, NULL, 9, NULL);
+  taskCreateTracked(StepperLoop, "StepperLoop", 4096, NULL, 9, NULL);
   taskCreateTracked(ProcessLEDs, "ProcessLEDs", 1024, NULL, 1, NULL);
   taskCreateTracked(ProcessStatusLED, "ProcessStatusLED", 1024, NULL, 1, NULL);
   taskCreateTracked(StateMonitor, "StateMonitor", 2048, NULL, 5, NULL);
@@ -119,6 +121,11 @@ void checkCrash() {
 
 void cancelMagCalibration() {
   magCalStatus = m_CalStatus::INIT;
+}
+
+void cancelFocalCalibration() {
+  focalCalibrator.running = false;
+  focalCalStatus = m_CalStatus::CALIBRATED;
 }
 
 void calibrateMagOffset(void *pvParameters) {
@@ -169,6 +176,17 @@ void calibrateGyroBias(void *pvParameters) {
   vTaskDelete(NULL);
 }
 
+void calibrateFocalPX(void *pvParameters) {
+  focalCalibrator.init(bias);
+
+  while(focalCalibrator.running)
+    vTaskDelay(10);
+
+  focalCalStatus = m_CalStatus::CALIBRATED;
+  UpdateStatus(m_Status::IDLE);
+  vTaskDelete(NULL);
+}
+
 void Calibrate(void *pvParameters) {
   UpdateStatus(m_Status::CAL);
   Halt();
@@ -186,6 +204,12 @@ void Calibrate(void *pvParameters) {
       magCalStatus = m_CalStatus::RUNNING;
       taskCreateTracked(calibrateMagOffset, "calibrateMagOffset", 3072, NULL, 5, NULL);
       break;
+    case 2:
+      focalCalStatus = m_CalStatus::RUNNING;
+      taskCreateTracked(calibrateFocalPX, "calibrateFocalPX", 4096, NULL, 5, NULL); 
+      break;
+    default:
+      UpdateStatus(m_Status::IDLE);
   }  
   
   vTaskDelete(NULL);
@@ -256,12 +280,12 @@ void SystemMonitor(void *pvParameters) {
 
 void StateMonitor(void *pvParameters) {
   char buffer[128];
-  char* statusFormat = "%i %i %i %i %i %i %i %i %i %i %i %i %i";
+  char* statusFormat = "%i %i %i %i %i %i %i %i %i %i %i %i %i %i";
 
   while(true) {
     laserStatus = digitalRead(LASER);
 
-    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS, status, (int)northOffset, gyroCalStatus, magCalStatus, magCalSteps);
+    int size = snprintf(buffer, sizeof(buffer), statusFormat, laserStatus, stepperStatus, M_hold, serialReady, switches[0].status, switches[1].status, IMUhz, camFPS, status, (int)northOffset, gyroCalStatus, magCalStatus, magCalSteps, focalCalStatus);
     transmitStatus(buffer, size);
     vTaskDelay(pdMS_TO_TICKS(200));
   }
@@ -285,7 +309,7 @@ void OrientationMonitor(void *pvParameters) {
       stepper_AZ->getCurrentPosition() / AZ_MOD, stepper_EL->getCurrentPosition() / -EL_MOD);
 
     transmitOrientation(buffer, size);
-    vTaskDelay(pdMS_TO_TICKS(30));
+    vTaskDelay(pdMS_TO_TICKS(40));
   }
 }
 
@@ -336,6 +360,7 @@ void SerialConnectionMonitor(void *pvParameters) {
             serialReady = true;
             acknowledged = true;
             lastCamMessage = esp_timer_get_time();
+            writeToSerialf("C %i %i %i %i %i %i %i %i %i %.2f %.2f %.2f %.2f", trackerConfig.GRID_COLS,trackerConfig.GRID_ROWS,trackerConfig.MAX_FEATURES,trackerConfig.CELL_MARGIN,trackerConfig.LK_WINDOW,trackerConfig.LK_ITERATIONS,trackerConfig.SEARCH_RADIUS,trackerConfig.MIN_GRADIENT,trackerConfig.MIN_POINTS,trackerConfig.OUTLIER_KEEP_FRACTION,trackerConfig.FOCAL_PX,trackerConfig.CX,trackerConfig.CY);
             break;
           }
         }     
@@ -484,18 +509,21 @@ void ProcessICMUpdates(void *pvParameters) {
     IMUhz = (int)(1 / dt);
     lastICMPoll = currentTick;
 
-    if (xQueueReceive(estimateQueue, &estimate, 0) == pdTRUE) {
-        fusion.updateVision(estimate);
-    }
+    bool visionUpdate = xQueueReceive(estimateQueue, &estimate, 0) == pdTRUE;
+    if (visionUpdate)
+      fusion.updateVision(estimate);
 
-    fusion.predict(Vector3(gyro.gyro.v).remapImuToBody(), dt);
+    Vector3 mappedGyro = Vector3(gyro.gyro.v).remapImuToBody();
+    if(focalCalibrator.running) 
+      focalCalibrator.update(estimate, visionUpdate, mappedGyro, dt);
+
+    fusion.predict(mappedGyro, dt);
     fusion.updateAccel(Vector3(accel.acceleration.v).remapImuToBody());
 
     RPY = fusion.getEulerRPY_deg();
-    bias = fusion.getGyroBias();
 
     lastGyroStateUpdate = esp_timer_get_time();
-    writeToSerialf("G %2.2f %2.2f %2.2f", RPY.x, RPY.y, RPY.z);
+    writeToSerialf("G %2.2f %2.2f %2.2f", mappedGyro.x, mappedGyro.y, mappedGyro.z);
 
     vTaskDelay(pdMS_TO_TICKS(1));
   }

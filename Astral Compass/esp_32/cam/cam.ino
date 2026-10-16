@@ -10,6 +10,7 @@
 HardwareSerial mainSerial(2);
 SharedReader serialReader(mainSerial);
 OpticalRotationTracker tracker;
+opticalTrackerConfig trackerConfig;
 QueueHandle_t serialMutex = xSemaphoreCreateMutex();
 QueueHandle_t blinkQueue = xQueueCreate(1, sizeof(int));
 volatile float gyroIntegratedThetaX = 0, gyroIntegratedThetaY = 0, gyroIntegratedThetaZ = 0;
@@ -119,7 +120,7 @@ String encode(const String &s) {
 
 void Reset() {
   gyroIntegratedThetaX = 0, gyroIntegratedThetaY = 0, gyroIntegratedThetaZ = 0;
-  tracker.init();
+  tracker.reset();
 }
 
 void BlinkStatusLED() {
@@ -142,19 +143,17 @@ void ProcessStatusLED(void *pvParameters) {
 }
 
 void TrackerLoop(void *pvParameters) {
-  tracker.init();
-
   while (true) {
     vTaskDelay(1);    
 
-    if(!serialReady) continue;
+    if(!serialReady || !tracker.ready) continue;
 
     tracker.setGyroPrediction(gyroIntegratedThetaX, gyroIntegratedThetaY, gyroIntegratedThetaZ);
     RotationEstimate est = tracker.update();
     
+    //Serial.printf("dtheta=[%.5f, %.5f, %.5f] rad  dt=%.4f s  inliers=%d  rms=%.5f\n", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);
     if (est.valid) {
-      writeToSerialf("U %.5f %.5f %.5f %.4f %d %.5f", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);
-      //Serial.printf("dtheta=[%.5f, %.5f, %.5f] rad  dt=%.4f s  inliers=%d  rms=%.5f\n", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);      
+      writeToSerialf("U %.5f %.5f %.5f %.4f %d %.5f", est.dtheta_x, est.dtheta_y, est.dtheta_z, est.dt_seconds, est.inlier_count, est.residual_rms);            
     } else {
       writeToSerial("E Insufficient tracks");
       //Serial.println("Insufficient tracks");
@@ -204,7 +203,8 @@ void SerialMonitor(void *pvParameters) {
   int index = 0;
   String command;
   std::cmatch matches;
-  std::regex gyroPattern("G (\d+\.\d+) (\d+\.\d+) (\d+\.\d+)");     
+  std::regex gyroPattern(R"(G (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+))");
+  std::regex configPattern(R"(C (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+\.\d+))");
 
   while (true) {
     while (!mainSerial.available()) vTaskDelay(1);
@@ -214,6 +214,8 @@ void SerialMonitor(void *pvParameters) {
     lastMainMessage = esp_timer_get_time();
 
     BlinkStatusLED();
+
+    //Serial.println(command);
 
     switch(command[0]) {
       case 'I':
@@ -226,11 +228,30 @@ void SerialMonitor(void *pvParameters) {
       case 'P':
         writeToSerial("ACK");
         break;
+      case 'C':
+        if (std::regex_search(command.c_str(), matches, configPattern)) {
+          trackerConfig.GRID_COLS = stoi(matches[1].str());
+          trackerConfig.GRID_ROWS = stoi(matches[2].str());
+          trackerConfig.MAX_FEATURES = stoi(matches[3].str());
+          trackerConfig.CELL_MARGIN = stoi(matches[4].str());
+          trackerConfig.LK_WINDOW = stoi(matches[5].str());
+          trackerConfig.LK_ITERATIONS = stoi(matches[6].str());
+          trackerConfig.SEARCH_RADIUS = stoi(matches[7].str());
+          trackerConfig.MIN_GRADIENT = stoi(matches[8].str());
+          trackerConfig.MIN_POINTS = stoi(matches[9].str());
+          trackerConfig.OUTLIER_KEEP_FRACTION = stof(matches[10].str());
+          trackerConfig.FOCAL_PX = stof(matches[11].str());
+          trackerConfig.CX = stof(matches[12].str());
+          trackerConfig.CY = stof(matches[13].str());
+
+          Serial.printf("trackerConfig: %i %i %i %i %i %i %i %i %i %.2f %.2f %.2f %.2f\n", trackerConfig.GRID_COLS,trackerConfig.GRID_ROWS,trackerConfig.MAX_FEATURES,trackerConfig.CELL_MARGIN,trackerConfig.LK_WINDOW,trackerConfig.LK_ITERATIONS,trackerConfig.SEARCH_RADIUS,trackerConfig.MIN_GRADIENT,trackerConfig.MIN_POINTS,trackerConfig.OUTLIER_KEEP_FRACTION,trackerConfig.FOCAL_PX,trackerConfig.CX,trackerConfig.CY);
+          tracker.init(trackerConfig);
+        }        
       case 'G':
         if (std::regex_search(command.c_str(), matches, gyroPattern)) {
-          gyroIntegratedThetaX = stof(matches[1].str());
-          gyroIntegratedThetaY = stof(matches[2].str()); 
-          gyroIntegratedThetaZ = stof(matches[3].str());          
+          gyroIntegratedThetaX = stof(matches[1].str()) * DEG2RAD;
+          gyroIntegratedThetaY = stof(matches[2].str()) * DEG2RAD; 
+          gyroIntegratedThetaZ = stof(matches[3].str()) * DEG2RAD;
         }
         break;
       case 'F':

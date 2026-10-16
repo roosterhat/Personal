@@ -1,18 +1,23 @@
 #pragma once
 
-static const int FRAME_W = 160;                         // QQVGA
-static const int FRAME_H = 120;                         //
-static const int GRID_COLS = 5;                         // feature grid: one candidate point per cell
-static const int GRID_ROWS = 4;                         //
-static const int MAX_FEATURES = GRID_COLS * GRID_ROWS;  // 20
-static const int CELL_MARGIN = 4;                       // px border inside each cell to avoid edges
-static const int LK_WINDOW = 3;                         // half-window size -> (2*LK_WINDOW+1)^2 patch
-static const int LK_ITERATIONS = 3;                     // refinement iterations per point
-static const int SEARCH_RADIUS = 6;                     // px, around the gyro-predicted location
-static const float OUTLIER_KEEP_FRACTION = 0.7f;        // keep best 70% after first fit
-static float FOCAL_PX = 119.0f;
-static float CX = FRAME_W / 2.0f;
-static float CY = FRAME_H / 2.0f;
+static const int FRAME_W = 160;
+static const int FRAME_H = 120; 
+
+struct opticalTrackerConfig {
+    int GRID_COLS = 5;                         // feature grid: one candidate point per cell
+    int GRID_ROWS = 4;                         //
+    int MAX_FEATURES = GRID_COLS * GRID_ROWS;  // 20
+    int CELL_MARGIN = 4;                       // px border inside each cell to avoid edges
+    int LK_WINDOW = 3;                         // half-window size -> (2*LK_WINDOW+1)^2 patch
+    int LK_ITERATIONS = 3;                     // refinement iterations per point
+    int SEARCH_RADIUS = 6;                     // px, around the gyro-predicted location
+    int MIN_GRADIENT = 40;
+    int MIN_POINTS = 5;
+    float OUTLIER_KEEP_FRACTION = 0.7f;        // keep best 70% after first fit
+    float FOCAL_PX = 119.0f;
+    float CX = FRAME_W / 2.0f;
+    float CY = FRAME_H / 2.0f;    
+};
 
 struct RotationEstimate
 {
@@ -42,12 +47,20 @@ class OpticalRotationTracker
 public:
     uint8_t prevFrame[FRAME_W * FRAME_H];
     uint8_t currFrame[FRAME_W * FRAME_H];
+    opticalTrackerConfig config;
+    bool ready = false;
     
-    bool init()
+    void init(opticalTrackerConfig &c)
     {
+        config = c;
+        features = new FeaturePoint[c.MAX_FEATURES];
+        reset();
+        ready = true;
+    }
+
+    void reset() {
         haveInitialFrame = false;
         predWx = predWy = predWz = 0.0f;
-        return true;
     }
 
     // Call with your gyro-integrated rotation (radians, small-angle) since the
@@ -114,7 +127,7 @@ private:
     bool haveInitialFrame;
     uint32_t prevTimestampUs;
 
-    FeaturePoint features[MAX_FEATURES];
+    FeaturePoint* features;
     int numFeatures;
 
     float predWx, predWy, predWz; // gyro-predicted delta-rotation since last frame
@@ -146,17 +159,17 @@ private:
     void detectFeatures(const uint8_t *img)
     {
         numFeatures = 0;
-        int cellW = FRAME_W / GRID_COLS;
-        int cellH = FRAME_H / GRID_ROWS;
+        int cellW = FRAME_W / config.GRID_COLS;
+        int cellH = FRAME_H / config.GRID_ROWS;
 
-        for (int gy = 0; gy < GRID_ROWS; gy++)
+        for (int gy = 0; gy < config.GRID_ROWS; gy++)
         {
-            for (int gx = 0; gx < GRID_COLS; gx++)
+            for (int gx = 0; gx < config.GRID_COLS; gx++)
             {
-                int x0 = gx * cellW + CELL_MARGIN;
-                int x1 = (gx + 1) * cellW - CELL_MARGIN;
-                int y0 = gy * cellH + CELL_MARGIN;
-                int y1 = (gy + 1) * cellH - CELL_MARGIN;
+                int x0 = gx * cellW + config.CELL_MARGIN;
+                int x1 = (gx + 1) * cellW - config.CELL_MARGIN;
+                int y0 = gy * cellH + config.CELL_MARGIN;
+                int y1 = (gy + 1) * cellH - config.CELL_MARGIN;
 
                 int bestX = -1, bestY = -1, bestScore = -1;
                 for (int y = y0; y < y1; y++)
@@ -173,9 +186,8 @@ private:
                     }
                 }
 
-                // Skip near-flat cells (low texture) — they'll just be noise.
-                static const int MIN_GRADIENT = 40;
-                if (bestScore >= MIN_GRADIENT && numFeatures < MAX_FEATURES)
+                // Skip near-flat cells (low texture) — they'll just be noise.                
+                if (bestScore >= config.MIN_GRADIENT && numFeatures < config.MAX_FEATURES)
                 {
                     features[numFeatures].x = (float)bestX;
                     features[numFeatures].y = (float)bestY;
@@ -190,14 +202,14 @@ private:
     // rotation-flow model used in the fit (see fitRotation for derivation).
     void predictPoint(float px0, float py0, float &predX, float &predY)
     {
-        float x = (px0 - CX) / FOCAL_PX;
-        float y = (py0 - CY) / FOCAL_PX;
+        float x = (px0 - config.CX) / config.FOCAL_PX;
+        float y = (py0 - config.CY) / config.FOCAL_PX;
 
         float u = x * y * predWx - (1.0f + x * x) * predWy + y * predWz;
         float v = (1.0f + y * y) * predWx - x * y * predWy - x * predWz;
 
-        predX = px0 + u * FOCAL_PX;
-        predY = py0 + v * FOCAL_PX;
+        predX = px0 + u * config.FOCAL_PX;
+        predY = py0 + v * config.FOCAL_PX;
     }
 
     // Single-scale iterative Lucas-Kanade refinement around a predicted
@@ -209,7 +221,7 @@ private:
     {
         float curX = seedX, curY = seedY;
 
-        for (int iter = 0; iter < LK_ITERATIONS; iter++)
+        for (int iter = 0; iter < config.LK_ITERATIONS; iter++)
         {
             double sumIxIx = 0, sumIxIy = 0, sumIyIy = 0;
             double sumIxIt = 0, sumIyIt = 0;
@@ -220,15 +232,14 @@ private:
 
             // Bail out if the search has wandered outside our budgeted radius —
             // treat as a failed track rather than chasing it further.
-            if (abs(cx - px0) > SEARCH_RADIUS + LK_WINDOW ||
-                abs(cy - py0) > SEARCH_RADIUS + LK_WINDOW)
+            if (abs(cx - px0) > config.SEARCH_RADIUS + config.LK_WINDOW || abs(cy - py0) > config.SEARCH_RADIUS + config.LK_WINDOW)
             {
                 return false;
             }
 
-            for (int dy = -LK_WINDOW; dy <= LK_WINDOW; dy++)
+            for (int dy = -config.LK_WINDOW; dy <= config.LK_WINDOW; dy++)
             {
-                for (int dx = -LK_WINDOW; dx <= LK_WINDOW; dx++)
+                for (int dx = -config.LK_WINDOW; dx <= config.LK_WINDOW; dx++)
                 {
                     int sx = px0 + dx, sy = py0 + dy; // sample location in prev frame
                     int tx = cx + dx, ty = cy + dy;   // corresponding location in curr frame
@@ -277,14 +288,14 @@ private:
 
             // Clamp predicted location to stay within frame bounds before search.
             float seedX = f.pred_x, seedY = f.pred_y;
-            if (seedX < LK_WINDOW)
-                seedX = LK_WINDOW;
-            if (seedX > FRAME_W - 1 - LK_WINDOW)
-                seedX = FRAME_W - 1 - LK_WINDOW;
-            if (seedY < LK_WINDOW)
-                seedY = LK_WINDOW;
-            if (seedY > FRAME_H - 1 - LK_WINDOW)
-                seedY = FRAME_H - 1 - LK_WINDOW;
+            if (seedX < config.LK_WINDOW)
+                seedX = config.LK_WINDOW;
+            if (seedX > FRAME_W - 1 - config.LK_WINDOW)
+                seedX = FRAME_W - 1 - config.LK_WINDOW;
+            if (seedY < config.LK_WINDOW)
+                seedY = config.LK_WINDOW;
+            if (seedY > FRAME_H - 1 - config.LK_WINDOW)
+                seedY = FRAME_H - 1 - config.LK_WINDOW;
 
             float outX, outY;
             f.track_ok = refineLK(prevFrame, currFrame, f.x, f.y, seedX, seedY, outX, outY);
@@ -313,19 +324,18 @@ private:
         RotationEstimate result = {false, 0, 0, 0, dt, 0, 0};
 
         // Build the list of usable correspondences.
-        static const int MAXN = MAX_FEATURES;
-        float X[MAXN], Y[MAXN], U[MAXN], V[MAXN];
-        int idxMap[MAXN]; // maps compact array index -> features[] index
+        float X[config.MAX_FEATURES], Y[config.MAX_FEATURES], U[config.MAX_FEATURES], V[config.MAX_FEATURES];
+        int idxMap[config.MAX_FEATURES]; // maps compact array index -> features[] index
         int n = 0;
 
         for (int i = 0; i < numFeatures; i++)
         {
             if (!features[i].track_ok)
                 continue;
-            float x = (features[i].x - CX) / FOCAL_PX;
-            float y = (features[i].y - CY) / FOCAL_PX;
-            float u = (features[i].tracked_x - features[i].x) / FOCAL_PX;
-            float v = (features[i].tracked_y - features[i].y) / FOCAL_PX;
+            float x = (features[i].x - config.CX) / config.FOCAL_PX;
+            float y = (features[i].y - config.CY) / config.FOCAL_PX;
+            float u = (features[i].tracked_x - features[i].x) / config.FOCAL_PX;
+            float v = (features[i].tracked_y - features[i].y) / config.FOCAL_PX;
             X[n] = x;
             Y[n] = y;
             U[n] = u;
@@ -336,15 +346,14 @@ private:
 
         // Need at least 3 well-spread points to solve a 3-unknown system
         // meaningfully; require a bit more margin for noise tolerance.
-        static const int MIN_POINTS = 5;
-        if (n < MIN_POINTS)
+        if (n < config.MIN_POINTS)
         {
             result.inlier_count = n;
             return result; // valid stays false — fusion filter should fall back to gyro-only
         }
 
         float theta[3];
-        float residuals[MAXN];
+        float residuals[config.MAX_FEATURES];
         if (!solveLeastSquares(X, Y, U, V, n, theta, residuals))
         {
             result.inlier_count = n;
@@ -354,11 +363,11 @@ private:
         // Outlier rejection: keep the best OUTLIER_KEEP_FRACTION of points by
         // residual, refit once. Simple and cheap — a full RANSAC isn't needed
         // at this point count.
-        int keepCount = (int)(n * OUTLIER_KEEP_FRACTION);
-        if (keepCount < MIN_POINTS)
-            keepCount = (n < MIN_POINTS) ? n : MIN_POINTS;
+        int keepCount = (int)(n * config.OUTLIER_KEEP_FRACTION);
+        if (keepCount < config.MIN_POINTS)
+            keepCount = (n < config.MIN_POINTS) ? n : config.MIN_POINTS;
 
-        int order[MAXN];
+        int order[config.MAX_FEATURES];
         for (int i = 0; i < n; i++)
             order[i] = i;
         // simple insertion sort by residual (n is small, <= MAX_FEATURES=20)
@@ -375,7 +384,7 @@ private:
             order[j + 1] = key;
         }
 
-        float X2[MAXN], Y2[MAXN], U2[MAXN], V2[MAXN];
+        float X2[config.MAX_FEATURES], Y2[config.MAX_FEATURES], U2[config.MAX_FEATURES], V2[config.MAX_FEATURES];
         for (int i = 0; i < keepCount; i++)
         {
             int k = order[i];
@@ -386,7 +395,7 @@ private:
         }
 
         float theta2[3];
-        float residuals2[MAXN];
+        float residuals2[config.MAX_FEATURES];
         if (!solveLeastSquares(X2, Y2, U2, V2, keepCount, theta2, residuals2))
         {
             result.inlier_count = n;

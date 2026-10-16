@@ -4,6 +4,8 @@
 #define SERIAL_RX  44
 #define LED_STATUS LED_BUILTIN
 
+inline const float DEG2RAD = PI / 180;
+
 class SharedReader {
 public: 
      SharedReader(HardwareSerial& s)

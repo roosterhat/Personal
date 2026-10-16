@@ -24,5 +24,6 @@ data class Status (
     val northOffset: Int,
     val gyroCalStatus: CalStatusEnum,
     val magCalStatus: CalStatusEnum,
-    val magCalSteps: List<Boolean>
+    val magCalSteps: List<Boolean>,
+    val focalCalStatus: CalStatusEnum
 )

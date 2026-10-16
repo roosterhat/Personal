@@ -218,8 +218,9 @@ class BleManager(private val context: Context) {
 
             when(characteristic.uuid) {
                 BleConstants.STATE_UUID -> {
+                    //Log.d("BleManager", data)
                     val matches = statusPattern.findAll(data).toList()
-                    if (matches.size == 13) {
+                    if (matches.size == 14) {
                         _status.value = Status(
                             matches[0].value == "1",
                             MotorStatusEnum.entries.getOrNull(matches[1].value.toInt()) ?: MotorStatusEnum.INIT,
@@ -232,7 +233,8 @@ class BleManager(private val context: Context) {
                             matches[9].value.toInt(),
                             CalStatusEnum.entries.getOrNull(matches[10].value.toInt()) ?: CalStatusEnum.INIT,
                             CalStatusEnum.entries.getOrNull(matches[11].value.toInt()) ?: CalStatusEnum.INIT,
-                            getFlags(matches[12].value.toInt())
+                            getFlags(matches[12].value.toInt()),
+                            CalStatusEnum.entries.getOrNull(matches[13].value.toInt()) ?: CalStatusEnum.INIT,
                         )
                     }
                 }
@@ -290,8 +292,7 @@ class BleManager(private val context: Context) {
                         _systemStatus.totalTime = match.groups[10]?.value?.toLong() ?: 0
                         _systemStatus.clockSpeed = match.groups[11]?.value?.toInt() ?: 0
 
-                        val previousSystemStatus =
-                            if (_systemStatuses.value.isNotEmpty()) _systemStatuses.value.last() else null
+                        val previousSystemStatus = if (_systemStatuses.value.isNotEmpty()) _systemStatuses.value.last() else null
                         val dt = _systemStatus.totalTime - (previousSystemStatus?.totalTime ?: 0)
                         for (core in _systemStatus.coreUtil) {
                             val previous = previousSystemStatus?.coreUtil[core.key]
@@ -386,8 +387,16 @@ class BleManager(private val context: Context) {
         sendCommand(String.format(Locale.US, "C 1 0 %.2f %.2f", bz, declination))
     }
 
+    suspend fun calibrateFocalPX() {
+        sendCommand(String.format(Locale.US, "C 2"))
+    }
+
     suspend fun cancelMagCalibration() {
         sendCommand(String.format(Locale.US, "C 1 1"))
+    }
+
+    suspend fun cancelFocalCalibration() {
+        sendCommand(String.format(Locale.US, "C 2 0"))
     }
 
     suspend fun setHoldPosition(enabled: Boolean) {

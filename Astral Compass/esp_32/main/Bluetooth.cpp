@@ -79,6 +79,7 @@ void BLEInit() {
   frameHandler        = service->createCharacteristic(FRAME_UUID,        NIMBLE_PROPERTY::NOTIFY);
   serialCommHandler   = service->createCharacteristic(SERIALCOMM_UUID,   NIMBLE_PROPERTY::NOTIFY);
 
+  systemStatusHandler->indicate();
   serialCommHandler->setCallbacks(new SerialCharCallbacks());
 
   service->start();
@@ -130,7 +131,7 @@ void bleMessageHandler(void * pvParameters) {
         if (status != m_Status::CAL && std::regex_search(msg, matches, coordinatesPattern)) {
           if(status != m_Status::TRACKING)
             UpdateStatus(m_Status::TRACKING);
-          float az = stof(matches[1].str()) + northOffset;
+          float az = stof(matches[1].str()) - northOffset;
           float el = stof(matches[2].str());
           PointTo(az, el);
         }
@@ -181,6 +182,12 @@ void bleMessageHandler(void * pvParameters) {
                     break;
                 }
                 break;
+              case 2:
+               switch(arg) {
+                case 0:
+                  cancelFocalCalibration();
+               }
+               break;
             }
           }
           else {

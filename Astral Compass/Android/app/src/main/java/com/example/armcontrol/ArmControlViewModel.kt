@@ -78,6 +78,7 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     var brightness: Float = 0.5f
     var currentTrack: EphemerisEntry? = null
     var pendingTrack: EphemerisEntry? = null
+    var serialCommSubSequence: Int = 0
 
 
     init {
@@ -279,9 +280,28 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun calibrateFocalPX() {
+        if (sendJob?.isActive == true) return
+        sendJob = viewModelScope.launch {
+            isCalibrating = true
+            serialCommSubSequence = serialComm.value.length
+            bleManager.calibrateFocalPX()
+            delay(500)
+            while (status.value?.focalCalStatus == CalStatusEnum.RUNNING)
+                delay(100)
+            isCalibrating = false
+        }
+    }
+
     fun cancelMagCalibration() {
         sendJob = viewModelScope.launch {
             bleManager.cancelMagCalibration()
+        }
+    }
+
+    fun cancelFocalCalibration() {
+        sendJob = viewModelScope.launch {
+            bleManager.cancelFocalCalibration()
         }
     }
 
@@ -336,8 +356,8 @@ class ArmControlViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun isCalibrated(): Boolean {
-        return status.value?.gyroCalStatus == CalStatusEnum.CALIBRATED &&
-                status.value?.magCalStatus == CalStatusEnum.CALIBRATED
+        return status.value?.gyroCalStatus == CalStatusEnum.CALIBRATED
+                && status.value?.magCalStatus == CalStatusEnum.CALIBRATED
     }
 
     fun getGeomagneticData(lat: Double, lon: Double, altM: Double = 0.0): Pair<Float, Float> {

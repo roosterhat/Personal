@@ -6,6 +6,32 @@ inline double deg(double rad) {
   return rad * 180.0 / PI;
 }
 
+struct RotationEstimate {
+  float dtheta_x;      // radians, small-angle delta-rotation about camera X
+  float dtheta_y;      // radians, about camera Y
+  float dtheta_z;      // radians, about camera Z (optical axis / roll)
+  float dt_seconds;
+  int   inlier_count;
+  float residual_rms;  // normalized image units
+};
+
+struct opticalTrackerConfig {
+  int GRID_COLS = 5;
+  int GRID_ROWS = 4;
+  int MAX_FEATURES = GRID_COLS * GRID_ROWS;
+  int CELL_MARGIN = 4;
+  int LK_WINDOW = 3; 
+  int LK_ITERATIONS = 3;
+  int SEARCH_RADIUS = 6;
+  float OUTLIER_KEEP_FRACTION = 0.7f;
+  float FOCAL_PX = 152.0f;
+  float CX = 160 / 2.0f;
+  float CY = 120 / 2.0f;
+  int MIN_GRADIENT = 40;
+  int MIN_POINTS = 5;
+};
+
+
 struct Vector3;
 struct Quaternion;
 

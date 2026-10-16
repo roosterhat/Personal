@@ -431,10 +431,12 @@ fun ControlScreen(viewModel: ArmControlViewModel) {
                 CalibrationDialog(
                     status!!,
                     orientation!!,
+                    serialComm.substring(min(viewModel.serialCommSubSequence, serialComm.length)),
                     { viewModel.calibrateGyro() },
                     { viewModel.calibrateMag() },
+                    { viewModel.calibrateFocalPX() },
                     { viewModel.cancelMagCalibration() },
-                    { viewModel.cancelMagCalibration() },
+                    { viewModel.cancelFocalCalibration() },
                     { viewModel.showCal = false }
                 )
             }

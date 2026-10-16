@@ -53,6 +53,7 @@ void serialPrint(char* data);
 void serialPrintln(char* data);
 void startFrameProcessing();
 void cancelMagCalibration();
+void cancelFocalCalibration();
 
 class SharedReader {
 public: 

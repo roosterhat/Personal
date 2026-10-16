@@ -3,15 +3,6 @@
 #include <math.h>
 #include <Utils.h>
 
-struct RotationEstimate {
-  float dtheta_x;      // radians, small-angle delta-rotation about camera X
-  float dtheta_y;      // radians, about camera Y
-  float dtheta_z;      // radians, about camera Z (optical axis / roll)
-  float dt_seconds;
-  int   inlier_count;
-  float residual_rms;  // normalized image units
-};
-
 // ---------------------------------------------------------------------------
 // SensorFusionEKF
 // ---------------------------------------------------------------------------
